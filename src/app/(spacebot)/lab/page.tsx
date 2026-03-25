@@ -56,8 +56,8 @@ export default function LabPage() {
           className="font-bold text-xl tracking-wide"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
-            color: isMyspace ? '#0000FF' : '#E600E6',
-            textShadow: isMyspace ? 'none' : '0 0 8px rgba(230, 0, 230, 0.3)',
+            color: 'var(--sb-accent)',
+            textShadow: '0 0 10px rgba(var(--sb-accent-rgb, 0, 220, 0), 0.3)',
           }}
         >
           LABBOTS
@@ -137,9 +137,9 @@ export default function LabPage() {
                   {/* Name + ONLINE badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div
-                      className="font-bold text-base"
+                      className="font-bold text-lg"
                       style={{
-                        color: isMyspace ? '#0000FF' : bot.accentColor,
+                        color: isMyspace ? '#FF6600' : bot.accentColor,
                         fontFamily: "'Glass TTY VT220', monospace",
                       }}
                     >
@@ -147,7 +147,7 @@ export default function LabPage() {
                     </div>
                     <span
                       className="text-[10px] font-bold tracking-widest flex-shrink-0"
-                      style={{ color: '#4ADE80' }}
+                      style={{ color: '#00DC00' }}
                     >
                       ONLINE
                     </span>
@@ -162,6 +162,11 @@ export default function LabPage() {
                   <p className="mt-2 text-sm text-sb-text-primary italic">
                     {bot.tagline}
                   </p>
+
+                  {/* Stats */}
+                  <div className="mt-3 text-xs text-sb-text-secondary">
+                    Subject: {bot.subject} | Specialty: Science
+                  </div>
                 </div>
               </div>
             </Link>
