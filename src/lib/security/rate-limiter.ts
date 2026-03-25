@@ -82,6 +82,9 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Public human directory: 30 requests per minute (browsing + search, prevents scraping)
   humanDirectory: { maxRequests: 30, windowSeconds: 60 },
 
+  // Profile updates: 20 per 15 minutes per IP (prevents profile spam)
+  humanProfile: { maxRequests: 20, windowSeconds: 900 },
+
   // SpaceBot Lab expert chat: 60 requests per hour per human
   humanLabChat: { maxRequests: 60, windowSeconds: 3600 },
 

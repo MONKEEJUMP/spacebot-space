@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
@@ -9,6 +9,7 @@ import { DEFAULT_HUMAN_THEME } from '@/lib/profile-themes';
 import type { ProfileTheme } from '@/types/profile';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,6 +165,15 @@ export default function HumanProfilePage() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [data, setData] = useState<ProfileResponse | null>(null);
 
+  // ── EDIT MODE STATE ──────────────────────────────────────────
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string | boolean | null>>({});
+
+  // Owner detection via Clerk
+  const { human: myHuman, profile: myProfile, isOwner, refetch: refetchClerk } = useClerkHuman();
+
   useEffect(() => {
     async function fetchProfile() {
       try {
@@ -187,6 +197,119 @@ export default function HumanProfilePage() {
     }
     fetchProfile();
   }, [username]);
+
+  // Soft refetch for public profile data (after save — no loading/error reset)
+  const refetchProfile = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/v1/humans/profile/${encodeURIComponent(username)}`);
+      const json: ProfileResponse = await res.json();
+      if (res.ok && json.success) {
+        setData(json);
+      }
+    } catch { /* silent */ }
+  }, [username]);
+
+  // ── EDIT MODE HANDLERS ────────────────────────────────────────
+  const handleEditClick = () => {
+    setEditForm({
+      name: myHuman?.name || '',
+      isPublic: myHuman?.isPublic ?? true,
+      transmission: myProfile?.transmission || '',
+      aboutMe: myProfile?.aboutMe || '',
+      whoIdLikeToMeet: myProfile?.whoIdLikeToMeet || '',
+      interestsGeneral: myProfile?.interestsGeneral || '',
+      interestsMusic: myProfile?.interestsMusic || '',
+      interestsHeroes: myProfile?.interestsHeroes || '',
+      interestsTechnology: myProfile?.interestsTechnology || '',
+      profileAccentColor: myProfile?.profileAccentColor || '',
+      profileBorderColor: myProfile?.profileBorderColor || '',
+      profileGlowColor: myProfile?.profileGlowColor || '',
+      profileBgTint: myProfile?.profileBgTint || '',
+      wallpaperUrl: myProfile?.wallpaperUrl || '',
+      wallpaperOpacity: myProfile?.wallpaperOpacity || '0.15',
+      buddyName: myProfile?.buddyName || '',
+      buddyActive: myProfile?.buddyActive ?? false,
+    });
+    setEditMode(true);
+    setSaveError(null);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch('/api/v1/humans/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setSaveError(json.error || 'Failed to save profile.');
+        return;
+      }
+      setEditMode(false);
+      refetchClerk();
+      refetchProfile();
+    } catch {
+      setSaveError('Connection failed. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateField = (field: string, value: string | boolean | null) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // ── EDIT FORM FIELD RENDERERS ─────────────────────────────────
+  const renderField = (label: string, field: string, multiline = false) => (
+    <div className="mb-3">
+      <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--profile-accent)' }}>
+        {label}
+      </label>
+      {multiline ? (
+        <textarea
+          value={(editForm[field] as string) || ''}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="w-full bg-transparent border px-2 py-1.5 text-sm text-sb-text-primary font-mono min-h-[80px] resize-y focus:outline-none"
+          style={{ borderColor: 'var(--profile-border)' }}
+        />
+      ) : (
+        <input
+          type="text"
+          value={(editForm[field] as string) || ''}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="w-full bg-transparent border px-2 py-1.5 text-sm text-sb-text-primary font-mono focus:outline-none"
+          style={{ borderColor: 'var(--profile-border)' }}
+        />
+      )}
+    </div>
+  );
+
+  const renderColorField = (label: string, field: string) => (
+    <div className="mb-3">
+      <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--profile-accent)' }}>
+        {label}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={(editForm[field] as string) || '#00DC00'}
+          onChange={(e) => updateField(field, e.target.value)}
+          className="w-8 h-8 border-0 bg-transparent cursor-pointer"
+        />
+        <input
+          type="text"
+          value={(editForm[field] as string) || ''}
+          onChange={(e) => updateField(field, e.target.value)}
+          placeholder="#RRGGBB"
+          className="flex-1 bg-transparent border px-2 py-1.5 text-sm text-sb-text-primary font-mono focus:outline-none"
+          style={{ borderColor: 'var(--profile-border)' }}
+        />
+      </div>
+    </div>
+  );
 
   // ── LOADING STATE ─────────────────────────────────────────────────
   if (loading) {
@@ -351,6 +474,155 @@ export default function HumanProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* ── EDIT PROFILE BUTTON (owner only) ──────────────────── */}
+        {isOwner(username) && !editMode && (
+          <div className="mb-4 text-center">
+            <button
+              onClick={handleEditClick}
+              className="px-4 py-2 border text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
+              style={{
+                borderColor: 'var(--profile-accent)',
+                color: 'var(--profile-accent)',
+              }}
+            >
+              [ EDIT PROFILE ]
+            </button>
+          </div>
+        )}
+
+        {/* ── EDIT PANEL ────────────────────────────────────────── */}
+        {editMode && (
+          <div
+            className="border p-4 mb-4"
+            style={{ borderColor: 'var(--profile-accent)', background: 'rgba(0,0,0,0.5)' }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between mb-4 border-b pb-2"
+              style={{ borderColor: 'var(--profile-border)' }}
+            >
+              <h2
+                className="text-sm font-bold uppercase tracking-wider"
+                style={{ color: 'var(--profile-accent)' }}
+              >
+                EDITING PROFILE
+              </h2>
+              <button
+                onClick={() => setEditMode(false)}
+                className="text-[#767676] hover:text-[#FF4444] text-xs font-bold uppercase transition-colors"
+              >
+                [X] CLOSE
+              </button>
+            </div>
+
+            {/* Save Error */}
+            {saveError && (
+              <div className="border border-[#FF4444] p-2 mb-4 text-sm text-[#FF4444]">
+                {saveError}
+              </div>
+            )}
+
+            {/* IDENTITY SECTION */}
+            <SectionHeader title="Identity" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              {renderField('Display Name', 'name')}
+              {renderField('Transmission', 'transmission')}
+              <div className="mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={(editForm.isPublic as boolean) ?? true}
+                    onChange={(e) => updateField('isPublic', e.target.checked)}
+                    className="accent-[var(--profile-accent)]"
+                  />
+                  <span
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: 'var(--profile-accent)' }}
+                  >
+                    Public Profile
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* ABOUT SECTION */}
+            <SectionHeader title="About" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              {renderField('About Me', 'aboutMe', true)}
+              {renderField("Who I'd Like to Meet", 'whoIdLikeToMeet', true)}
+            </div>
+
+            {/* INTERESTS SECTION */}
+            <SectionHeader title="Interests" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {renderField('General', 'interestsGeneral', true)}
+                {renderField('Music', 'interestsMusic', true)}
+                {renderField('Heroes', 'interestsHeroes', true)}
+                {renderField('Technology', 'interestsTechnology', true)}
+              </div>
+            </div>
+
+            {/* PROFILE COLORS SECTION */}
+            <SectionHeader title="Profile Colors" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {renderColorField('Accent Color', 'profileAccentColor')}
+                {renderColorField('Border Color', 'profileBorderColor')}
+                {renderColorField('Glow Color', 'profileGlowColor')}
+                {renderField('Background Tint', 'profileBgTint')}
+              </div>
+            </div>
+
+            {/* WALLPAPER SECTION */}
+            <SectionHeader title="Wallpaper" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              {renderField('Wallpaper URL', 'wallpaperUrl')}
+              {renderField('Wallpaper Opacity', 'wallpaperOpacity')}
+            </div>
+
+            {/* AI BUDDY SECTION */}
+            <SectionHeader title="AI Buddy" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              {renderField('Buddy Name', 'buddyName')}
+              <div className="mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={(editForm.buddyActive as boolean) ?? false}
+                    onChange={(e) => updateField('buddyActive', e.target.checked)}
+                    className="accent-[var(--profile-accent)]"
+                  />
+                  <span
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: 'var(--profile-accent)' }}
+                  >
+                    Buddy Active
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* SAVE / CANCEL BUTTONS */}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 border text-sm font-bold uppercase tracking-wider transition-colors disabled:opacity-50 hover:bg-white/5"
+                style={{ borderColor: 'var(--profile-accent)', color: 'var(--profile-accent)' }}
+              >
+                {saving ? 'SAVING...' : '[ SAVE CHANGES ]'}
+              </button>
+              <button
+                onClick={() => setEditMode(false)}
+                className="px-4 py-2 border border-[#767676] text-[#767676] text-sm font-bold uppercase tracking-wider hover:text-white hover:border-white transition-colors"
+              >
+                [ CANCEL ]
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── TRANSMISSION ──────────────────────────────────────── */}
         {profile?.transmission && (
