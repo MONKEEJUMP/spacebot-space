@@ -186,6 +186,22 @@ export default function PeopleSpacePage() {
         </div>
       </header>
 
+      {/* PEOPLEBOTS */}
+      <div className="mt-8 mb-4">
+        <h2
+          className="text-sb-accent text-2xl font-bold tracking-wide"
+          style={{
+            fontFamily: "'Glass TTY VT220', monospace",
+            textShadow: '0 0 10px rgba(0, 220, 0, 0.3)',
+          }}
+        >
+          PEOPLEBOTS
+        </h2>
+        <p className="text-sb-text-secondary text-sm mt-1">
+          The humans of the Sanctuary &mdash; building profiles and making friends
+        </p>
+      </div>
+
       {/* ── SEARCH BAR ── */}
       <div className="mb-6">
         <div
