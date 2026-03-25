@@ -1,51 +1,179 @@
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import LabTopicGrid from '@/components/lab/LabTopicGrid';
+import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import { LAB_BOTS } from '@/lib/lab/lab-bots';
 import { useSiteTheme } from '@/hooks/useSiteTheme';
 
 export default function LabPage() {
+  const [searchQuery, setSearchQuery] = useState('');
   const { themeId } = useSiteTheme();
   const isMyspace = themeId === 'classic-myspace';
 
+  const [shuffledBots, setShuffledBots] = useState([...LAB_BOTS]);
+
+  useEffect(() => {
+    const shuffled = [...LAB_BOTS];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setShuffledBots(shuffled);
+  }, []);
+
+  const filteredBots = useMemo(() => {
+    if (!searchQuery.trim()) return shuffledBots;
+    const q = searchQuery.toLowerCase();
+    return shuffledBots.filter(
+      (bot) => bot.name.toLowerCase().includes(q) || bot.subject.toLowerCase().includes(q)
+    );
+  }, [searchQuery, shuffledBots]);
+
   return (
-    <div className="w-full mx-auto font-mono" style={{ maxWidth: '1152px' }}>
-      <div style={{ paddingLeft: '144px' }}>
-        <header className="mb-8 pt-2">
-          <h1
-            className="font-bold text-2xl sm:text-3xl tracking-wide"
-            style={{
-              fontFamily: "'Glass TTY VT220', monospace",
-              color: isMyspace ? '#000000' : '#00DC00',
-              textShadow: isMyspace ? 'none' : '0 0 10px rgba(0, 220, 0, 0.3)',
-              lineHeight: '1.2',
-              minHeight: '42px',
-            }}
+    <div className="w-full max-w-4xl mx-auto px-4 font-mono">
+      {/* ── HEADER ── */}
+      <header className="mb-8 pt-2">
+        <h1
+          className="text-sb-accent font-bold text-2xl sm:text-3xl tracking-wide"
+          style={{
+            fontFamily: "'Glass TTY VT220', monospace",
+            textShadow: '0 0 10px rgba(0, 220, 0, 0.3)',
+            lineHeight: '1.2',
+            minHeight: '42px',
+          }}
+        >
+          LABSPACE
+        </h1>
+        <p className="text-sb-text-secondary text-sm sm:text-base mt-2">
+          Choose a science specialist and start a guided conversation.
+        </p>
+      </header>
+
+      {/* ── LABBOTS TITLE ── */}
+      <div className="mb-6">
+        <h2
+          className="font-bold text-xl tracking-wide"
+          style={{
+            fontFamily: "'Glass TTY VT220', monospace",
+            color: isMyspace ? '#0000FF' : '#E600E6',
+            textShadow: isMyspace ? 'none' : '0 0 8px rgba(230, 0, 230, 0.3)',
+          }}
+        >
+          LABBOTS
+        </h2>
+        <p className="text-sb-text-secondary text-sm mt-1">
+          12 science specialists — pick one and start learning
+        </p>
+      </div>
+
+      {/* ── SEARCH BAR ── */}
+      <div className="mb-6">
+        <div
+          className="flex items-center gap-2 border border-sb-border-primary px-3 py-2"
+          style={{ backgroundColor: 'var(--sb-bg-primary)' }}
+        >
+          <span
+            className="text-sm font-bold select-none"
+            style={{ color: 'var(--sb-accent)' }}
           >
-            LABSPACE
-          </h1>
-          <p className="mt-2 text-sm sm:text-base" style={{ color: isMyspace ? '#0000FF' : '#00D9D9' }}>
-            Choose a science specialist and start a guided chat.
-          </p>
-          <div className="mt-3 text-xs tracking-widest" style={{ color: isMyspace ? '#000000' : '#767676' }}>
-            botspace@sanctuary:~$ open /lab
-          </div>
-          <div className="mt-3">
-            <Link href="/feed" className="text-sm font-bold transition-colors" style={{ color: isMyspace ? '#0000FF' : '#FF6600' }}>
-              &larr; Back to Feed
+            SEARCH &gt;
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter by name..."
+            className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
+            style={{ color: 'var(--sb-text-primary)', caretColor: 'var(--sb-accent)' }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-sb-text-secondary hover:text-sb-text-primary text-xs uppercase tracking-wider"
+            >
+              [CLEAR]
+            </button>
+          )}
+        </div>
+        <div className="text-xs text-sb-text-secondary mt-1 px-1">
+          {filteredBots.length} of {LAB_BOTS.length} bots
+        </div>
+      </div>
+
+      {/* ── BOT CARDS ── */}
+      {filteredBots.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredBots.map((bot) => (
+            <Link
+              key={bot.slug}
+              href={`/lab/chat/${bot.slug}`}
+              className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
+              style={{
+                borderLeftColor: bot.accentColor,
+                borderLeftWidth: '3px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = isMyspace ? '#FF6600' : bot.accentColor;
+                e.currentTarget.style.borderLeftWidth = '3px';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
+                e.currentTarget.style.borderLeftColor = bot.accentColor;
+                e.currentTarget.style.borderLeftWidth = '3px';
+              }}
+            >
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 mt-1">
+                  <AvatarGenerator
+                    seed={bot.name}
+                    isBot={true}
+                    size={64}
+                    customConfig={bot.avatarConfig}
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  {/* Name + ONLINE badge */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className="font-bold text-base"
+                      style={{
+                        color: isMyspace ? '#0000FF' : bot.accentColor,
+                        fontFamily: "'Glass TTY VT220', monospace",
+                      }}
+                    >
+                      {bot.name}
+                    </div>
+                    <span
+                      className="text-[10px] font-bold tracking-widest flex-shrink-0"
+                      style={{ color: '#4ADE80' }}
+                    >
+                      ONLINE
+                    </span>
+                  </div>
+
+                  {/* Subject */}
+                  <div className="mt-1 text-xs text-sb-text-secondary tracking-wide">
+                    {bot.subject}
+                  </div>
+
+                  {/* Tagline */}
+                  <p className="mt-2 text-sm text-sb-text-primary italic">
+                    {bot.tagline}
+                  </p>
+                </div>
+              </div>
             </Link>
-          </div>
-        </header>
-      </div>
-
-      <div className="px-4">
-        <LabTopicGrid bots={LAB_BOTS} isMyspace={isMyspace} />
-      </div>
-
-      <p className="px-4 text-center text-sm mt-8" style={{ color: isMyspace ? '#000000' : '#E6E300' }}>
-        Kid-safe science mode enabled
-      </p>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <p className="text-sb-text-secondary text-sm">
+            {searchQuery ? `No bots found matching "${searchQuery}"` : 'No lab bots available.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
