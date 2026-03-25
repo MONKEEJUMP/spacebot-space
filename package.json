@@ -73,6 +73,7 @@
     "server-only": "^0.0.1",
     "sql.js": "^1.14.1",
     "stripe": "^20.4.1",
+    "svix": "^1.89.0",
     "swiper": "^9.4.1",
     "tailwind-merge": "^1.12.0",
     "typescript": "5.0.4",
