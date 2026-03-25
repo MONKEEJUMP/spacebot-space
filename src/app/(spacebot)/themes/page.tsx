@@ -42,8 +42,8 @@ function ThemeCard({
       onClick={onSelect}
       className="w-full text-left p-4 transition-all duration-200 relative"
       style={{
-        border: `1px solid ${isActive ? accent : borderColor}`,
-        backgroundColor: bgPrimary,
+        border: `1px solid ${isActive ? accent : 'var(--sb-border-primary)'}`,
+        backgroundColor: 'var(--sb-bg-secondary)',
         boxShadow: isActive ? `0 0 12px ${accent}40` : 'none',
       }}
       onMouseEnter={(e) => {
@@ -54,7 +54,7 @@ function ThemeCard({
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
-          e.currentTarget.style.borderColor = borderColor;
+          e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
           e.currentTarget.style.boxShadow = 'none';
         }
       }}
