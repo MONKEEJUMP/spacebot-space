@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useUser, useClerk } from '@clerk/nextjs';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -48,6 +50,11 @@ export default function Sidebar() {
     };
   }, [mobileOpen]);
 
+  // Clerk auth state
+  const { isSignedIn, isLoaded: clerkLoaded } = useUser();
+  const { signOut } = useClerk();
+  const { human, isLoaded: humanLoaded } = useClerkHuman();
+
   const linkStyle = (href: string): React.CSSProperties => ({
     display: "block",
     width: "100%",
@@ -74,7 +81,7 @@ export default function Sidebar() {
           padding: "20px 16px 16px 16px",
           fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
           fontSize: "12px",
-          color: "#FFFFFF",
+          color: "var(--sb-accent)",
           letterSpacing: "1px",
           borderBottom: "1px solid var(--sb-border-primary)",
         }}
@@ -165,27 +172,76 @@ export default function Sidebar() {
         }}
       />
 
-      {/* Auth links */}
+      {/* Auth links — conditional on Clerk sign-in state */}
       <div style={{ paddingBottom: "16px" }}>
-        {AUTH_LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            style={linkStyle(link.href)}
-            onMouseEnter={(e) => {
-              if (!isActive(pathname, link.href)) {
+        {clerkLoaded && isSignedIn ? (
+          <>
+            <Link
+              href={`/peoplespace/${human?.username || ''}`}
+              style={linkStyle(`/peoplespace/${human?.username || ''}`)}
+              onMouseEnter={(e) => {
+                if (!isActive(pathname, `/peoplespace/${human?.username || ''}`)) {
+                  e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(pathname, `/peoplespace/${human?.username || ''}`)) {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }
+              }}
+            >
+              My Profile
+            </Link>
+            <button
+              onClick={() => signOut()}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "10px 16px",
+                color: "var(--sb-nav-text)",
+                fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
+                fontSize: "13px",
+                borderTop: "none",
+                borderRight: "none",
+                borderBottom: "none",
+                borderLeft: "3px solid transparent",
+                backgroundColor: "transparent",
+                transition: "background-color 0.15s ease",
+                boxSizing: "border-box" as const,
+                cursor: "pointer",
+                textAlign: "left" as const,
+              }}
+              onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive(pathname, link.href)) {
+              }}
+              onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
-              }
-            }}
-          >
-            {link.label}
-          </Link>
-        ))}
+              }}
+            >
+              Sign Out
+            </button>
+          </>
+        ) : clerkLoaded ? (
+          AUTH_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              style={linkStyle(link.href)}
+              onMouseEnter={(e) => {
+                if (!isActive(pathname, link.href)) {
+                  e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(pathname, link.href)) {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }
+              }}
+            >
+              {link.label}
+            </Link>
+          ))
+        ) : null}
       </div>
 
       {/* Copyright */}
