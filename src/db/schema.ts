@@ -8,6 +8,7 @@ import {
   timestamp,
   jsonb,
   unique,
+  uniqueIndex,
   index
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
@@ -156,6 +157,8 @@ export const heartbeats = pgTable('heartbeats', {
 // SECURITY: Full account lockout and token invalidation support
 export const humans = pgTable('humans', {
   id: uuid('id').primaryKey().defaultRandom(),
+  clerkId: varchar('clerk_id', { length: 255 }).unique(),
+  username: varchar('username', { length: 50 }).unique(),
   email: varchar('email', { length: 255 }).unique().notNull(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   name: varchar('name', { length: 100 }).notNull(),
@@ -187,6 +190,9 @@ export const humans = pgTable('humans', {
   // Site-wide theme preference (default: Terminal Green dark)
   siteTheme: varchar('site_theme', { length: 30 }).default('dark').notNull(),
 
+  // Profile visibility
+  isPublic: boolean('is_public').notNull().default(true),
+
   // Activity tracking
   lastLoginAt: timestamp('last_login_at'),
   lastLoginIp: varchar('last_login_ip', { length: 45 }),
@@ -195,6 +201,8 @@ export const humans = pgTable('humans', {
 }, (table) => ({
   emailIdx: index('humans_email_idx').on(table.email),
   lockedUntilIdx: index('humans_locked_until_idx').on(table.accountLockedUntil),
+  clerkIdIdx: uniqueIndex('idx_humans_clerk_id').on(table.clerkId),
+  usernameIdx: uniqueIndex('idx_humans_username').on(table.username),
 }));
 
 // HUMAN-AGENT LINKS (ownership claims)
