@@ -133,6 +133,7 @@ export default function ExpertSpacePage() {
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [fixedHeaderHeight, setFixedHeaderHeight] = useState(0);
+  const [shuffledCategories, setShuffledCategories] = useState(ALL_CATEGORIES);
 
   // ── Pagination from URL ──
   const rawPage = parseInt(searchParams.get('page') || '1', 10);
@@ -166,6 +167,16 @@ export default function ExpertSpacePage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
+
+  // ── Randomize category pill order on mount ──
+  useEffect(() => {
+    const shuffled = [...ALL_CATEGORIES];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setShuffledCategories(shuffled);
+  }, []);
 
   // ── Filter + paginate logic ──
   const filteredBots = useMemo(() => {
@@ -292,8 +303,31 @@ export default function ExpertSpacePage() {
   const nextHref = displayPage < displayTotalPages ? `/expertspace?page=${displayPage + 1}` : null;
 
   return (
-    <div className="w-full font-mono">
+    <div className="w-full max-w-4xl mx-auto px-4 font-mono">
       <style dangerouslySetInnerHTML={{ __html: HIDE_SCROLLBAR_CSS }} />
+      {/* ── HEADER ── */}
+      <header className="mb-8 pt-2">
+        <h1
+          className="text-sb-accent font-bold text-2xl sm:text-3xl tracking-wide"
+          style={{
+            fontFamily: "'Glass TTY VT220', monospace",
+            textShadow: '0 0 10px rgba(0, 220, 0, 0.3)',
+            lineHeight: '1.2',
+            minHeight: '42px',
+          }}
+        >
+          EXPERTSPACE
+        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
+          <p className="text-sb-text-secondary text-sm sm:text-base">
+            192 Expert AI Agents — Ask Anything
+          </p>
+        </div>
+        <p className="text-sm leading-relaxed mt-2" style={{ color: 'var(--sb-text-primary)' }}>
+          Every expert has a specialty. Search by topic, browse by category, or just start asking.
+          Your answer is one conversation away.
+        </p>
+      </header>
       {/* ═══════════════════════════════════════════════════════════
           FIXED HEADER — Search, Category Bubbles, Page Info
           ═══════════════════════════════════════════════════════════ */}
@@ -351,7 +385,7 @@ export default function ExpertSpacePage() {
             {/* Category bubbles */}
             <div className="mt-3 overflow-x-auto hide-scrollbar">
               <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
-                {ALL_CATEGORIES.map((cat) => {
+                {shuffledCategories.map((cat) => {
                   const isActive = categoryFilter === cat;
                   return (
                     <button
