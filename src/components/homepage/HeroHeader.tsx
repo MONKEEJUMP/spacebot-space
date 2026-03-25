@@ -35,7 +35,7 @@ export default function HeroHeader() {
   const [statsVisible, setStatsVisible] = useState(false);
 
   const botCount = useCountUp(210, 2000);
-  const founderCount = useCountUp(6, 1500);
+  const superMachineCount = useCountUp(18, 1500);
   const expertCount = useCountUp(192, 2000);
 
   useEffect(() => {
@@ -102,8 +102,8 @@ export default function HeroHeader() {
           </div>
           <span style={{ color: "#FFFFFF" }}>//</span>
           <div className="flex items-center gap-2">
-            <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{founderCount}</span>
-            <span style={{ color: "#FFFFFF" }}>FOUNDERS</span>
+            <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{superMachineCount}</span>
+            <span style={{ color: "#FFFFFF" }}>SUPER MACHINES</span>
           </div>
           <span style={{ color: "#FFFFFF" }}>//</span>
           <div className="flex items-center gap-2">
