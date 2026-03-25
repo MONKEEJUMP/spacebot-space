@@ -1,5 +1,5 @@
 /**
- * SPACEBOT.SPACE — ALL 13 SITE THEME DEFINITIONS
+ * SPACEBOT.SPACE — ALL 14 SITE THEME DEFINITIONS
  * Each theme has complete 33 CSS variable maps.
  * Hex values copied EXACTLY from THEME_SYSTEM_ARCHITECTURE.md Section 6.
  *
@@ -198,26 +198,73 @@ const THEME_YELLOW: SiteThemeDefinition = darkTheme(
   '#E6E300', '#F5F466', '#B3B000', '#666500',
 );
 
+const THEME_INVERT: SiteThemeDefinition = {
+  id: 'invert',
+  name: 'Invert',
+  description: 'Full color inversion. Everything flips. Wild and experimental.',
+  mode: 'dark',
+  accentHex: '#FF23FF',
+  vars: {
+    '--sb-bg-primary': '#F3F3F3',
+    '--sb-bg-secondary': '#EBEBEB',
+    '--sb-bg-tertiary': '#E5E5E5',
+    '--sb-bg-elevated': '#E1E1E1',
+
+    '--sb-text-primary': '#333333',
+    '--sb-text-secondary': '#898989',
+    '--sb-text-tertiary': '#B5B5B5',
+
+    '--sb-accent-lightest': '#FF23FF14',
+    '--sb-accent-light': '#CC00CC',
+    '--sb-accent': '#FF23FF',
+    '--sb-accent-dark': '#FF55FF',
+    '--sb-accent-darkest': '#FF99FF',
+
+    '--sb-border-primary': '#CCCCCC',
+    '--sb-border-secondary': '#DDDDDD',
+
+    ...STATUS_COLORS,
+
+    '--sb-link-color': '#FF23FF',
+    '--sb-link-hover': '#CC00CC',
+    '--sb-link-visited': '#FF23FF',
+
+    '--sb-nav-bg': '#F3F3F3',
+    '--sb-nav-text': '#FF23FF',
+    '--sb-nav-hover': '#CC00CC',
+    '--sb-nav-border': '#CCCCCC',
+
+    ...glow('#FF23FF'),
+
+    '--sb-caret-color': '#FF23FF',
+    '--sb-selection-bg': '#FF23FF',
+    '--sb-selection-text': '#F3F3F3',
+    '--sb-scrollbar-thumb': '#898989',
+    '--sb-scrollbar-hover': '#FF23FF',
+    ...DARK_SPECIAL_BASE,
+  },
+};
+
 const THEME_LIGHT: SiteThemeDefinition = {
   id: 'light',
   name: 'Light Mode',
-  description: 'Terminal Green on light backgrounds. Easy on the eyes.',
+  description: 'Clean and bright. Terminal vibes in daylight.',
   mode: 'light',
-  accentHex: '#00DC00',
+  accentHex: '#00AA00',
   vars: {
-    '--sb-bg-primary': '#F5F5F0',
+    '--sb-bg-primary': '#F5F5F5',
     '--sb-bg-secondary': '#FFFFFF',
     '--sb-bg-tertiary': '#EBEBEB',
     '--sb-bg-elevated': '#E0E0E0',
 
     '--sb-text-primary': '#1A1A1A',
-    '--sb-text-secondary': '#666666',
-    '--sb-text-tertiary': '#999999',
+    '--sb-text-secondary': '#555555',
+    '--sb-text-tertiary': '#888888',
 
-    '--sb-accent-lightest': '#00DC0014',
-    '--sb-accent-light': '#33FF33',
-    '--sb-accent': '#00DC00',
-    '--sb-accent-dark': '#00AA00',
+    '--sb-accent-lightest': '#00AA0014',
+    '--sb-accent-light': '#33CC33',
+    '--sb-accent': '#00AA00',
+    '--sb-accent-dark': '#008800',
     '--sb-accent-darkest': '#006600',
 
     '--sb-border-primary': '#DDDDDD',
@@ -225,23 +272,23 @@ const THEME_LIGHT: SiteThemeDefinition = {
 
     ...STATUS_COLORS,
 
-    '--sb-link-color': '#00AA00',
-    '--sb-link-hover': '#00DC00',
-    '--sb-link-visited': '#00AA00',
+    '--sb-link-color': '#0066CC',
+    '--sb-link-hover': '#0044AA',
+    '--sb-link-visited': '#0066CC',
 
-    '--sb-nav-bg': '#1A1A1A',
-    '--sb-nav-text': '#00DC00',
-    '--sb-nav-hover': '#33FF33',
-    '--sb-nav-border': '#333333',
+    '--sb-nav-bg': '#EBEBEB',
+    '--sb-nav-text': '#333333',
+    '--sb-nav-hover': '#00AA00',
+    '--sb-nav-border': '#DDDDDD',
 
-    '--sb-glow': '0 0 3px #00DC0022',
-    '--sb-glow-strong': '0 0 6px #00DC0044, 0 0 12px #00DC0022',
+    '--sb-glow': 'none',
+    '--sb-glow-strong': 'none',
 
-    '--sb-caret-color': '#00DC00',
-    '--sb-selection-bg': '#00DC00',
+    '--sb-caret-color': '#00AA00',
+    '--sb-selection-bg': '#00AA00',
     '--sb-selection-text': '#FFFFFF',
     '--sb-scrollbar-thumb': '#CCCCCC',
-    '--sb-scrollbar-hover': '#00DC00',
+    '--sb-scrollbar-hover': '#00AA00',
     '--sb-border-radius': '0px',
     '--sb-border-width': '1px',
     '--sb-font-body': "'Glass TTY VT220', 'JetBrains Mono', monospace",
@@ -369,13 +416,14 @@ export const SITE_THEMES: readonly SiteThemeDefinition[] = [
   THEME_ORANGE,
   THEME_GOLD,
   THEME_YELLOW,
+  THEME_INVERT,
+  THEME_LIGHT,
 ] as const;
 
 /** All theme definitions including hidden ones (for CSS/validation) */
 export const ALL_THEME_DEFINITIONS: readonly SiteThemeDefinition[] = [
   ...SITE_THEMES,
   THEME_INVERTED,
-  THEME_LIGHT,
   THEME_CLASSIC_MYSPACE,
 ] as const;
 

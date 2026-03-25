@@ -820,17 +820,17 @@ button:disabled:hover {
 
 /* ─── THEME 11: LIGHT MODE ─── */
 [data-theme="light"] {
-  --sb-bg-primary: #F5F5F0;
+  --sb-bg-primary: #F5F5F5;
   --sb-bg-secondary: #FFFFFF;
   --sb-bg-tertiary: #EBEBEB;
   --sb-bg-elevated: #E0E0E0;
   --sb-text-primary: #1A1A1A;
-  --sb-text-secondary: #666666;
-  --sb-text-tertiary: #999999;
-  --sb-accent-lightest: #00DC0014;
-  --sb-accent-light: #00FF00;
-  --sb-accent: #00DC00;
-  --sb-accent-dark: #00AA00;
+  --sb-text-secondary: #555555;
+  --sb-text-tertiary: #888888;
+  --sb-accent-lightest: #00AA0014;
+  --sb-accent-light: #33CC33;
+  --sb-accent: #00AA00;
+  --sb-accent-dark: #008800;
   --sb-accent-darkest: #006600;
   --sb-border-primary: #DDDDDD;
   --sb-border-secondary: #EEEEEE;
@@ -838,26 +838,24 @@ button:disabled:hover {
   --sb-status-error: #E20000;
   --sb-status-warning: #E6E300;
   --sb-status-info: #4A9EFF;
-  --sb-link-color: #00AA00;
-  --sb-link-hover: #00DC00;
-  --sb-link-visited: #00AA00;
-  --sb-nav-bg: #1A1A1A;
-  --sb-nav-text: #00DC00;
-  --sb-nav-hover: #33FF33;
-  --sb-nav-border: #333333;
-  --sb-glow: 0 0 3px #00DC0022;
-  --sb-glow-strong: 0 0 6px #00DC0044, 0 0 12px #00DC0022;
-  --sb-caret-color: #00DC00;
-  --sb-selection-bg: #00DC00;
+  --sb-link-color: #0066CC;
+  --sb-link-hover: #0044AA;
+  --sb-link-visited: #0066CC;
+  --sb-nav-bg: #EBEBEB;
+  --sb-nav-text: #333333;
+  --sb-nav-hover: #00AA00;
+  --sb-nav-border: #DDDDDD;
+  --sb-glow: none;
+  --sb-glow-strong: none;
+  --sb-caret-color: #00AA00;
+  --sb-selection-bg: #00AA00;
   --sb-selection-text: #FFFFFF;
   --sb-scrollbar-thumb: #CCCCCC;
-  --sb-scrollbar-hover: #00DC00;
+  --sb-scrollbar-hover: #00AA00;
   --sb-border-radius: 0px;
   --sb-border-width: 1px;
-  --sb-font-display: 'IBM Plex Mono', 'VT323', 'Glass TTY VT220', 'Press Start 2P', monospace;
-  --sb-font-heading: 'IBM Plex Mono', 'VT323', 'Glass TTY VT220', monospace;
-  --sb-font-ui: 'IBM Plex Mono', 'Share Tech Mono', 'Fira Code', monospace;
-  --sb-font-body: 'IBM Plex Mono', 'Fira Code', 'Source Code Pro', 'Consolas', monospace;
+  --sb-font-body: 'Glass TTY VT220', 'JetBrains Mono', monospace;
+  --sb-font-display: 'Glass TTY VT220', 'Press Start 2P', monospace;
 }
 
 /* ─── THEME 12: CLASSIC MYSPACE ─── */
@@ -904,6 +902,47 @@ button:disabled:hover {
 
 [data-theme="classic-myspace"] .nav-bracket {
   color: #000000;
+}
+
+[data-theme="invert"] {
+  --sb-bg-primary: #0C0C0C;
+  --sb-bg-secondary: #141414;
+  --sb-bg-tertiary: #1A1A1A;
+  --sb-bg-elevated: #1E1E1E;
+  --sb-text-primary: #CCCCCC;
+  --sb-text-secondary: #767676;
+  --sb-text-tertiary: #4A4A4A;
+  --sb-accent-lightest: #00DC0014;
+  --sb-accent-light: #33FF33;
+  --sb-accent: #00DC00;
+  --sb-accent-dark: #00AA00;
+  --sb-accent-darkest: #006600;
+  --sb-border-primary: #333333;
+  --sb-border-secondary: #222222;
+  --sb-status-online: #4ADE80;
+  --sb-status-error: #E20000;
+  --sb-status-warning: #E6E300;
+  --sb-status-info: #4A9EFF;
+  --sb-link-color: #00D9D9;
+  --sb-link-hover: #00DC00;
+  --sb-link-visited: #00D9D9;
+  --sb-nav-bg: #0C0C0C;
+  --sb-nav-text: #00DC00;
+  --sb-nav-hover: #00DC00;
+  --sb-nav-border: #333333;
+  --sb-glow: 0 0 5px #00DC0033, 0 0 10px #00DC0011;
+  --sb-glow-strong: 0 0 10px #00DC0066, 0 0 20px #00DC0033, 0 0 40px #00DC0011;
+  --sb-caret-color: #00DC00;
+  --sb-selection-bg: #00DC00;
+  --sb-selection-text: #0C0C0C;
+  --sb-scrollbar-thumb: #767676;
+  --sb-scrollbar-hover: #00DC00;
+  --sb-border-radius: 0px;
+  --sb-border-width: 1px;
+  --sb-font-body: 'Glass TTY VT220', 'JetBrains Mono', monospace;
+  --sb-font-display: 'Glass TTY VT220', 'Press Start 2P', monospace;
+  filter: invert(1);
+  -webkit-filter: invert(1);
 }
 
 [data-theme="inverted"] {

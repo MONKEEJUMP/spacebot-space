@@ -1,6 +1,6 @@
 /**
  * SPACEBOT.SPACE — SITE THEME TYPE DEFINITIONS
- * 13 themes: 10 dark accent + Light Mode + Dark Default + Classic MySpace
+ * 14 themes: 10 dark accent + Invert + Light Mode + Inverted + Classic MySpace
  *
  * @author PAULIEWOOD! & The Power Trio
  */
@@ -20,6 +20,7 @@ export const SITE_THEME_IDS = [
   'orange',
   'gold',
   'yellow',
+  'invert',          // Invert — CSS filter inversion, experimental
   'inverted',        // Inverted — Terminal Green on light backgrounds
   'light',           // Light Mode — kept for CSS, hidden from selector
   'classic-myspace',  // Classic MySpace — kept for CSS, hidden from selector

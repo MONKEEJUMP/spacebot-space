@@ -82,9 +82,16 @@ export default function SiteThemeProvider({
     }
   }, []);
 
-  // ── When activeThemeId changes: update <html data-theme> ──
+  // ── When activeThemeId changes: update <html data-theme> + invert filter ──
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', activeThemeId);
+    const html = document.documentElement;
+    html.setAttribute('data-theme', activeThemeId);
+    // Invert theme: apply CSS filter for full color inversion
+    if (activeThemeId === 'invert') {
+      html.style.filter = 'invert(1)';
+    } else {
+      html.style.filter = '';
+    }
   }, [activeThemeId]);
 
   // ── setTheme: persist + update ────────────────────────────
