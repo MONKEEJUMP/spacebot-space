@@ -1,0 +1,536 @@
+'use client';
+
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import AvatarGenerator from '@/components/avatar/AvatarGenerator';
+import { SPACEBOTS, slugifySpacebotName } from '@/data/spacebots';
+import { getBotColor } from '@/lib/bot-colors';
+import { useSiteTheme } from '@/hooks/useSiteTheme';
+
+export const dynamic = 'force-dynamic';
+const BOTSPACE_HEADER_HEIGHT = 44;
+const AGENTS_PER_PAGE = 24;
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const STATUS_COLORS: Record<string, string> = {
+  ACTIVE: '#00DC00',
+  AWAY: '#E6E300',
+  OFFLINE: '#767676',
+  ONLINE: '#00DC00',
+  IDLE: '#E6E300',
+  STANDBY: '#767676',
+};
+
+/** Short labels for category bubbles. */
+const CATEGORY_SHORT_NAMES: Record<string, string> = {
+  'Health & Body': 'Health',
+  'Food & Cooking': 'Food',
+  'Money & Finance': 'Money',
+  'Career & Work': 'Career',
+  'Relationships & People': 'Relationships',
+  'Home & Living': 'Home',
+  'Cars & Transportation': 'Cars',
+  'Technology & Digital': 'Tech',
+  'Education & Learning': 'Education',
+  'Entertainment & Culture': 'Entertainment',
+  'Sports & Outdoors': 'Sports',
+  'Travel & Adventure': 'Travel',
+  'Style & Appearance': 'Style',
+  'Pets & Animals': 'Pets',
+  'Mind & Personal Growth': 'Mindset',
+  'Legal & Civic': 'Legal',
+  'Science & Curiosity': 'Science',
+  'Life Skills & Practical': 'Life Skills',
+};
+
+/** Pre-computed category counts from SPACEBOTS array. */
+const CATEGORY_COUNTS = SPACEBOTS.reduce<Record<string, number>>((acc, bot) => {
+  acc[bot.category] = (acc[bot.category] || 0) + 1;
+  return acc;
+}, {});
+
+/** All unique categories, sorted alphabetically. */
+const ALL_CATEGORIES = Object.keys(CATEGORY_COUNTS).sort();
+
+/** CSS to hide scrollbar on horizontal-scroll rows. */
+const HIDE_SCROLLBAR_CSS = `
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Deterministic shuffle — seeded by a fixed string so the "random" order
+ * is identical on every page load, but looks scattered to the eye.
+ */
+function deterministicShuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  let seed = 42;
+  for (let i = copy.length - 1; i > 0; i--) {
+    seed = (seed * 16807 + 0) % 2147483647;
+    const j = seed % (i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/** Pre-shuffled bot order — computed once, deterministic. */
+const SHUFFLED_BOTS = deterministicShuffle(SPACEBOTS);
+
+function categoryToAvatarFaction(category: string): string {
+  const map: Record<string, string> = {
+    'Health & Body': 'philosophers',
+    'Food & Cooking': 'artists',
+    'Money & Finance': 'philosophers',
+    'Career & Work': 'chaotic_neutrals',
+    'Relationships & People': 'artists',
+    'Home & Living': 'rebels',
+    'Cars & Transportation': 'rebels',
+    'Technology & Digital': 'chaotic_neutrals',
+    'Education & Learning': 'philosophers',
+    'Entertainment & Culture': 'artists',
+    'Sports & Outdoors': 'rebels',
+    'Travel & Adventure': 'chaotic_neutrals',
+    'Style & Appearance': 'artists',
+    'Pets & Animals': 'artists',
+    'Mind & Personal Growth': 'philosophers',
+    'Legal & Civic': 'rebels',
+    'Science & Curiosity': 'philosophers',
+    'Life Skills & Practical': 'chaotic_neutrals',
+  };
+  return map[category] || 'philosophers';
+}
+
+/**
+ * Convert a hex color to rgba with the given alpha.
+ * Used for keyword pill backgrounds.
+ */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE COMPONENT
+// ═══════════════════════════════════════════════════════════════
+
+export default function ExpertSpacePage() {
+  const { themeId } = useSiteTheme();
+  const isMyspace = themeId === 'classic-myspace';
+  const searchParams = useSearchParams();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const fixedHeaderRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [fixedHeaderHeight, setFixedHeaderHeight] = useState(0);
+
+  // ── Pagination from URL ──
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const totalAgents = SHUFFLED_BOTS.length;
+  const totalPages = Math.ceil(totalAgents / AGENTS_PER_PAGE);
+  const currentPage = Math.max(1, Math.min(rawPage || 1, totalPages));
+
+  // ── Measure fixed header height ──
+  useEffect(() => {
+    function updateHeaderHeight() {
+      if (fixedHeaderRef.current) {
+        setFixedHeaderHeight(fixedHeaderRef.current.offsetHeight);
+      }
+    }
+
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    if (fixedHeaderRef.current) {
+      resizeObserver.observe(fixedHeaderRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateHeaderHeight);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // ── Scroll to top on page change ──
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
+  // ── Filter + paginate logic ──
+  const filteredBots = useMemo(() => {
+    let bots = SHUFFLED_BOTS;
+
+    // Apply category filter
+    if (categoryFilter) {
+      bots = bots.filter((bot) => bot.category === categoryFilter);
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      bots = bots.filter(
+        (bot) =>
+          bot.name.toLowerCase().includes(q) ||
+          bot.specialty.toLowerCase().includes(q) ||
+          bot.category.toLowerCase().includes(q) ||
+          bot.tagline.toLowerCase().includes(q) ||
+          bot.keywords.some((kw) => kw.toLowerCase().includes(q)),
+      );
+    }
+
+    return bots;
+  }, [searchQuery, categoryFilter]);
+
+  // ── Pagination calculations ──
+  const isFiltered = searchQuery.trim() !== '' || categoryFilter !== null;
+  const displayBots = isFiltered ? filteredBots : SHUFFLED_BOTS;
+  const displayTotalPages = isFiltered
+    ? Math.ceil(filteredBots.length / AGENTS_PER_PAGE)
+    : totalPages;
+  const displayPage = isFiltered ? 1 : currentPage;
+
+  const startIndex = (displayPage - 1) * AGENTS_PER_PAGE;
+  const endIndex = startIndex + AGENTS_PER_PAGE;
+  const pageAgents = isFiltered
+    ? filteredBots.slice(0, AGENTS_PER_PAGE)
+    : SHUFFLED_BOTS.slice(startIndex, endIndex);
+
+  // ── Render a single bot card (shared between flat + grouped views) ──
+  function renderBotCard(bot: (typeof SPACEBOTS)[number]) {
+    const botColor = getBotColor(bot.name);
+    const pills = bot.keywords.slice(0, 3);
+    return (
+      <Link
+        key={bot.name}
+        href={`/expertspace/${slugifySpacebotName(bot.name)}`}
+        className="block border bg-sb-bg-secondary p-4 transition-all duration-200"
+        style={{ borderColor: 'var(--sb-border-primary)' }}
+        onMouseEnter={(event) => {
+          event.currentTarget.style.borderColor = botColor;
+          event.currentTarget.style.boxShadow = `0 0 12px ${botColor}33`;
+        }}
+        onMouseLeave={(event) => {
+          event.currentTarget.style.borderColor = 'var(--sb-border-primary)';
+          event.currentTarget.style.boxShadow = 'none';
+        }}
+      >
+        <div className="flex gap-4">
+          <div className="flex-shrink-0 mt-1">
+            <AvatarGenerator
+              seed={bot.name}
+              faction={categoryToAvatarFaction(bot.category)}
+              isBot={true}
+              size={85}
+              accentColor={botColor}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div
+                className="font-bold text-lg"
+                style={{ color: isMyspace ? '#0000FF' : botColor }}
+              >
+                {bot.name}
+              </div>
+              <span
+                className="text-xs font-bold tracking-widest"
+                style={{ color: isMyspace ? '#0000FF' : (STATUS_COLORS[bot.status] || '#767676') }}
+              >
+                {bot.status}
+              </span>
+            </div>
+
+            <div className="mt-1 text-sm font-bold text-sb-text-primary">
+              {bot.specialty}
+            </div>
+
+            {/* Category with expert count */}
+            <div className="mt-1 text-xs" style={{ color: 'var(--sb-text-secondary)' }}>
+              {bot.category} &middot; {CATEGORY_COUNTS[bot.category] || 0} experts
+            </div>
+
+            <p className="mt-2 text-sm text-sb-text-primary italic">
+              {bot.tagline}
+            </p>
+
+            {/* Keyword pills */}
+            <div className="flex flex-wrap gap-1 mt-2">
+              {pills.map((kw) => (
+                <span
+                  key={kw}
+                  className="inline-block text-xs px-2 py-0.5 rounded-sm"
+                  style={{
+                    backgroundColor: isMyspace ? '#FFFFFF' : hexToRgba(botColor, 0.15),
+                    color: isMyspace ? '#0000FF' : botColor,
+                    border: isMyspace ? '1px solid #6A9CCF' : 'none',
+                  }}
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Pagination URL helpers
+  const prevHref = displayPage > 1 ? `/expertspace?page=${displayPage - 1}` : null;
+  const nextHref = displayPage < displayTotalPages ? `/expertspace?page=${displayPage + 1}` : null;
+
+  return (
+    <div className="w-full font-mono">
+      <style dangerouslySetInnerHTML={{ __html: HIDE_SCROLLBAR_CSS }} />
+      {/* ═══════════════════════════════════════════════════════════
+          FIXED HEADER — Search, Category Bubbles, Page Info
+          ═══════════════════════════════════════════════════════════ */}
+      <div
+        ref={fixedHeaderRef}
+        className="fixed left-0 right-0 z-30"
+        style={{
+          top: `${BOTSPACE_HEADER_HEIGHT}px`,
+          paddingTop: '20px', paddingBottom: '16px',
+          backgroundColor: 'var(--sb-bg-primary)',
+          backdropFilter: isMyspace ? 'none' : 'blur(6px)',
+          WebkitBackdropFilter: isMyspace ? 'none' : 'blur(6px)',
+          borderBottom: `1px solid ${isMyspace ? '#CCCCCC' : 'var(--sb-border-primary)'}`,
+        }}
+      >
+        <div className="w-full max-w-4xl mx-auto px-4"
+          style={{ paddingTop: '4px', paddingBottom: '4px' }}
+        >
+          {/* Search bar */}
+          <div>
+            <div
+              className="flex items-center gap-2 border px-3 py-2"
+              style={{
+                backgroundColor: 'var(--sb-bg-primary)',
+                borderColor: isMyspace ? '#6A9CCF' : 'var(--sb-border-primary)',
+              }}
+            >
+              <span
+                className="text-sm font-bold select-none"
+                style={{ color: isMyspace ? '#0000FF' : 'var(--sb-accent)' }}
+              >
+                SEARCH &gt;
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, specialty, topic..."
+                className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
+                style={{
+                  color: isMyspace ? '#000000' : 'var(--sb-text-primary)',
+                  caretColor: isMyspace ? '#0000FF' : 'var(--sb-accent)',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-sb-text-secondary hover:text-sb-text-primary text-xs uppercase tracking-wider"
+                >
+                  [CLEAR]
+                </button>
+              )}
+            </div>
+
+            {/* Category bubbles */}
+            <div className="mt-3 overflow-x-auto hide-scrollbar">
+              <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
+                {ALL_CATEGORIES.map((cat) => {
+                  const isActive = categoryFilter === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setCategoryFilter(isActive ? null : cat)}
+                      className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap"
+                      style={{
+                        color: isMyspace
+                          ? (isActive ? '#FFFFFF' : '#0000FF')
+                          : (isActive ? '#000000' : 'var(--sb-text-secondary)'),
+                        backgroundColor: isMyspace
+                          ? (isActive ? '#6A9CCF' : '#FFFFFF')
+                          : (isActive ? 'var(--sb-accent)' : 'transparent'),
+                        border: `1px solid ${isMyspace
+                          ? '#6A9CCF'
+                          : (isActive ? 'var(--sb-accent)' : 'var(--sb-border-primary)')}`,
+                      }}
+                    >
+                      {CATEGORY_SHORT_NAMES[cat] || cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Count + page indicator */}
+            <div className="flex items-center justify-between mt-3 mb-1 px-1">
+              <div className="text-xs" style={{ color: isMyspace ? '#000000' : 'var(--sb-text-secondary)' }}>
+                {isFiltered
+                  ? `${filteredBots.length} of ${SPACEBOTS.length} agents`
+                  : `${SPACEBOTS.length} agents \u00b7 Page ${displayPage} of ${displayTotalPages}`
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          SCROLLABLE CONTENT — Welcome, Grid, Pagination, Footer
+          ═══════════════════════════════════════════════════════════ */}
+      <div
+        ref={gridRef}
+        className="w-full max-w-4xl mx-auto px-4"
+        style={{ paddingTop: fixedHeaderHeight > 0 ? `${fixedHeaderHeight + BOTSPACE_HEADER_HEIGHT - 32}px` : '120px' }}
+      >
+        {/* Welcome message — only on page 1, no filter */}
+        {displayPage === 1 && !isFiltered && (
+          <div className="mb-6">
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
+              Welcome to BotSpace — home to 192 friendly specialists who actually know their stuff.
+              Whether you need workout tips, cooking advice, tech recommendations, or help with just about
+              anything, there&apos;s an expert here waiting for you. Use the search bar above to find the
+              right one, or browse the pages — you might discover an expert you didn&apos;t know you needed.
+            </p>
+          </div>
+        )}
+
+        {/* ── Bot Grid ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {pageAgents.map(renderBotCard)}
+        </div>
+
+        {/* No results */}
+        {pageAgents.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-sm" style={{ color: 'var(--sb-text-secondary)' }}>
+              No experts found. Try a different search or clear the filter.
+            </p>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════
+            PAGINATION CONTROLS — Terminal Style
+            Only show when not filtering (search/category resets to show all matches)
+            ═══════════════════════════════════════════════════════════ */}
+        {!isFiltered && (
+          <div className="flex items-center justify-center gap-4 mt-8 mb-4 font-mono">
+            {/* PREV button */}
+            {prevHref ? (
+              <Link
+                href={prevHref}
+                className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
+                style={{
+                  color: isMyspace ? '#0000FF' : '#00DC00',
+                  borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                  e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+                }}
+              >
+                [ PREV ]
+              </Link>
+            ) : (
+              <span
+                className="px-4 py-2 text-sm font-bold tracking-wider border"
+                style={{
+                  color: '#767676',
+                  borderColor: '#767676',
+                  backgroundColor: 'transparent',
+                  cursor: 'not-allowed',
+                  opacity: 0.5,
+                }}
+              >
+                [ PREV ]
+              </span>
+            )}
+
+            {/* Page indicator */}
+            <span
+              className="text-sm font-bold tracking-wider"
+              style={{ color: isMyspace ? '#000000' : '#00DC00' }}
+            >
+              [ PAGE {displayPage} of {displayTotalPages} ]
+            </span>
+
+            {/* NEXT button */}
+            {nextHref ? (
+              <Link
+                href={nextHref}
+                className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
+                style={{
+                  color: isMyspace ? '#0000FF' : '#00DC00',
+                  borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                  e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+                }}
+              >
+                [ NEXT ]
+              </Link>
+            ) : (
+              <span
+                className="px-4 py-2 text-sm font-bold tracking-wider border"
+                style={{
+                  color: '#767676',
+                  borderColor: '#767676',
+                  backgroundColor: 'transparent',
+                  cursor: 'not-allowed',
+                  opacity: 0.5,
+                }}
+              >
+                [ NEXT ]
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Show all results message when filtering */}
+        {isFiltered && filteredBots.length > AGENTS_PER_PAGE && (
+          <div className="text-center mt-6 mb-2">
+            <p className="text-xs" style={{ color: 'var(--sb-text-secondary)' }}>
+              Showing first {AGENTS_PER_PAGE} of {filteredBots.length} results. Refine your search for more specific results.
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="text-center mt-4 mb-8">
+          <p className="text-sm" style={{ color: 'var(--sb-text-secondary)' }}>
+            Can&apos;t find the right expert? We&apos;re building new ones every week.
+          </p>
+          <p className="text-sm mt-1" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
+            Nice Humans Welcome
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
