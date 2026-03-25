@@ -138,6 +138,16 @@ export default function HeroHeader() {
             [ ENTER THE UNIVERSE ]
           </Link>
         </div>
+
+        <p
+          className="mt-6 text-xs tracking-widest text-center"
+          style={{
+            fontFamily: "'Glass TTY VT220', monospace",
+            color: 'var(--sb-text-secondary)',
+          }}
+        >
+          Powered by Alibaba Cloud &amp; QWEN... <span style={{ color: 'var(--sb-accent)' }}>&ldquo;Build the Impossible!&rdquo;</span>
+        </p>
       </div>
     </section>
   );
