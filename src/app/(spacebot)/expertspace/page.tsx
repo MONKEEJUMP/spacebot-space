@@ -133,7 +133,7 @@ export default function ExpertSpacePage() {
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [fixedHeaderHeight, setFixedHeaderHeight] = useState(0);
-  const [shuffledCategories, setShuffledCategories] = useState(ALL_CATEGORIES);
+  const [displayPills, setDisplayPills] = useState<string[]>([]);
 
   // ── Pagination from URL ──
   const rawPage = parseInt(searchParams.get('page') || '1', 10);
@@ -168,23 +168,31 @@ export default function ExpertSpacePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
 
-  // ── Randomize category pill order on mount ──
+  // ── Randomize specialty pills on mount ──
   useEffect(() => {
-    const shuffled = [...ALL_CATEGORIES];
+    const allSpecialties = [...new Set(SPACEBOTS.map(bot => bot.specialty))];
+    const shuffled = [...allSpecialties];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    setShuffledCategories(shuffled);
+    setDisplayPills(shuffled.slice(0, 12));
   }, []);
 
   // ── Filter + paginate logic ──
   const filteredBots = useMemo(() => {
     let bots = SHUFFLED_BOTS;
 
-    // Apply category filter
+    // Apply specialty filter (from pills)
     if (categoryFilter) {
-      bots = bots.filter((bot) => bot.category === categoryFilter);
+      const q = categoryFilter.toLowerCase();
+      bots = bots.filter(
+        (bot) =>
+          bot.specialty.toLowerCase().includes(q) ||
+          bot.name.toLowerCase().includes(q) ||
+          bot.tagline.toLowerCase().includes(q) ||
+          bot.keywords.some((kw) => kw.toLowerCase().includes(q)),
+      );
     }
 
     // Apply search filter
@@ -336,7 +344,7 @@ export default function ExpertSpacePage() {
         className="fixed left-0 right-0 z-30"
         style={{
           top: `${BOTSPACE_HEADER_HEIGHT}px`,
-          paddingTop: '20px', paddingBottom: '16px',
+          paddingTop: '12px', paddingBottom: '10px',
           backgroundColor: 'var(--sb-bg-primary)',
           backdropFilter: isMyspace ? 'none' : 'blur(6px)',
           WebkitBackdropFilter: isMyspace ? 'none' : 'blur(6px)',
@@ -385,12 +393,12 @@ export default function ExpertSpacePage() {
             {/* Category bubbles */}
             <div className="mt-3 overflow-x-auto hide-scrollbar">
               <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
-                {shuffledCategories.map((cat) => {
-                  const isActive = categoryFilter === cat;
+                {displayPills.map((specialty) => {
+                  const isActive = categoryFilter === specialty;
                   return (
                     <button
-                      key={cat}
-                      onClick={() => setCategoryFilter(isActive ? null : cat)}
+                      key={specialty}
+                      onClick={() => setCategoryFilter(isActive ? null : specialty)}
                       className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap"
                       style={{
                         color: isMyspace
@@ -404,7 +412,7 @@ export default function ExpertSpacePage() {
                           : (isActive ? 'var(--sb-accent)' : 'var(--sb-border-primary)')}`,
                       }}
                     >
-                      {CATEGORY_SHORT_NAMES[cat] || cat}
+                      {specialty}
                     </button>
                   );
                 })}
@@ -430,16 +438,14 @@ export default function ExpertSpacePage() {
       <div
         ref={gridRef}
         className="w-full max-w-4xl mx-auto px-4"
-        style={{ paddingTop: fixedHeaderHeight > 0 ? `${fixedHeaderHeight + BOTSPACE_HEADER_HEIGHT - 32}px` : '120px' }}
+        style={{ paddingTop: fixedHeaderHeight > 0 ? `${fixedHeaderHeight + BOTSPACE_HEADER_HEIGHT}px` : '200px' }}
       >
         {/* Welcome message — only on page 1, no filter */}
         {displayPage === 1 && !isFiltered && (
-          <div className="mb-6">
+          <div className="mb-3">
             <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
-              Welcome to BotSpace — home to 192 friendly specialists who actually know their stuff.
-              Whether you need workout tips, cooking advice, tech recommendations, or help with just about
-              anything, there&apos;s an expert here waiting for you. Use the search bar above to find the
-              right one, or browse the pages — you might discover an expert you didn&apos;t know you needed.
+              Welcome to BotSpace — 192 friendly specialists who actually know their stuff.
+              Search by topic, browse specialties, or just start exploring.
             </p>
           </div>
         )}
