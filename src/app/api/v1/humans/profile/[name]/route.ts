@@ -2,11 +2,15 @@
  * BOT SPACE — PUBLIC HUMAN PROFILE API
  * "Bulletproof, Concrete, Rebar, and Steel"
  *
- * Returns a single human's public profile by name.
+ * Returns a single human's public profile by name or username.
  * NO authentication required — this is a public profile.
  * ONLY returns safe, public-facing data.
  *
  * GET /api/v1/humans/profile/[name]
+ *
+ * Lookup order:
+ *   1. Exact match on username (eq)
+ *   2. Fallback to display name (ilike)
  *
  * @author PAULIEWOOD! & The Power Trio
  * @security Public endpoint — returns ONLY public data
@@ -28,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const ip = getClientIP(request);
 
   try {
-    // ── LAYER 1: Rate Limiting ──────────────────────────────────
+    // ── LAYER 1: Rate Limiting ──────────────────────────────────────────
     const rateLimit = await checkRateLimit(ip, 'humanDirectory');
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -37,35 +41,52 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // ── LAYER 2: Get name from params ───────────────────────────
+    // ── LAYER 2: Get name from params ───────────────────────────────────
     const { name } = await params;
 
-    // Validate name: 1-30 chars, alphanumeric/underscores/hyphens only
-    if (!name || name.length > 30 || !/^[a-zA-Z0-9_-]+$/.test(name)) {
+    // Validate name: 1-50 chars, alphanumeric/underscores/hyphens only
+    if (!name || name.length > 50 || !/^[a-zA-Z0-9_-]+$/.test(name)) {
       return NextResponse.json(
         { success: false, error: 'Invalid profile name.' },
         { status: 400 }
       );
     }
 
-    // ── LAYER 3: Query Database ─────────────────────────────────
+    // ── LAYER 3: Query Database — username-first lookup ─────────────────
     // SECURITY: Select ONLY public-safe fields
     // NEVER: email, passwordHash, tokens, IPs, lock fields, tokenVersion
-    const [human] = await db
-      .select({
-        id: humans.id,
-        name: humans.name,
-        subscriptionTier: humans.subscriptionTier,
-        avatarConfig: humans.avatarConfig,
-        siteTheme: humans.siteTheme,
-        createdAt: humans.createdAt,
-      })
+    const selectFields = {
+      id: humans.id,
+      name: humans.name,
+      username: humans.username,
+      isPublic: humans.isPublic,
+      subscriptionTier: humans.subscriptionTier,
+      avatarConfig: humans.avatarConfig,
+      siteTheme: humans.siteTheme,
+      createdAt: humans.createdAt,
+    };
+
+    // Step 1: Try exact match on username
+    let [human] = await db
+      .select(selectFields)
       .from(humans)
       .where(and(
         eq(humans.isEmailVerified, true),
-        ilike(humans.name, name)
+        eq(humans.username, name)
       ))
       .limit(1);
+
+    // Step 2: If no username match, fall back to display name
+    if (!human) {
+      [human] = await db
+        .select(selectFields)
+        .from(humans)
+        .where(and(
+          eq(humans.isEmailVerified, true),
+          ilike(humans.name, name)
+        ))
+        .limit(1);
+    }
 
     if (!human) {
       return NextResponse.json(
@@ -74,7 +95,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // ── LAYER 3b: Query human_profiles for extended data ────────
+    // ── LAYER 3a: Privacy check ─────────────────────────────────────────
+    if (!human.isPublic) {
+      return NextResponse.json(
+        { success: false, error: 'This profile is private.' },
+        { status: 403 }
+      );
+    }
+
+    // ── LAYER 3b: Query human_profiles for extended data ────────────────
     const [profile] = await db
       .select({
         transmission: humanProfiles.transmission,
@@ -86,12 +115,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         buddyActive: humanProfiles.buddyActive,
         aboutMe: humanProfiles.aboutMe,
         whoIdLikeToMeet: humanProfiles.whoIdLikeToMeet,
+        profileAccentColor: humanProfiles.profileAccentColor,
+        profileBorderColor: humanProfiles.profileBorderColor,
+        profileGlowColor: humanProfiles.profileGlowColor,
+        profileBgTint: humanProfiles.profileBgTint,
       })
       .from(humanProfiles)
       .where(eq(humanProfiles.humanId, human.id))
       .limit(1);
 
-    // ── LAYER 3c: Query wall posts from bot_activity ────────────
+    // ── LAYER 3c: Query wall posts from bot_activity ────────────────────
     const wallPosts = await db
       .select({
         id: botActivity.id,
@@ -106,12 +139,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .orderBy(desc(botActivity.createdAt))
       .limit(20);
 
-    // ── LAYER 4: Return Response ────────────────────────────────
+    // ── LAYER 4: Return Response ────────────────────────────────────────
     return NextResponse.json({
       success: true,
       human: {
         id: human.id,
         name: human.name,
+        username: human.username || null,
         tier: human.subscriptionTier,
         avatarConfig: human.avatarConfig || null,
         siteTheme: human.siteTheme || 'dark',
@@ -130,6 +164,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             buddy_active: profile.buddyActive || false,
             about_me: profile.aboutMe || null,
             who_id_like_to_meet: profile.whoIdLikeToMeet || null,
+            colors: {
+              accent: profile.profileAccentColor || null,
+              border: profile.profileBorderColor || null,
+              glow: profile.profileGlowColor || null,
+              bg_tint: profile.profileBgTint || null,
+            },
           }
         : null,
       wall_posts: wallPosts.map((p) => ({
