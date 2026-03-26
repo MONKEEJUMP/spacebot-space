@@ -37,7 +37,7 @@ export default function LabChatInput({ onSend, disabled = false, placeholder = '
         disabled={disabled}
         placeholder={placeholder}
         className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
-        style={{ color: '#CCCCCC', caretColor: '#00DC00' }}
+        style={{ color: '#CCCCCC', caretColor: '#00DC00', fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace" }}
       />
       <button
         onClick={() => void handleSend()}

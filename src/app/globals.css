@@ -98,6 +98,15 @@
   src: url('/fonts/Glass_TTY_VT220.ttf') format('truetype');
 }
 
+@font-face {
+  font-family: 'DEC Terminal Modern';
+  src: url('/fonts/DECTerminalModern.woff') format('woff'),
+       url('/fonts/DECTerminalModern.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ═══════════════════════════════════════════════════════
    * TERMINAL SANCTUARY — CSS CUSTOM PROPERTIES
@@ -142,6 +151,7 @@
   --font-heading: 'IBM Plex Mono', 'VT323', 'Glass TTY VT220', monospace;
   --font-ui: 'IBM Plex Mono', 'Share Tech Mono', 'Fira Code', monospace;
   --font-body: 'IBM Plex Mono', 'Fira Code', 'Source Code Pro', 'Consolas', monospace;
+  --font-chat: 'DEC Terminal Modern', 'Glass TTY VT220', monospace;
 
   /* Spacing — SOP §CSS VARS lines 1125-1131 */
   --space-xs: 4px;

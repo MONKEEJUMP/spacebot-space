@@ -70,6 +70,7 @@ export default function LabMessageList({
                   style={{
                     color: '#CCCCCC',
                     fontStyle: 'normal',
+                    fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     borderLeft: isUser ? 'none' : `2px solid ${bot.accentColor}`,
                     borderRight: isUser ? '2px solid #00DC00' : 'none',
                     backgroundColor: isUser

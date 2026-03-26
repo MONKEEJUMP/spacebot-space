@@ -162,7 +162,7 @@ export default function BotChatter({ botName, accentColor }: BotChatterProps) {
             </div>
 
             {/* Message body */}
-            <div className="text-[#CCCCCC] text-sm mt-1 leading-relaxed">
+            <div className="text-[#CCCCCC] text-sm mt-1 leading-relaxed" style={{ fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace" }}>
               &quot;{item.message}&quot;
             </div>
           </div>

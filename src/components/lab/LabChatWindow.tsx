@@ -27,7 +27,7 @@ const LAB_WORLD_STYLES = `
 .lab-chat-world .leading-relaxed {
   color: #0C0C0C !important;
   background-color: transparent !important;
-  font-family: monospace !important;
+  font-family: 'DEC Terminal Modern', 'Glass TTY VT220', monospace !important;
   border-left-color: #0000AA !important;
   border-right-color: #0000AA !important;
 }
@@ -46,7 +46,7 @@ const LAB_WORLD_STYLES = `
 .lab-chat-world input {
   color: #0C0C0C !important;
   caret-color: #0000AA !important;
-  font-family: monospace !important;
+  font-family: 'DEC Terminal Modern', 'Glass TTY VT220', monospace !important;
 }
 .lab-chat-world input::placeholder {
   color: #999999 !important;

@@ -203,7 +203,7 @@ export default function ZeusChat() {
       style={{
         border: '1px solid #00DC00',
         backgroundColor: '#0a0a0a',
-        fontFamily: "'IBM Plex Mono', 'JetBrains Mono', monospace",
+        fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
         overflow: 'hidden',
       }}
     >
@@ -539,7 +539,7 @@ export default function ZeusChat() {
             outline: 'none',
             color: '#00DC00',
             fontSize: '13px',
-            fontFamily: "'IBM Plex Mono', 'JetBrains Mono', monospace",
+            fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             caretColor: '#00DC00',
           }}
         />

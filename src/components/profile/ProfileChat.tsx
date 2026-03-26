@@ -282,7 +282,7 @@ export default function ProfileChat({
               style={{
                 color: '#0C0C0C',
                 letterSpacing: '0.15em',
-                fontFamily: "'Glass TTY VT220', monospace",
+                fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               }}
             >
               DIRECT LINK
@@ -291,7 +291,7 @@ export default function ProfileChat({
               className="text-[10px]"
               style={{
                 color: '#666666',
-                fontFamily: "'Glass TTY VT220', monospace",
+                fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               }}
             >
               {displayName} &mdash; {isHuman ? 'Direct Message' : 'Encrypted Channel'}
@@ -307,7 +307,7 @@ export default function ProfileChat({
             className="text-[10px] uppercase tracking-wider"
             style={{
               color: statusDotColor,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             }}
           >
             {status}
@@ -351,7 +351,7 @@ export default function ProfileChat({
                 style={{
                   color: '#0000AA',
                   letterSpacing: '0.2em',
-                  fontFamily: "'Glass TTY VT220', monospace",
+                  fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
                 {isHuman ? 'MESSAGE TERMINAL OPEN' : 'SECURE CHANNEL OPEN'}
@@ -360,7 +360,7 @@ export default function ProfileChat({
                 className="text-[11px] mb-1"
                 style={{
                   color: '#666666',
-                  fontFamily: "'Glass TTY VT220', monospace",
+                  fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
                 {isHuman ? `Send a message to ${displayName}` : `Transmit a message to ${displayName}`}
@@ -369,7 +369,7 @@ export default function ProfileChat({
                 className="text-[10px]"
                 style={{
                   color: '#999999',
-                  fontFamily: "'Glass TTY VT220', monospace",
+                  fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
                 ENTER to send &middot; ESC to clear
@@ -420,7 +420,7 @@ export default function ProfileChat({
                       className="text-[10px] font-bold uppercase tracking-wider"
                       style={{
                         color: '#0C0C0C',
-                        fontFamily: "'Glass TTY VT220', monospace",
+                        fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       }}
                     >
                       {msg.from}
@@ -429,7 +429,7 @@ export default function ProfileChat({
                       className="text-[9px]"
                       style={{
                         color: '#999999',
-                        fontFamily: "'Glass TTY VT220', monospace",
+                        fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       }}
                     >
                       {msg.timestamp}
@@ -440,7 +440,7 @@ export default function ProfileChat({
                   <div
                     className="px-4 py-3 text-sm leading-relaxed"
                     style={{
-                      fontFamily: "'Glass TTY VT220', monospace",
+                      fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       fontSize: '13px',
                       backgroundColor: '#F0F0F0',
                       border: '2px solid #0000AA',
@@ -460,7 +460,7 @@ export default function ProfileChat({
                         className="text-[9px] uppercase tracking-widest"
                         style={{
                           color: '#999999',
-                          fontFamily: "'Glass TTY VT220', monospace",
+                          fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                         }}
                       >
                         {isHuman ? 'sent' : 'transmitted'}
@@ -515,7 +515,7 @@ export default function ProfileChat({
                     className="text-[10px] font-bold uppercase tracking-wider"
                     style={{
                       color: accentColor,
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
                     {displayName}
@@ -524,7 +524,7 @@ export default function ProfileChat({
                     className="text-[10px]"
                     style={{
                       color: '#444444',
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
                     is composing
@@ -615,7 +615,7 @@ export default function ProfileChat({
                     style={{
                       color: accentColor,
                       opacity: 0.7,
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
                     thinking deeper
@@ -642,7 +642,7 @@ export default function ProfileChat({
           className="text-sm font-bold select-none"
           style={{
             color: '#0000AA',
-            fontFamily: "'Glass TTY VT220', monospace",
+            fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
           }}
         >
           &#9654;
@@ -664,7 +664,7 @@ export default function ProfileChat({
           style={{
             color: '#0C0C0C',
             caretColor: '#0000AA',
-            fontFamily: "'Glass TTY VT220', monospace",
+            fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             fontSize: '13px',
           }}
         />
@@ -675,7 +675,7 @@ export default function ProfileChat({
             className="text-[10px] uppercase tracking-widest px-2 py-1 transition-colors"
             style={{
               color: '#FFFFFF',
-              fontFamily: "'Glass TTY VT220', monospace",
+              fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               cursor: 'pointer',
               backgroundColor: '#0000AA',
               borderRadius: 0,
@@ -692,7 +692,7 @@ export default function ProfileChat({
             style={{
               color: '#0000AA',
               opacity: 0.8,
-              fontFamily: "'Glass TTY VT220', monospace",
+              fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               animation: 'channelPulse 1.5s ease-in-out infinite',
             }}
           >
