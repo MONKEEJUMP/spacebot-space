@@ -278,12 +278,9 @@ export default function PeopleSpacePage() {
                 style={{ borderColor: 'var(--sb-border-primary)', borderLeft: `3px solid ${tierInfo.color}` }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = tierInfo.color;
-                  e.currentTarget.style.borderLeftWidth = '3px';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
-                  e.currentTarget.style.borderLeftColor = tierInfo.color;
-                  e.currentTarget.style.borderLeftWidth = '3px';
                 }}
               >
                 <div className="flex gap-4">
