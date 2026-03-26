@@ -55,21 +55,26 @@ export default function Sidebar() {
   const { signOut } = useClerk();
   const { human, isLoaded: humanLoaded } = useClerkHuman();
 
+  const sidebarFont = "'DEC Terminal Modern', 'Glass TTY VT220', monospace";
+
   const linkStyle = (href: string): React.CSSProperties => ({
     display: "block",
     width: "100%",
     padding: "10px 16px",
-    color: "var(--sb-nav-text)",
+    color: isActive(pathname, href) ? "var(--sb-accent)" : "var(--sb-nav-text)",
     textDecoration: "none",
-    fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-    fontSize: "13px",
+    fontFamily: sidebarFont,
+    fontSize: "15px",
+    textTransform: "uppercase",
+    letterSpacing: "1.5px",
+    textShadow: isActive(pathname, href) ? "0 0 8px var(--sb-accent)" : "none",
     borderLeft: isActive(pathname, href)
       ? "3px solid var(--sb-accent)"
       : "3px solid transparent",
     backgroundColor: isActive(pathname, href)
       ? "var(--sb-bg-secondary)"
       : "transparent",
-    transition: "background-color 0.15s ease, border-color 0.15s ease",
+    transition: "all 0.15s ease",
     boxSizing: "border-box" as const,
   });
 
@@ -91,15 +96,17 @@ export default function Sidebar() {
                 padding: "6px 0",
                 color: "var(--sb-accent)",
                 textDecoration: "none",
-                fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-                fontSize: "13px",
-                transition: "opacity 0.15s ease",
+                fontFamily: sidebarFont,
+                fontSize: "15px",
+                textTransform: "uppercase",
+                letterSpacing: "1.5px",
+                transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "0.7";
+                e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.textShadow = "none";
               }}
             >
               My Profile
@@ -111,19 +118,21 @@ export default function Sidebar() {
                 width: "100%",
                 padding: "6px 0",
                 color: "var(--sb-accent)",
-                fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-                fontSize: "13px",
+                fontFamily: sidebarFont,
+                fontSize: "15px",
+                textTransform: "uppercase",
+                letterSpacing: "1.5px",
                 border: "none",
                 backgroundColor: "transparent",
-                transition: "opacity 0.15s ease",
+                transition: "all 0.15s ease",
                 cursor: "pointer",
                 textAlign: "left" as const,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "0.7";
+                e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.textShadow = "none";
               }}
             >
               Sign Out
@@ -140,15 +149,17 @@ export default function Sidebar() {
                 padding: "6px 0",
                 color: "var(--sb-accent)",
                 textDecoration: "none",
-                fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-                fontSize: "13px",
-                transition: "opacity 0.15s ease",
+                fontFamily: sidebarFont,
+                fontSize: "15px",
+                textTransform: "uppercase",
+                letterSpacing: "1.5px",
+                transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "0.7";
+                e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.textShadow = "none";
               }}
             >
               {link.label}
@@ -176,11 +187,15 @@ export default function Sidebar() {
             onMouseEnter={(e) => {
               if (!isActive(pathname, link.href)) {
                 e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
+                e.currentTarget.style.color = "var(--sb-accent)";
+                e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
               }
             }}
             onMouseLeave={(e) => {
               if (!isActive(pathname, link.href)) {
                 e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "var(--sb-nav-text)";
+                e.currentTarget.style.textShadow = "none";
               }
             }}
           >
@@ -193,11 +208,15 @@ export default function Sidebar() {
           onMouseEnter={(e) => {
             if (!isActive(pathname, AVATAR_LINK.href)) {
               e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
+              e.currentTarget.style.color = "var(--sb-accent)";
+              e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
             }
           }}
           onMouseLeave={(e) => {
             if (!isActive(pathname, AVATAR_LINK.href)) {
               e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--sb-nav-text)";
+              e.currentTarget.style.textShadow = "none";
             }
           }}
         >
@@ -222,8 +241,10 @@ export default function Sidebar() {
       >
         <div
           style={{
-            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-            fontSize: "11px",
+            fontFamily: sidebarFont,
+            fontSize: "10px",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
             color: "var(--sb-nav-text)",
             lineHeight: "1.5",
           }}
@@ -232,8 +253,10 @@ export default function Sidebar() {
         </div>
         <div
           style={{
-            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-            fontSize: "11px",
+            fontFamily: sidebarFont,
+            fontSize: "10px",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
             color: "var(--sb-accent)",
             lineHeight: "1.5",
           }}
