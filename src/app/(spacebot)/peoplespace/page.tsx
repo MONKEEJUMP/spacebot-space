@@ -169,13 +169,13 @@ export default function PeopleSpacePage() {
             href="/peoplespace/build-avatar"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold tracking-widest transition-all duration-200"
             style={{
-              border: '1px solid #4A9EFF',
-              color: '#4A9EFF',
+              border: '1px solid var(--sb-accent)',
+              color: 'var(--sb-accent)',
               backgroundColor: 'transparent',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(74, 158, 255, 0.4)';
-              e.currentTarget.style.backgroundColor = 'rgba(74, 158, 255, 0.1)';
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 220, 0, 0.4)';
+              e.currentTarget.style.backgroundColor = 'rgba(0, 220, 0, 0.1)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.boxShadow = 'none';
