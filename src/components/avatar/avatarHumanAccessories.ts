@@ -528,7 +528,7 @@ function drawGoldMonocle({ ctx, size, cx, cy, faceR, primary }: AccParams): void
 // ═══════════════════════════════════════════════════════════════
 
 function drawPearlEarrings({ ctx, size, cx, cy, faceR }: AccParams): void {
-  const pearlR = size * 0.018;
+  const pearlR = size * 0.028;
   const pearls = [
     { x: cx - faceR * 0.88, y: cy + faceR * 0.05 },
     { x: cx + faceR * 0.88, y: cy + faceR * 0.05 },
@@ -583,7 +583,7 @@ function drawPearlEarrings({ ctx, size, cx, cy, faceR }: AccParams): void {
 function drawDiamondNoseStud({ ctx, size, cx, cy, faceR, primary }: AccParams): void {
   const px = cx + faceR * 0.08;
   const py = cy + faceR * 0.08;
-  const r = size * 0.006;
+  const r = size * 0.016;
 
   // Glow
   ctx.save();
@@ -606,7 +606,7 @@ function drawDiamondNoseStud({ ctx, size, cx, cy, faceR, primary }: AccParams): 
 
   // Specular micro dot
   ctx.beginPath();
-  ctx.arc(px - r * 0.3, py - r * 0.3, size * 0.002, 0, Math.PI * 2);
+  ctx.arc(px - r * 0.3, py - r * 0.3, size * 0.004, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.fill();
 }
@@ -716,8 +716,8 @@ function drawBlush({ ctx, cx, cy, faceR }: AccParams): void {
 
   for (const c of cheeks) {
     const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, blushR);
-    g.addColorStop(0, 'rgba(255,107,107,0.14)');
-    g.addColorStop(0.7, 'rgba(255,107,107,0.06)');
+    g.addColorStop(0, 'rgba(255,107,107,0.50)');
+    g.addColorStop(0.7, 'rgba(255,107,107,0.25)');
     g.addColorStop(1, 'rgba(255,107,107,0)');
     ctx.beginPath();
     ctx.arc(c.x, c.y, blushR, 0, Math.PI * 2);
@@ -737,8 +737,8 @@ function drawFreckles({ ctx, size, cx, cy, faceR, primary, serial }: AccParams):
   for (let i = 0; i < count; i++) {
     const fx = cx + (rng() - 0.5) * faceR * 0.85;
     const fy = cy - faceR * 0.15 + rng() * faceR * 0.45;
-    const fr = size * (0.003 + rng() * 0.003);
-    const alpha = 0.2 + rng() * 0.15;
+    const fr = size * (0.008 + rng() * 0.006);
+    const alpha = 0.45 + rng() * 0.2;
 
     ctx.beginPath();
     ctx.arc(fx, fy, fr, 0, Math.PI * 2);
@@ -760,11 +760,11 @@ function drawBeautyMark({ ctx, size, cx, cy, faceR, primary, serial }: AccParams
     { x: cx + faceR * 0.15, y: cy - faceR * 0.25 }, // Near right eye
   ];
   const pos = positions[Math.floor(rng() * positions.length)];
-  const r = size * 0.005;
+  const r = size * 0.014;
 
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = withAlpha(darkenColor(primary, 50), 0.5);
+  ctx.fillStyle = withAlpha(darkenColor(primary, 50), 0.7);
   ctx.fill();
 
   // Subtle shadow
@@ -800,20 +800,20 @@ function drawTears({ ctx, size, cx, cy, faceR, serial }: AccParams): void {
 
     // Crystal clear liquid fill
     const tearGrad = ctx.createLinearGradient(ex, tearTopY, ex, tearTopY + tearLen);
-    tearGrad.addColorStop(0, 'rgba(200,220,255,0.3)');
-    tearGrad.addColorStop(0.5, 'rgba(180,210,255,0.2)');
-    tearGrad.addColorStop(1, 'rgba(200,220,255,0.1)');
+    tearGrad.addColorStop(0, 'rgba(200,220,255,0.6)');
+    tearGrad.addColorStop(0.5, 'rgba(180,210,255,0.45)');
+    tearGrad.addColorStop(1, 'rgba(200,220,255,0.3)');
     ctx.fillStyle = tearGrad;
     ctx.fill();
 
     // Subtle outline
-    ctx.strokeStyle = 'rgba(180,200,240,0.15)';
-    ctx.lineWidth = 0.3;
+    ctx.strokeStyle = 'rgba(180,200,240,0.4)';
+    ctx.lineWidth = 1.0;
     ctx.stroke();
 
     // Specular micro dot — top of tear
     ctx.beginPath();
-    ctx.arc(ex - tearW * 0.3, tearTopY + tearLen * 0.15, size * 0.002, 0, Math.PI * 2);
+    ctx.arc(ex - tearW * 0.3, tearTopY + tearLen * 0.15, size * 0.004, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.fill();
   }
@@ -847,8 +847,8 @@ function drawScar({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): voi
   ctx.beginPath();
   ctx.moveTo(x1 + 0.5, y1 + 0.5);
   ctx.lineTo(x2 + 0.5, y2 + 0.5);
-  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-  ctx.lineWidth = size * 0.005;
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = size * 0.012;
   ctx.lineCap = 'round';
   ctx.stroke();
 
@@ -856,8 +856,8 @@ function drawScar({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): voi
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
-  ctx.strokeStyle = withAlpha(lightenColor(primary, 40), 0.25);
-  ctx.lineWidth = size * 0.005;
+  ctx.strokeStyle = withAlpha(lightenColor(primary, 40), 0.6);
+  ctx.lineWidth = size * 0.012;
   ctx.stroke();
 
   ctx.lineCap = 'butt';
@@ -1186,7 +1186,7 @@ function drawFlower({ ctx, size, cx, cy, faceR, primary }: AccParams): void {
 
 function drawNeuralBand({ ctx, size, cx, cy, faceR, primary }: AccParams): void {
   const bandW = faceR * 1.7;
-  const bandH = size * 0.015;
+  const bandH = size * 0.024;
   const bandX = cx - bandW / 2;
   const bandY = cy - faceR * 0.35;
 
@@ -1240,8 +1240,8 @@ function drawNeuralBand({ ctx, size, cx, cy, faceR, primary }: AccParams): void 
   ctx.beginPath();
   ctx.moveTo(nodes[0].x + size * 0.01, nodes[0].y);
   ctx.lineTo(nodes[1].x - size * 0.01, nodes[1].y);
-  ctx.strokeStyle = withAlpha(primary, 0.1);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.3);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
@@ -1272,20 +1272,20 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   // Nearly transparent holographic screen — faction color 5%
   ctx.beginPath();
   ctx.roundRect(lensX, lensY, lensW, lensH, lensRx);
-  ctx.fillStyle = withAlpha(primary, 0.05);
+  ctx.fillStyle = withAlpha(primary, 0.12);
   ctx.fill();
 
   // Thin bright border
   ctx.beginPath();
   ctx.roundRect(lensX, lensY, lensW, lensH, lensRx);
-  ctx.strokeStyle = withAlpha(primary, 0.15);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
 
   // HUD content — tiny faction-colored text
   const fontSize = Math.max(3, size * 0.018);
   ctx.font = `${fontSize}px monospace`;
-  ctx.fillStyle = withAlpha(primary, 0.2);
+  ctx.fillStyle = withAlpha(primary, 0.45);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
@@ -1300,8 +1300,8 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   const chY = lensY + size * 0.015;
   const chLen = size * 0.008;
 
-  ctx.strokeStyle = withAlpha(primary, 0.18);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.4);
+  ctx.lineWidth = 0.8;
   // Horizontal
   ctx.beginPath();
   ctx.moveTo(chX - chLen, chY);
@@ -1315,7 +1315,7 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   // Center dot
   ctx.beginPath();
   ctx.arc(chX, chY, 0.6, 0, Math.PI * 2);
-  ctx.fillStyle = withAlpha(primary, 0.25);
+  ctx.fillStyle = withAlpha(primary, 0.5);
   ctx.fill();
 
   // Scan line — horizontal progress bar at bottom of HUD
@@ -1325,7 +1325,7 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   ctx.beginPath();
   ctx.moveTo(barX, barY);
   ctx.lineTo(barX + barW, barY);
-  ctx.strokeStyle = withAlpha(primary, 0.08);
+  ctx.strokeStyle = withAlpha(primary, 0.2);
   ctx.lineWidth = 0.5;
   ctx.stroke();
 
@@ -1333,7 +1333,7 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   ctx.beginPath();
   ctx.moveTo(barX, barY);
   ctx.lineTo(barX + barW * 0.6, barY);
-  ctx.strokeStyle = withAlpha(primary, 0.2);
+  ctx.strokeStyle = withAlpha(primary, 0.45);
   ctx.lineWidth = 0.5;
   ctx.stroke();
 
@@ -1341,8 +1341,8 @@ function drawHudLens({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): 
   ctx.beginPath();
   ctx.moveTo(lensX + lensW, eyeY);
   ctx.lineTo(lensX + lensW + faceR * 0.15, eyeY + size * 0.005);
-  ctx.strokeStyle = withAlpha(primary, 0.12);
-  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
 
   // Reset text settings

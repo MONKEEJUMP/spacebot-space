@@ -130,13 +130,13 @@ function drawElectronOrbits({ ctx, cx, cy, faceR, size, primary, serial }: AccPa
   const rng = seededRandom(serial + ':orbits');
 
   const orbits = [
-    { rx: faceR * 1.3, ry: faceR * 0.4, angle: 15, alpha: 0.18, sw: 0.6 },
-    { rx: faceR * 1.2, ry: faceR * 0.35, angle: -40, alpha: 0.14, sw: 0.5 },
+    { rx: faceR * 1.3, ry: faceR * 0.4, angle: 15, alpha: 0.4, sw: 1.5 },
+    { rx: faceR * 1.2, ry: faceR * 0.35, angle: -40, alpha: 0.3, sw: 1.2 },
   ];
 
   // 50% chance of a third ring
   if (rng() > 0.5) {
-    orbits.push({ rx: faceR * 1.1, ry: faceR * 0.3, angle: 70, alpha: 0.10, sw: 0.4 });
+    orbits.push({ rx: faceR * 1.1, ry: faceR * 0.3, angle: 70, alpha: 0.22, sw: 1.0 });
   }
 
   for (const orbit of orbits) {
@@ -160,7 +160,7 @@ function drawElectronOrbits({ ctx, cx, cy, faceR, size, primary, serial }: AccPa
     ctx.shadowBlur = 3;
     ctx.shadowColor = primary;
     ctx.beginPath();
-    ctx.arc(ex, ey, size * 0.006, 0, Math.PI * 2);
+    ctx.arc(ex, ey, size * 0.01, 0, Math.PI * 2);
     ctx.fillStyle = withAlpha(primary, 0.6);
     ctx.fill();
     ctx.restore();
@@ -199,12 +199,12 @@ function drawDnaHelix({ ctx, cx, cy, faceR, size, primary }: AccParams): void {
     for (let i = 0; i < strand.length - 1; i++) {
       const p = strand[i];
       const n = strand[i + 1];
-      const alpha = p.depth > 0 ? 0.22 : 0.12;
+      const alpha = p.depth > 0 ? 0.5 : 0.3;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(n.x, n.y);
       ctx.strokeStyle = withAlpha(primary, alpha);
-      ctx.lineWidth = 0.6;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     }
   }
@@ -219,8 +219,8 @@ function drawDnaHelix({ ctx, cx, cy, faceR, size, primary }: AccParams): void {
       ctx.beginPath();
       ctx.moveTo(s1.x, s1.y);
       ctx.lineTo(s2.x, s2.y);
-      ctx.strokeStyle = withAlpha(primary, 0.1);
-      ctx.lineWidth = 0.3;
+      ctx.strokeStyle = withAlpha(primary, 0.3);
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
   }
@@ -342,8 +342,8 @@ function drawParticleCloud({ ctx, cx, cy, faceR, size, primary, serial }: AccPar
     const py = cy + Math.sin(angle) * dist;
 
     const closeness = 1 - (dist - faceR * 0.9) / (faceR * 0.7);
-    const r = size * (0.003 + closeness * 0.005);
-    const alpha = 0.15 + closeness * 0.25;
+    const r = size * (0.006 + closeness * 0.01);
+    const alpha = 0.35 + closeness * 0.35;
 
     ctx.save();
     ctx.shadowBlur = r * 2;
@@ -384,8 +384,8 @@ function drawFibonacciSpiral({ ctx, cx, cy, faceR, primary }: AccParams): void {
     else ctx.lineTo(x, y);
   }
 
-  ctx.strokeStyle = withAlpha(primary, 0.15);
-  ctx.lineWidth = 0.6;
+  ctx.strokeStyle = withAlpha(primary, 0.4);
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 }
@@ -405,7 +405,7 @@ function drawAtomBurst({ ctx, cx, cy, faceR, primary, serial }: AccParams): void
     const angle = (i / numLines) * Math.PI * 2 + rng() * 0.2;
     const startR = faceR * 0.85;
     const endR = faceR * (1.1 + rng() * 0.2);
-    const alpha = 0.12 + rng() * 0.08;
+    const alpha = 0.3 + rng() * 0.15;
 
     const sx = cx + Math.cos(angle) * startR;
     const sy = cy + Math.sin(angle) * startR;
@@ -416,13 +416,13 @@ function drawAtomBurst({ ctx, cx, cy, faceR, primary, serial }: AccParams): void
     ctx.moveTo(sx, sy);
     ctx.lineTo(ex, ey);
     ctx.strokeStyle = withAlpha(primary, alpha);
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
     // Tip glow dot
     ctx.beginPath();
-    ctx.arc(ex, ey, 0.8, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(primary, 0.25);
+    ctx.arc(ex, ey, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha(primary, 0.5);
     ctx.fill();
   }
 
@@ -437,13 +437,13 @@ function drawShieldArcsOrbital({ ctx, cx, cy, faceR, primary, serial }: AccParam
   const rng = seededRandom(serial + ':sarcs');
 
   const arcs = [
-    { r: faceR * 1.15, start: -0.6, span: 1.2, alpha: 0.18, lw: 0.8 },
-    { r: faceR * 1.25, start: 2.2, span: 0.96, alpha: 0.14, lw: 0.6 },
-    { r: faceR * 1.1, start: -2.3, span: 0.78, alpha: 0.10, lw: 0.5 },
+    { r: faceR * 1.15, start: -0.6, span: 1.2, alpha: 0.4, lw: 2.0 },
+    { r: faceR * 1.25, start: 2.2, span: 0.96, alpha: 0.3, lw: 1.5 },
+    { r: faceR * 1.1, start: -2.3, span: 0.78, alpha: 0.22, lw: 1.2 },
   ];
 
   if (rng() > 0.5) {
-    arcs.push({ r: faceR * 1.3, start: -1.6, span: 1.05, alpha: 0.08, lw: 0.4 });
+    arcs.push({ r: faceR * 1.3, start: -1.6, span: 1.05, alpha: 0.18, lw: 1.0 });
   }
 
   ctx.save();
@@ -461,8 +461,8 @@ function drawShieldArcsOrbital({ ctx, cx, cy, faceR, primary, serial }: AccParam
       const nx = cx + Math.cos(t) * arc.r;
       const ny = cy + Math.sin(t) * arc.r;
       ctx.beginPath();
-      ctx.arc(nx, ny, 1, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(primary, 0.2);
+      ctx.arc(nx, ny, 2, 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(primary, 0.45);
       ctx.fill();
     }
   }
@@ -477,7 +477,7 @@ function drawShieldArcsOrbital({ ctx, cx, cy, faceR, primary, serial }: AccParam
 function drawBinaryRain({ ctx, cx, cy, faceR, size, primary, serial }: AccParams): void {
   const rng = seededRandom(serial + ':binary');
   const numCols = 4 + Math.floor(rng() * 3);
-  const fontSize = Math.max(3, size * 0.018);
+  const fontSize = Math.max(5, size * 0.028);
 
   ctx.font = `${fontSize}px monospace`;
   ctx.textAlign = 'center';
@@ -491,7 +491,7 @@ function drawBinaryRain({ ctx, cx, cy, faceR, size, primary, serial }: AccParams
     for (let row = 0; row < numChars; row++) {
       const char = rng() > 0.5 ? '1' : '0';
       const t = row / numChars;
-      const alpha = 0.25 - t * 0.20;
+      const alpha = 0.5 - t * 0.35;
       if (alpha <= 0) continue;
 
       const charY = colTopY + row * fontSize * 1.2;
@@ -514,10 +514,10 @@ function drawSoundWaves({ ctx, cx, cy, faceR, primary, serial }: AccParams): voi
   const srcX = cx + side * faceR;
 
   const waves = [
-    { r: faceR * 0.2, alpha: 0.25, lw: 0.7 },
-    { r: faceR * 0.35, alpha: 0.18, lw: 0.6 },
-    { r: faceR * 0.5, alpha: 0.12, lw: 0.5 },
-    { r: faceR * 0.65, alpha: 0.07, lw: 0.4 },
+    { r: faceR * 0.2, alpha: 0.5, lw: 2.0 },
+    { r: faceR * 0.35, alpha: 0.4, lw: 1.5 },
+    { r: faceR * 0.5, alpha: 0.3, lw: 1.2 },
+    { r: faceR * 0.65, alpha: 0.2, lw: 1.0 },
   ];
 
   const startAngle = side === -1 ? Math.PI * 0.5 : -Math.PI * 0.5;
@@ -560,8 +560,8 @@ function drawGravitationalLens({ ctx, cx, cy, faceR, primary, serial }: AccParam
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     ctx.quadraticCurveTo(cpx, cpy, ex, ey);
-    ctx.strokeStyle = withAlpha(primary, 0.08 + rng() * 0.04);
-    ctx.lineWidth = 0.4;
+    ctx.strokeStyle = withAlpha(primary, 0.25 + rng() * 0.1);
+    ctx.lineWidth = 1.2;
     ctx.stroke();
   }
 }
@@ -573,7 +573,7 @@ function drawGravitationalLens({ ctx, cx, cy, faceR, primary, serial }: AccParam
 function drawQuantumLink({ ctx, cx, cy, faceR, size, primary }: AccParams): void {
   const pA = { x: cx - faceR * 1.1, y: cy - faceR * 0.3 };
   const pB = { x: cx + faceR * 1.0, y: cy + faceR * 0.4 };
-  const particleR = size * 0.008;
+  const particleR = size * 0.014;
 
   // Particles with glow
   for (const pt of [pA, pB]) {
@@ -582,13 +582,13 @@ function drawQuantumLink({ ctx, cx, cy, faceR, size, primary }: AccParams): void
     ctx.shadowColor = primary;
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, particleR, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(primary, 0.3);
+    ctx.fillStyle = withAlpha(primary, 0.6);
     ctx.fill();
     ctx.restore();
 
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, particleR * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(primary, 0.5);
+    ctx.fillStyle = withAlpha(primary, 0.8);
     ctx.fill();
   }
 
@@ -598,8 +598,8 @@ function drawQuantumLink({ ctx, cx, cy, faceR, size, primary }: AccParams): void
   ctx.beginPath();
   ctx.moveTo(pA.x, pA.y);
   ctx.lineTo(pB.x, pB.y);
-  ctx.strokeStyle = withAlpha(primary, 0.12);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
@@ -611,13 +611,13 @@ function drawQuantumLink({ ctx, cx, cy, faceR, size, primary }: AccParams): void
 
   ctx.beginPath();
   ctx.arc(midX - infR, midY, infR, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(primary, 0.15);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(midX + infR, midY, infR, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(primary, 0.15);
-  ctx.lineWidth = 0.4;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.0;
   ctx.stroke();
 }
 
@@ -634,8 +634,8 @@ function drawStarField({ ctx, cx, cy, faceR, size, serial }: AccParams): void {
     const dist = faceR * (1.0 + rng() * 0.8);
     const sx = cx + Math.cos(angle) * dist;
     const sy = cy + Math.sin(angle) * dist;
-    const r = size * (0.002 + rng() * 0.003);
-    const alpha = 0.15 + rng() * 0.25;
+    const r = size * (0.006 + rng() * 0.006);
+    const alpha = 0.4 + rng() * 0.35;
 
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, Math.PI * 2);
@@ -646,7 +646,7 @@ function drawStarField({ ctx, cx, cy, faceR, size, serial }: AccParams): void {
     if (i < 3 && rng() > 0.4) {
       const sparkleR = r * 2.5;
       ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.5})`;
-      ctx.lineWidth = 0.3;
+      ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.moveTo(sx - sparkleR, sy);
       ctx.lineTo(sx + sparkleR, sy);
@@ -696,7 +696,7 @@ function drawHolographicHorns({ ctx, cx, cy, faceR, size, primary }: AccParams):
       const x1 = (1 - t1) * (1 - t1) * h.baseX + 2 * (1 - t1) * t1 * h.cpX + t1 * t1 * h.tipX;
       const y1 = (1 - t1) * (1 - t1) * h.baseY + 2 * (1 - t1) * t1 * h.cpY + t1 * t1 * h.tipY;
 
-      const alpha = 0.2 * (1 - t0);
+      const alpha = 0.45 * (1 - t0);
       ctx.beginPath();
       ctx.moveTo(x0, y0);
       ctx.lineTo(x1, y1);
@@ -710,8 +710,8 @@ function drawHolographicHorns({ ctx, cx, cy, faceR, size, primary }: AccParams):
     ctx.beginPath();
     ctx.moveTo(h.baseX, h.baseY);
     ctx.quadraticCurveTo(h.cpX, h.cpY, h.tipX, h.tipY);
-    ctx.strokeStyle = withAlpha(primary, 0.25);
-    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = withAlpha(primary, 0.5);
+    ctx.lineWidth = 1.2;
     ctx.stroke();
 
     ctx.restore();
@@ -896,7 +896,7 @@ function drawSquareEars({ ctx, size, cx, cy, faceR, primary }: AccParams): void 
 
 function drawEarCuffs({ ctx, size, cx, cy, faceR, primary, serial }: AccParams): void {
   const rng = seededRandom(serial + ':earcuffs');
-  const cuffR = size * 0.012;
+  const cuffR = size * 0.02;
 
   const cuffs = [
     { x: cx - faceR * 0.95, y: cy - faceR * 0.05 },
@@ -907,7 +907,7 @@ function drawEarCuffs({ ctx, size, cx, cy, faceR, primary, serial }: AccParams):
     ctx.beginPath();
     ctx.arc(c.x, c.y, cuffR, 0, Math.PI * 2);
     ctx.strokeStyle = withAlpha(lightenColor(primary, 30), 0.5);
-    ctx.lineWidth = size * 0.006;
+    ctx.lineWidth = size * 0.01;
     ctx.stroke();
 
     ctx.beginPath();

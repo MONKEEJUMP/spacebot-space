@@ -404,8 +404,8 @@ function drawEnergyShield({ ctx, cx, cy, faceR, size, primary }: AccParams): voi
   ctx.shadowBlur = size * 0.03;
   ctx.shadowColor = primary;
   const domeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, shieldR);
-  domeGrad.addColorStop(0, withAlpha(primary, 0.06));
-  domeGrad.addColorStop(0.7, withAlpha(primary, 0.03));
+  domeGrad.addColorStop(0, withAlpha(primary, 0.15));
+  domeGrad.addColorStop(0.7, withAlpha(primary, 0.08));
   domeGrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.beginPath();
   ctx.arc(cx, cy, shieldR, Math.PI, Math.PI * 2); // Upper hemisphere
@@ -415,8 +415,8 @@ function drawEnergyShield({ ctx, cx, cy, faceR, size, primary }: AccParams): voi
   // Edge glow rim
   ctx.beginPath();
   ctx.arc(cx, cy, shieldR, Math.PI * 0.95, Math.PI * 2.05);
-  ctx.strokeStyle = withAlpha(primary, 0.15);
-  ctx.lineWidth = 0.8;
+  ctx.strokeStyle = withAlpha(primary, 0.35);
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 
@@ -438,8 +438,8 @@ function drawEnergyShield({ ctx, cx, cy, faceR, size, primary }: AccParams): voi
       else ctx.lineTo(hx, hy);
     }
     ctx.closePath();
-    ctx.strokeStyle = withAlpha(primary, 0.03);
-    ctx.lineWidth = 0.3;
+    ctx.strokeStyle = withAlpha(primary, 0.12);
+    ctx.lineWidth = 0.8;
     ctx.stroke();
   }
 
@@ -451,8 +451,8 @@ function drawEnergyShield({ ctx, cx, cy, faceR, size, primary }: AccParams): voi
   ];
   for (const sp of shimmerPositions) {
     ctx.beginPath();
-    ctx.arc(sp.x, sp.y, 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.arc(sp.x, sp.y, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fill();
   }
 }
@@ -638,9 +638,9 @@ function drawWifiBroadcast({ ctx, cx, cy, faceR, size, primary }: AccParams): vo
 
   // 3 concentric arcs radiating upward
   const arcs = [
-    { r: size * 0.04, alpha: 0.3, lw: 0.8 },
-    { r: size * 0.07, alpha: 0.2, lw: 0.6 },
-    { r: size * 0.10, alpha: 0.12, lw: 0.4 },
+    { r: size * 0.04, alpha: 0.6, lw: 2.0 },
+    { r: size * 0.07, alpha: 0.45, lw: 1.5 },
+    { r: size * 0.10, alpha: 0.3, lw: 1.0 },
   ];
 
   ctx.save();
@@ -1112,19 +1112,19 @@ function drawWarPaint({ ctx, cx, cy, faceR, primary }: AccParams): void {
   ctx.clip();
 
   // Center fill
-  ctx.fillStyle = withAlpha(primary, 0.2);
+  ctx.fillStyle = withAlpha(primary, 0.45);
   ctx.fillRect(stripeX, stripeY + fadeZone, stripeW, stripeH - fadeZone * 2);
 
   // Top feather
   const topGrad = ctx.createLinearGradient(cx, stripeY, cx, stripeY + fadeZone);
   topGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  topGrad.addColorStop(1, withAlpha(primary, 0.2));
+  topGrad.addColorStop(1, withAlpha(primary, 0.45));
   ctx.fillStyle = topGrad;
   ctx.fillRect(stripeX, stripeY, stripeW, fadeZone);
 
   // Bottom feather
   const botGrad = ctx.createLinearGradient(cx, stripeY + stripeH - fadeZone, cx, stripeY + stripeH);
-  botGrad.addColorStop(0, withAlpha(primary, 0.2));
+  botGrad.addColorStop(0, withAlpha(primary, 0.45));
   botGrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = botGrad;
   ctx.fillRect(stripeX, stripeY + stripeH - fadeZone, stripeW, fadeZone);
@@ -1152,14 +1152,14 @@ function drawBattleBandage({ ctx, cx, cy, faceR, size, primary, serial }: AccPar
   // Outer bandage with adhesive edges
   ctx.beginPath();
   rrect(ctx, -bw / 2, -bh / 2, bw, bh, size * 0.003);
-  ctx.fillStyle = withAlpha(lightenColor(primary, 50), 0.3);
+  ctx.fillStyle = withAlpha(lightenColor(primary, 50), 0.6);
   ctx.fill();
 
   // Inner gauze pad — slightly darker inset
   const padInset = 1;
   ctx.beginPath();
   rrect(ctx, -bw / 2 + padInset, -bh / 2 + padInset, bw - padInset * 2, bh - padInset * 2, size * 0.002);
-  ctx.fillStyle = withAlpha(lightenColor(primary, 40), 0.2);
+  ctx.fillStyle = withAlpha(lightenColor(primary, 40), 0.45);
   ctx.fill();
 
   ctx.restore();
@@ -1171,9 +1171,9 @@ function drawBattleBandage({ ctx, cx, cy, faceR, size, primary, serial }: AccPar
 
 function drawShieldArcs({ ctx, cx, cy, faceR, primary }: AccParams): void {
   const arcs = [
-    { r: faceR * 1.2, start: -0.8, span: 1.4, alpha: 0.18, lw: 1.0 },   // Front ~1 o'clock
-    { r: faceR * 1.3, start: 2.5, span: 1.0, alpha: 0.12, lw: 0.8 },    // Back ~7 o'clock
-    { r: faceR * 1.15, start: -2.5, span: 0.9, alpha: 0.08, lw: 0.6 },  // Side ~10 o'clock
+    { r: faceR * 1.2, start: -0.8, span: 1.4, alpha: 0.4, lw: 2.0 },   // Front ~1 o'clock
+    { r: faceR * 1.3, start: 2.5, span: 1.0, alpha: 0.3, lw: 1.5 },    // Back ~7 o'clock
+    { r: faceR * 1.15, start: -2.5, span: 0.9, alpha: 0.2, lw: 1.2 },  // Side ~10 o'clock
   ];
 
   ctx.save();
@@ -1192,8 +1192,8 @@ function drawShieldArcs({ ctx, cx, cy, faceR, primary }: AccParams): void {
       const nx = cx + Math.cos(t) * arc.r;
       const ny = cy + Math.sin(t) * arc.r;
       ctx.beginPath();
-      ctx.arc(nx, ny, 1, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(primary, 0.25);
+      ctx.arc(nx, ny, 2, 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(primary, 0.5);
       ctx.fill();
     }
   }
