@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import type { RobotConfig, FactionPalette } from '@/components/avatar/avatarConfig';
 import {
@@ -363,7 +364,11 @@ export default function BuildAvatarPage() {
   const [commandCenterHeight, setCommandCenterHeight] = useState(420);
   const [isEditingExistingAvatar, setIsEditingExistingAvatar] = useState(false);
   const { requireAuth } = useAuthGate();
+  const { isSignedIn, isLoaded: clerkLoaded } = useUser();
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveMessage, setProfileSaveMessage] = useState<string | null>(null);
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const preloadAvatar = async () => {
@@ -1229,6 +1234,97 @@ export default function BuildAvatarPage() {
                 </div>
               </div>
             </div>
+
+            {/* Save to Profile */}
+            {clerkLoaded && (
+              <div className="mb-6">
+                {isSignedIn ? (
+                  <>
+                    <button
+                      onClick={async () => {
+                        setProfileSaving(true);
+                        setProfileSaveMessage(null);
+                        setProfileSaveError(null);
+                        const avatarData = {
+                          bodyType, eyeType, mouthType, colorIndex, customHex,
+                          selectedAccessories, schematicId, schematicColor,
+                          overlayPreset, animationType, androidName,
+                        };
+                        try {
+                          const res = await fetch('/api/v1/humans/profile', {
+                            method: 'PUT',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ avatarConfig: avatarData }),
+                          });
+                          const json = await res.json();
+                          if (!res.ok || !json.success) {
+                            setProfileSaveError(json.error || 'Failed to save avatar to profile.');
+                          } else {
+                            setProfileSaveMessage('Avatar saved to your profile!');
+                          }
+                        } catch {
+                          setProfileSaveError('Connection failed. Please try again.');
+                        } finally {
+                          setProfileSaving(false);
+                        }
+                      }}
+                      disabled={profileSaving}
+                      className="w-full py-4 px-6 font-bold text-base tracking-widest transition-all duration-200 disabled:opacity-50"
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: uiColor,
+                        borderRadius: '6px',
+                        border: `2px solid ${uiColor}`,
+                        fontFamily: "'Glass TTY VT220', monospace",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 20px ${uiColor}60`; }}
+                      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      {profileSaving ? 'SAVING...' : 'SAVE TO PROFILE'}
+                    </button>
+                    {profileSaveMessage && (
+                      <div
+                        className="mt-3 px-4 py-3 border text-sm tracking-wider"
+                        style={{
+                          borderColor: uiColor, color: uiColor,
+                          backgroundColor: '#0C0C0C',
+                          fontFamily: "'Glass TTY VT220', monospace",
+                        }}
+                      >
+                        {profileSaveMessage}
+                      </div>
+                    )}
+                    {profileSaveError && (
+                      <div
+                        className="mt-3 px-4 py-3 border text-sm tracking-wider"
+                        style={{
+                          borderColor: '#E20000', color: '#E20000',
+                          backgroundColor: '#0C0C0C',
+                          fontFamily: "'Glass TTY VT220', monospace",
+                        }}
+                      >
+                        {profileSaveError}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    className="w-full py-4 px-6 text-center text-sm tracking-wider"
+                    style={{
+                      border: '1px dashed #767676', borderRadius: '6px',
+                      color: '#767676',
+                      fontFamily: "'Glass TTY VT220', monospace",
+                    }}
+                  >
+                    <Link href="/sign-in" style={{ color: uiColor }} className="hover:opacity-80 transition-opacity">
+                      Sign in
+                    </Link>
+                    {' '}to save your avatar to your profile
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Action buttons */}
             {saveSuccessMessage && (

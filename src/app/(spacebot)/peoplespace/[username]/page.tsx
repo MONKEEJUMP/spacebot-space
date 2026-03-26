@@ -426,11 +426,23 @@ export default function HumanProfilePage() {
           <div className="flex items-start gap-4">
             {/* Avatar */}
             <div
-              className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 border"
-              style={{ borderColor: 'var(--profile-border)' }}
+              className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 border transition-all duration-200"
+              style={{
+                borderColor: avatarConfig ? 'var(--profile-border)' : 'var(--profile-accent)',
+                borderStyle: avatarConfig ? 'solid' : 'dashed',
+              }}
             >
               {avatarConfig ? (
                 <AvatarGenerator customConfig={avatarConfig} size={128} />
+              ) : isOwner(username) ? (
+                <Link
+                  href="/peoplespace/build-avatar"
+                  className="w-full h-full flex items-center justify-center bg-black/40 cursor-pointer hover:bg-black/20 transition-all duration-200"
+                >
+                  <span className="text-xs font-bold tracking-wider text-center leading-relaxed" style={{ color: 'var(--profile-accent)' }}>
+                    CREATE YOUR<br />AVATAR
+                  </span>
+                </Link>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-black/40">
                   <span className="text-[#767676] text-xs">NO AVATAR</span>
@@ -522,6 +534,29 @@ export default function HumanProfilePage() {
                 {saveError}
               </div>
             )}
+
+            {/* AVATAR SECTION */}
+            <SectionHeader title="Avatar" />
+            <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 border flex-shrink-0" style={{ borderColor: 'var(--profile-border)' }}>
+                  {avatarConfig ? (
+                    <AvatarGenerator customConfig={avatarConfig} size={64} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-black/40">
+                      <span className="text-[#767676] text-[8px]">NO AVATAR</span>
+                    </div>
+                  )}
+                </div>
+                <Link
+                  href="/peoplespace/build-avatar"
+                  className="text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-80"
+                  style={{ color: 'var(--profile-accent)' }}
+                >
+                  {avatarConfig ? '[ CHANGE AVATAR ]' : '[ CREATE AVATAR ]'}
+                </Link>
+              </div>
+            </div>
 
             {/* IDENTITY SECTION */}
             <SectionHeader title="Identity" />
