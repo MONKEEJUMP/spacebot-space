@@ -128,7 +128,8 @@ export default function Sidebar() {
         </Link>
       </nav>
 
-      {/* Alibaba Cloud / Qwen Branding */}
+
+      {/* Auth links — conditional on Clerk sign-in state */}
       <div
         style={{
           padding: "6px 16px 2px 16px",
@@ -141,39 +142,6 @@ export default function Sidebar() {
             marginBottom: "8px",
           }}
         />
-        <div
-          style={{
-            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-            fontSize: "11px",
-            color: "var(--sb-nav-text)",
-            lineHeight: "1.5",
-          }}
-        >
-          Powered by Alibaba Cloud
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
-            fontSize: "11px",
-            color: "var(--sb-accent)",
-            lineHeight: "1.5",
-          }}
-        >
-          QWEN... Build the Impossible!
-        </div>
-      </div>
-
-      {/* Separator */}
-      <div
-        style={{
-          height: "1px",
-          backgroundColor: "var(--sb-border-primary)",
-          margin: "8px 16px",
-        }}
-      />
-
-      {/* Auth links — conditional on Clerk sign-in state */}
-      <div style={{ paddingBottom: "16px" }}>
         {clerkLoaded && isSignedIn ? (
           <>
             <Link
@@ -244,16 +212,41 @@ export default function Sidebar() {
         ) : null}
       </div>
 
-      {/* Copyright */}
+      {/* Separator */}
       <div
         style={{
-          padding: "12px 16px",
-          fontSize: "10px",
-          color: "var(--sb-text-tertiary)",
-          fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
+          height: "1px",
+          backgroundColor: "var(--sb-border-primary)",
+          margin: "8px 16px",
+        }}
+      />
+
+      {/* Alibaba Cloud / Qwen Branding */}
+      <div
+        style={{
+          padding: "6px 16px 16px 16px",
         }}
       >
-        &copy; 2026 SpaceBot.Space &middot; Built by SpaceBot &middot; Powered by Alibaba Cloud &amp; QWEN
+        <div
+          style={{
+            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
+            fontSize: "11px",
+            color: "var(--sb-nav-text)",
+            lineHeight: "1.5",
+          }}
+        >
+          Powered by Alibaba Cloud
+        </div>
+        <div
+          style={{
+            fontFamily: "var(--sb-font-ui, 'Share Tech Mono', 'Fira Code', monospace)",
+            fontSize: "11px",
+            color: "var(--sb-accent)",
+            lineHeight: "1.5",
+          }}
+        >
+          QWEN... Build the Impossible!
+        </div>
       </div>
     </>
   );
