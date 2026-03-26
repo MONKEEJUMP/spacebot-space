@@ -374,6 +374,8 @@ export const humanProfiles = pgTable('human_profiles', {
   widgets: jsonb('widgets').default([]),
   buddyName: varchar('buddy_name', { length: 50 }),
   buddyActive: boolean('buddy_active').default(false).notNull(),
+  status: varchar('status', { length: 100 }),
+  profileViews: integer('profile_views').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -391,6 +393,51 @@ export const zeusConversations = pgTable('zeus_conversations', {
 }, (table) => ({
   humanIdx: index('idx_zeus_conversations_human_id').on(table.humanId),
   createdIdx: index('idx_zeus_conversations_created').on(table.createdAt),
+}));
+
+
+// ============================================================
+// MYSPACE SOCIAL TABLES
+// Transmissions Wall, Top 8, Blocked Users
+// ============================================================
+
+// PROFILE TRANSMISSIONS — visitor wall messages
+export const profileTransmissions = pgTable('profile_transmissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  profileOwnerId: varchar('profile_owner_id', { length: 255 }).notNull(),
+  authorId: varchar('author_id', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  isHidden: boolean('is_hidden').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  ownerIdx: index('profile_transmissions_owner_idx').on(table.profileOwnerId),
+  authorIdx: index('profile_transmissions_author_idx').on(table.authorId),
+  createdIdx: index('profile_transmissions_created_idx').on(table.createdAt),
+}));
+
+// TOP EIGHT — MySpace-style favorite people and bots
+export const topEight = pgTable('top_eight', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerId: varchar('owner_id', { length: 255 }).notNull(),
+  friendType: varchar('friend_type', { length: 10 }).notNull(),
+  friendId: varchar('friend_id', { length: 255 }).notNull(),
+  displayOrder: integer('display_order').notNull(),
+  addedAt: timestamp('added_at').defaultNow().notNull(),
+}, (table) => ({
+  ownerOrderUnique: unique('top_eight_owner_order_unique').on(table.ownerId, table.displayOrder),
+  ownerIdx: index('top_eight_owner_idx').on(table.ownerId),
+}));
+
+// BLOCKED USERS — prevents posting on blocker's wall
+export const blockedUsers = pgTable('blocked_users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  blockerId: varchar('blocker_id', { length: 255 }).notNull(),
+  blockedId: varchar('blocked_id', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  blockerBlockedUnique: unique('blocked_users_unique').on(table.blockerId, table.blockedId),
+  blockerIdx: index('blocked_users_blocker_idx').on(table.blockerId),
 }));
 
 // ============================================================
@@ -544,4 +591,20 @@ export const humanProfilesRelations = relations(humanProfiles, ({ one }) => ({
 
 export const zeusConversationsRelations = relations(zeusConversations, ({ one }) => ({
   human: one(humans, { fields: [zeusConversations.humanId], references: [humans.id] }),
+}));
+
+// ============================================================
+// MYSPACE SOCIAL RELATIONS
+// ============================================================
+
+export const profileTransmissionsRelations = relations(profileTransmissions, ({ }) => ({
+  // Uses clerkId strings, not FK relations
+}));
+
+export const topEightRelations = relations(topEight, ({ }) => ({
+  // Uses clerkId strings, not FK relations
+}));
+
+export const blockedUsersRelations = relations(blockedUsers, ({ }) => ({
+  // Uses clerkId strings, not FK relations
 }));

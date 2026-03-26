@@ -30,6 +30,7 @@ interface ClerkHumanProfile {
   widgets: unknown[];
   buddyName: string | null;
   buddyActive: boolean;
+  status: string | null;
 }
 
 export function useClerkHuman() {

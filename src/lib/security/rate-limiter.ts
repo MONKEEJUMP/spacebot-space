@@ -85,6 +85,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Profile updates: 20 per 15 minutes per IP (prevents profile spam)
   humanProfile: { maxRequests: 20, windowSeconds: 900 },
 
+  // Transmissions Wall: 5 per hour per user (prevents wall spam)
+  wallPost: { maxRequests: 5, windowSeconds: 3600 },
+
+  // Profile view counter: 60 per minute per IP (generous for page loads)
+  profileView: { maxRequests: 60, windowSeconds: 60 },
+
   // SpaceBot Lab expert chat: 60 requests per hour per human
   humanLabChat: { maxRequests: 60, windowSeconds: 3600 },
 

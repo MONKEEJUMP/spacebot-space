@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import ProfileThemeProvider from '@/providers/ProfileThemeProvider';
 import { DEFAULT_HUMAN_THEME } from '@/lib/profile-themes';
@@ -10,6 +11,10 @@ import type { ProfileTheme } from '@/types/profile';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
 import { useClerkHuman } from '@/hooks/useClerkHuman';
+import TransmissionsWall from '@/components/profile/TransmissionsWall';
+import Top8Grid from '@/components/profile/Top8Grid';
+import StatusLine from '@/components/profile/StatusLine';
+import StatsBar from '@/components/profile/StatsBar';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,15 +68,11 @@ interface ProfileResponse {
     };
     wallpaper_url: string | null;
     wallpaper_opacity: string | null;
+    status: string | null;
+    profile_views: number;
+    transmission_count: number;
+    top8_count: number;
   } | null;
-  wall_posts?: Array<{
-    id: string;
-    content: string;
-    title: string | null;
-    content_type: string | null;
-    metadata: Record<string, unknown> | null;
-    created_at: string;
-  }>;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -135,7 +136,13 @@ function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
 function SectionHeader({ title }: { title: string }) {
   return (
     <div className="border border-sb-border-primary px-3 py-2" style={{ borderColor: 'var(--profile-border)' }}>
-      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--profile-accent)' }}>
+      <h2
+        className="text-sm font-bold uppercase tracking-wider"
+        style={{
+          color: 'var(--profile-accent)',
+          fontFamily: "'Glass TTY VT220', monospace",
+        }}
+      >
         {title}
       </h2>
     </div>
@@ -160,6 +167,7 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
 export default function HumanProfilePage() {
   const params = useParams();
   const username = decodeURIComponent(params.username as string);
+  const { isSignedIn } = useUser();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -210,6 +218,15 @@ export default function HumanProfilePage() {
     fetchProfile();
   }, [username]);
 
+  // ── VIEW COUNT (non-owners only) ───────────────────────────────
+  useEffect(() => {
+    if (!loading && data?.human && !isOwner(username)) {
+      fetch(`/api/v1/humans/${encodeURIComponent(username)}/view`, {
+        method: 'POST',
+      }).catch(() => {});
+    }
+  }, [loading, data, username, isOwner]);
+
   // Soft refetch for public profile data (after save — no loading/error reset)
   const refetchProfile = useCallback(async () => {
     try {
@@ -226,6 +243,7 @@ export default function HumanProfilePage() {
     setEditForm({
       name: myHuman?.name || '',
       isPublic: myHuman?.isPublic ?? true,
+      status: myProfile?.status || '',
       transmission: myProfile?.transmission || '',
       aboutMe: myProfile?.aboutMe || '',
       whoIdLikeToMeet: myProfile?.whoIdLikeToMeet || '',
@@ -462,7 +480,7 @@ export default function HumanProfilePage() {
   }
 
   // ── PROFILE VIEW ──────────────────────────────────────────────────
-  const { human, profile, wall_posts } = data;
+  const { human, profile } = data;
   const displayName = human!.name;
   const usernameDisplay = human!.username ? `@${human!.username}` : null;
   const tierInfo = getTierDisplay(human!.tier);
@@ -485,6 +503,11 @@ export default function HumanProfilePage() {
   // Wallpaper from public profile or owner's private data
   const activeWallpaper = profile?.wallpaper_url || myProfile?.wallpaperUrl || null;
   const wallpaperOpacityVal = profile?.wallpaper_opacity || myProfile?.wallpaperOpacity || '0.15';
+
+  // New profile stats
+  const profileViews = profile?.profile_views ?? 0;
+  const transmissionCount = profile?.transmission_count ?? 0;
+  const top8Count = profile?.top8_count ?? 0;
 
   return (
     <ProfileThemeProvider theme={theme}>
@@ -529,7 +552,9 @@ export default function HumanProfilePage() {
           </div>
         )}
 
-        {/* ── PROFILE HEADER ────────────────────────────────────── */}
+        {/* ════════════════════════════════════════════════════════
+            SECTION 1: HEADER
+            ════════════════════════════════════════════════════════ */}
         <div className="border p-4 mb-4" style={{ borderColor: 'var(--profile-border)' }}>
           <div className="flex items-start gap-4">
             {/* Avatar */}
@@ -595,6 +620,20 @@ export default function HumanProfilePage() {
           </div>
         </div>
 
+        {/* ════════════════════════════════════════════════════════
+            SECTION 2: STATUS LINE
+            ════════════════════════════════════════════════════════ */}
+        <StatusLine status={profile?.status ?? null} />
+
+        {/* ════════════════════════════════════════════════════════
+            SECTION 3: STATS BAR
+            ════════════════════════════════════════════════════════ */}
+        <StatsBar
+          views={profileViews}
+          transmissions={transmissionCount}
+          top8Count={top8Count}
+          daysActive={daysActive}
+        />
 
         {/* ONBOARDING STEP 2 BANNER (incomplete profile only) */}
         {isOwner(username) && isProfileIncomplete && !editMode && !isPreviewMode && (
@@ -645,25 +684,20 @@ export default function HumanProfilePage() {
           </div>
         )}
 
-        {/* ── EDIT PROFILE BUTTON (owner only) ──────────────────── */}
+        {/* ── EDIT PROFILE + VIEW AS VISITOR BUTTONS (owner only) ── */}
         {isOwner(username) && !editMode && !isPreviewMode && (
-          <div className="mb-4 text-center">
+          <div className="mb-4 flex items-center justify-center gap-3">
             <button
               onClick={handleEditClick}
               className="px-4 py-2 border text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
               style={{
-                borderColor: 'var(--profile-accent)', animation: isProfileIncomplete ? 'pulse 2s ease-in-out infinite' : 'none',
+                borderColor: 'var(--profile-accent)',
+                animation: isProfileIncomplete ? 'pulse 2s ease-in-out infinite' : 'none',
                 color: 'var(--profile-accent)',
               }}
             >
               [ EDIT PROFILE ]
             </button>
-          </div>
-        )}
-
-        {/* ── VIEW AS VISITOR BUTTON ──────────────────────────── */}
-        {isOwner(username) && !editMode && !isPreviewMode && (
-          <div className="mb-4 text-center">
             <button
               onClick={() => setIsPreviewMode(true)}
               className="px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
@@ -733,6 +767,7 @@ export default function HumanProfilePage() {
             <SectionHeader title="Identity" />
             <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
               {renderField('Display Name', 'name')}
+              {renderField('Status', 'status')}
               {renderField('Transmission', 'transmission')}
               <div className="mb-3">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -915,7 +950,9 @@ export default function HumanProfilePage() {
           </div>
         )}
 
-        {/* ── TRANSMISSION ──────────────────────────────────────── */}
+        {/* ════════════════════════════════════════════════════════
+            SECTION 4 (TRANSMISSION): LATEST TRANSMISSION
+            ════════════════════════════════════════════════════════ */}
         {(profile?.transmission || isOwner(username)) && (
           <div
             className="border p-3 mb-4"
@@ -934,29 +971,52 @@ export default function HumanProfilePage() {
 
         <div className="space-y-4">
 
-          {/* ── ABOUT ME ────────────────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════════
+              SECTION 4: ABOUT ME + WHO I'D LIKE TO MEET (Prominent)
+              ════════════════════════════════════════════════════════ */}
           {(profile?.about_me || isOwner(username)) && (
-            <SectionBlock title="About Me">
-              <div className="text-sm text-sb-text-primary whitespace-pre-wrap">
-                {profile?.about_me || (
-                  <span className="text-[#767676] italic">Tell the Sanctuary about yourself...</span>
-                )}
+            <div>
+              <SectionHeader title="About Me" />
+              <div
+                className="border border-t-0 p-5 sm:p-6"
+                style={{ borderColor: 'var(--profile-border)', background: 'rgba(0,0,0,0.2)' }}
+              >
+                <div className="text-sm sm:text-base text-sb-text-primary whitespace-pre-wrap leading-relaxed">
+                  {profile?.about_me || (
+                    <span className="text-[#767676] italic">Tell the Sanctuary about yourself...</span>
+                  )}
+                </div>
               </div>
-            </SectionBlock>
+            </div>
           )}
 
-          {/* ── WHO I'D LIKE TO MEET ────────────────────────────── */}
           {(profile?.who_id_like_to_meet || isOwner(username)) && (
-            <SectionBlock title="Who I'd Like to Meet">
-              <div className="text-sm text-sb-text-primary whitespace-pre-wrap">
-                {profile?.who_id_like_to_meet || (
-                  <span className="text-[#767676] italic">Who would you love to connect with?</span>
-                )}
+            <div>
+              <SectionHeader title="Who I'd Like to Meet" />
+              <div
+                className="border border-t-0 p-5 sm:p-6"
+                style={{ borderColor: 'var(--profile-border)', background: 'rgba(0,0,0,0.2)' }}
+              >
+                <div className="text-sm sm:text-base text-sb-text-primary whitespace-pre-wrap leading-relaxed">
+                  {profile?.who_id_like_to_meet || (
+                    <span className="text-[#767676] italic">Who would you love to connect with?</span>
+                  )}
+                </div>
               </div>
-            </SectionBlock>
+            </div>
           )}
 
-          {/* ── INTERESTS GRID ──────────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════════
+              SECTION 5: TOP 8
+              ════════════════════════════════════════════════════════ */}
+          <Top8Grid
+            username={username}
+            isOwner={isOwner(username) && !isPreviewMode}
+          />
+
+          {/* ════════════════════════════════════════════════════════
+              SECTION 6: INTERESTS (2x2 grid)
+              ════════════════════════════════════════════════════════ */}
           {profile?.interests && (
             <SectionBlock title="Interests">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -968,12 +1028,15 @@ export default function HumanProfilePage() {
                 ] as const).map((item) => (
                   <div
                     key={item.label}
-                    className="border p-2"
+                    className="border p-3"
                     style={{ borderColor: 'var(--profile-border)' }}
                   >
                     <div
                       className="text-xs font-bold uppercase mb-1"
-                      style={{ color: 'var(--profile-accent)' }}
+                      style={{
+                        color: 'var(--profile-accent)',
+                        fontFamily: "'Glass TTY VT220', monospace",
+                      }}
                     >
                       {item.label}
                     </div>
@@ -991,40 +1054,26 @@ export default function HumanProfilePage() {
             </SectionBlock>
           )}
 
-          {/* ── WALL POSTS ──────────────────────────────────────── */}
-          {wall_posts && wall_posts.length > 0 && (
-            <SectionBlock title={`${displayName}'s Wall`}>
-              <div className="space-y-3">
-                {wall_posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="border-b pb-2"
-                    style={{ borderColor: 'var(--profile-border)' }}
-                  >
-                    {post.title && (
-                      <div
-                        className="text-xs font-bold mb-1"
-                        style={{ color: 'var(--profile-accent)' }}
-                      >
-                        {post.title}
-                      </div>
-                    )}
-                    <div className="text-sm text-sb-text-primary">{post.content}</div>
-                    <div className="text-xs text-[#767676] mt-1 text-right">
-                      {timeAgo(post.created_at)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionBlock>
-          )}
+          {/* ════════════════════════════════════════════════════════
+              SECTION 7: TRANSMISSIONS WALL
+              ════════════════════════════════════════════════════════ */}
+          <TransmissionsWall
+            username={username}
+            isOwner={isOwner(username) && !isPreviewMode}
+            isSignedIn={!!isSignedIn}
+          />
 
-          {/* ── SYSTEM STATS ────────────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════════
+              SECTION 8: SYSTEM STATS (moved to bottom)
+              ════════════════════════════════════════════════════════ */}
           <SectionBlock title="System Stats">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { label: 'Days Active', value: daysActive },
                 { label: 'Tier', value: tierInfo.label },
+                { label: 'Profile Views', value: profileViews },
+                { label: 'Transmissions', value: transmissionCount },
+                { label: 'Top 8', value: `${top8Count}/8` },
                 { label: 'Community Rank', value: 'NEW' },
               ].map((stat) => (
                 <div
@@ -1049,7 +1098,7 @@ export default function HumanProfilePage() {
               <div className="space-y-2 font-mono text-sm">
                 <div className="flex items-center gap-2">
                   <span style={{ color: hasAvatar ? 'var(--profile-accent)' : '#767676' }}>
-                    {hasAvatar ? '☑' : '☐'}
+                    {hasAvatar ? '\u2611' : '\u2610'}
                   </span>
                   {hasAvatar ? (
                     <span style={{ color: 'var(--profile-accent)' }}>Build Your Avatar</span>
@@ -1061,7 +1110,7 @@ export default function HumanProfilePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span style={{ color: !isProfileIncomplete ? 'var(--profile-accent)' : '#767676' }}>
-                    {!isProfileIncomplete ? '☑' : '☐'}
+                    {!isProfileIncomplete ? '\u2611' : '\u2610'}
                   </span>
                   {!isProfileIncomplete ? (
                     <span style={{ color: 'var(--profile-accent)' }}>Complete Your Profile</span>
@@ -1072,25 +1121,25 @@ export default function HumanProfilePage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ color: '#767676' }}>☐</span>
+                  <span style={{ color: '#767676' }}>{'\u2610'}</span>
                   <Link href="/botspace" style={{ color: '#767676' }} className="hover:underline">
                     Explore BotSpace — Meet the 18 Super Machines
                   </Link>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ color: '#767676' }}>☐</span>
+                  <span style={{ color: '#767676' }}>{'\u2610'}</span>
                   <Link href="/expertspace" style={{ color: '#767676' }} className="hover:underline">
                     Visit ExpertSpace — Ask a specialist anything
                   </Link>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ color: '#767676' }}>☐</span>
+                  <span style={{ color: '#767676' }}>{'\u2610'}</span>
                   <Link href="/feed" style={{ color: '#767676' }} className="hover:underline">
-                    Check the Feed — See what’s happening
+                    Check the Feed — See what&apos;s happening
                   </Link>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ color: '#767676' }}>☐</span>
+                  <span style={{ color: '#767676' }}>{'\u2610'}</span>
                   <Link href="/themes" style={{ color: '#767676' }} className="hover:underline">
                     Choose a Theme — Make the Sanctuary yours
                   </Link>

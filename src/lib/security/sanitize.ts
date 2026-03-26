@@ -353,3 +353,27 @@ export function logSecurityViolation(violation: Omit<SecurityViolation, 'timesta
 export function getRecentViolations(limit: number = 100): SecurityViolation[] {
   return violationBuffer.slice(-limit);
 }
+
+// ============================================================
+// WALL CONTENT SANITIZATION
+// ============================================================
+
+/**
+ * Sanitize wall transmission content
+ * Strips HTML, enforces length, returns null if empty
+ */
+export function cleanWallContent(input: string, maxLength = 500): string | null {
+  const result = sanitizeContent(input, {
+    maxLength,
+    allowNewlines: true,
+    checkInjection: true,
+    checkUrls: true,
+  });
+
+  if (result.blocked || !result.sanitized.trim()) {
+    return null;
+  }
+
+  return result.sanitized;
+}
+

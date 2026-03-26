@@ -18,8 +18,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { humans, humanProfiles, botActivity } from '@/db/schema';
-import { eq, and, ilike, desc } from 'drizzle-orm';
+import { humans, humanProfiles, botActivity, profileTransmissions, topEight } from '@/db/schema';
+import { eq, and, ilike, desc, count } from 'drizzle-orm';
 import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // NEVER: email, passwordHash, tokens, IPs, lock fields, tokenVersion
     const selectFields = {
       id: humans.id,
+      clerkId: humans.clerkId,
       name: humans.name,
       username: humans.username,
       isPublic: humans.isPublic,
@@ -121,6 +122,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         profileBgTint: humanProfiles.profileBgTint,
         wallpaperUrl: humanProfiles.wallpaperUrl,
         wallpaperOpacity: humanProfiles.wallpaperOpacity,
+        status: humanProfiles.status,
+        profileViews: humanProfiles.profileViews,
       })
       .from(humanProfiles)
       .where(eq(humanProfiles.humanId, human.id))
@@ -140,6 +143,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .where(eq(botActivity.activityType, 'buddy_wall_post'))
       .orderBy(desc(botActivity.createdAt))
       .limit(20);
+
+    // ── LAYER 3d: Count transmissions and Top 8 ──────────────────────
+    let transmissionCount = 0;
+    let top8Count = 0;
+    if (human.clerkId) {
+      const [tcResult] = await db
+        .select({ total: count() })
+        .from(profileTransmissions)
+        .where(and(
+          eq(profileTransmissions.profileOwnerId, human.clerkId),
+          eq(profileTransmissions.isHidden, false)
+        ));
+      transmissionCount = tcResult?.total || 0;
+
+      const [t8Result] = await db
+        .select({ total: count() })
+        .from(topEight)
+        .where(eq(topEight.ownerId, human.clerkId));
+      top8Count = t8Result?.total || 0;
+    }
 
     // ── LAYER 4: Return Response ────────────────────────────────────────
     return NextResponse.json({
@@ -174,6 +197,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
             wallpaper_url: profile.wallpaperUrl || null,
             wallpaper_opacity: profile.wallpaperOpacity || null,
+            status: profile.status || null,
+            profile_views: profile.profileViews || 0,
+            transmission_count: transmissionCount,
+            top8_count: top8Count,
           }
         : null,
       wall_posts: wallPosts.map((p) => ({

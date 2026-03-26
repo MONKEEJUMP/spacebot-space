@@ -86,6 +86,7 @@ export async function PUT(request: NextRequest) {
   acceptStr('interestsMusic');
   acceptStr('interestsHeroes');
   acceptStr('interestsTechnology');
+  acceptStr('status');
   acceptStr('buddyName');
 
   if (Array.isArray(body.widgets)) profileUpdates.widgets = body.widgets;
