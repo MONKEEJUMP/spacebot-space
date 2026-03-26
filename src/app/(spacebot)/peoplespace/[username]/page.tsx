@@ -61,6 +61,8 @@ interface ProfileResponse {
       glow: string | null;
       bg_tint: string | null;
     };
+    wallpaper_url: string | null;
+    wallpaper_opacity: string | null;
   } | null;
   wall_posts?: Array<{
     id: string;
@@ -171,6 +173,11 @@ export default function HumanProfilePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string | boolean | null>>({});
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [wallpaperUploading, setWallpaperUploading] = useState(false);
+  const [wallpaperUploadMsg, setWallpaperUploadMsg] = useState<string | null>(null);
+  const [wallpaperPreview, setWallpaperPreview] = useState<string | null>(null);
+  const [wallpaperUrlError, setWallpaperUrlError] = useState<string | null>(null);
 
   // Owner detection via Clerk
   const { human: myHuman, profile: myProfile, isOwner, refetch: refetchClerk } = useClerkHuman();
@@ -268,6 +275,56 @@ export default function HumanProfilePage() {
 
   const updateField = (field: string, value: string | boolean | null) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // ── WALLPAPER UPLOAD HANDLERS ─────────────────────────────────────
+  const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setWallpaperUploadMsg('Invalid file type. Use JPEG, PNG, GIF, or WebP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setWallpaperUploadMsg('File too large. Maximum 5MB.');
+      return;
+    }
+    setWallpaperPreview(URL.createObjectURL(file));
+    setWallpaperUploading(true);
+    setWallpaperUploadMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/v1/humans/wallpaper', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setWallpaperUploadMsg(json.error || 'Upload failed.');
+        return;
+      }
+      updateField('wallpaperUrl', json.url);
+      setWallpaperUploadMsg('Wallpaper uploaded!');
+      globalThis.setTimeout(() => setWallpaperUploadMsg(null), 4000);
+    } catch {
+      setWallpaperUploadMsg('Connection failed. Please try again.');
+    } finally {
+      setWallpaperUploading(false);
+    }
+  };
+
+  const handleRemoveWallpaper = () => {
+    updateField('wallpaperUrl', '');
+    setWallpaperPreview(null);
+    setWallpaperUploadMsg(null);
+  };
+
+  const validateWallpaperUrl = (url: string) => {
+    if (!url) { setWallpaperUrlError(null); return; }
+    if (/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
+      setWallpaperUrlError(null);
+    } else {
+      setWallpaperUrlError('Please use a direct image link (.jpg, .png, .gif, .webp)');
+    }
   };
 
   // ── EDIT FORM FIELD RENDERERS ─────────────────────────────────
@@ -425,15 +482,52 @@ export default function HumanProfilePage() {
     bgTint: profile?.colors?.bg_tint || DEFAULT_HUMAN_THEME.bgTint,
   };
 
+  // Wallpaper from public profile or owner's private data
+  const activeWallpaper = profile?.wallpaper_url || myProfile?.wallpaperUrl || null;
+  const wallpaperOpacityVal = profile?.wallpaper_opacity || myProfile?.wallpaperOpacity || '0.15';
+
   return (
     <ProfileThemeProvider theme={theme}>
-      <div className="w-full max-w-3xl mx-auto px-4 py-6 font-mono">
+      <div className="w-full max-w-3xl mx-auto px-4 py-6 font-mono relative overflow-hidden">
+        {activeWallpaper && (
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+            style={{
+              backgroundImage: `url(${activeWallpaper})`,
+              opacity: parseFloat(wallpaperOpacityVal) || 0.15,
+            }}
+          />
+        )}
+        <div className="relative" style={{ zIndex: 1 }}>
       <style>{`
         @keyframes pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(var(--profile-accent-rgb, 0,220,0), 0.4); }
           50% { box-shadow: 0 0 12px 4px rgba(var(--profile-accent-rgb, 0,220,0), 0.2); }
         }
       `}</style>
+
+        {/* ── PREVIEW MODE BAR ────────────────────────────────── */}
+        {isPreviewMode && (
+          <div
+            className="mb-4 p-2 text-center border"
+            style={{
+              borderColor: 'var(--profile-accent)',
+              backgroundColor: 'rgba(0,0,0,0.8)',
+            }}
+          >
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--profile-accent)' }}>
+              VIEWING AS VISITOR
+            </span>
+            <span className="mx-3 text-[#767676]">&mdash;</span>
+            <button
+              onClick={() => setIsPreviewMode(false)}
+              className="text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-80"
+              style={{ color: 'var(--profile-accent)' }}
+            >
+              [ BACK TO MY PROFILE ]
+            </button>
+          </div>
+        )}
 
         {/* ── PROFILE HEADER ────────────────────────────────────── */}
         <div className="border p-4 mb-4" style={{ borderColor: 'var(--profile-border)' }}>
@@ -503,7 +597,7 @@ export default function HumanProfilePage() {
 
 
         {/* ONBOARDING STEP 2 BANNER (incomplete profile only) */}
-        {isOwner(username) && isProfileIncomplete && !editMode && (
+        {isOwner(username) && isProfileIncomplete && !editMode && !isPreviewMode && (
           <div
             className="mb-4 p-4 border"
             style={{
@@ -552,7 +646,7 @@ export default function HumanProfilePage() {
         )}
 
         {/* ── EDIT PROFILE BUTTON (owner only) ──────────────────── */}
-        {isOwner(username) && !editMode && (
+        {isOwner(username) && !editMode && !isPreviewMode && (
           <div className="mb-4 text-center">
             <button
               onClick={handleEditClick}
@@ -563,6 +657,19 @@ export default function HumanProfilePage() {
               }}
             >
               [ EDIT PROFILE ]
+            </button>
+          </div>
+        )}
+
+        {/* ── VIEW AS VISITOR BUTTON ──────────────────────────── */}
+        {isOwner(username) && !editMode && !isPreviewMode && (
+          <div className="mb-4 text-center">
+            <button
+              onClick={() => setIsPreviewMode(true)}
+              className="px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
+              style={{ borderColor: '#767676', color: '#767676' }}
+            >
+              [ VIEW AS VISITOR ]
             </button>
           </div>
         )}
@@ -677,7 +784,92 @@ export default function HumanProfilePage() {
             {/* WALLPAPER SECTION */}
             <SectionHeader title="Wallpaper" />
             <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
-              {renderField('Wallpaper URL', 'wallpaperUrl')}
+              {/* Upload Button */}
+              <div className="mb-3 text-center">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('wallpaper-upload')?.click()}
+                  disabled={wallpaperUploading}
+                  className="w-full px-4 py-3 border-2 border-dashed text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-50"
+                  style={{
+                    borderColor: 'var(--profile-accent)',
+                    color: 'var(--profile-accent)',
+                    fontFamily: "'Glass TTY VT220', monospace",
+                  }}
+                >
+                  {wallpaperUploading ? '[ UPLOADING... ]' : '[ UPLOAD WALLPAPER ]'}
+                </button>
+                <input
+                  id="wallpaper-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleWallpaperUpload}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Upload Status */}
+              {wallpaperUploadMsg && (
+                <div
+                  className="mb-3 text-center text-xs font-bold tracking-wider"
+                  style={{
+                    color: wallpaperUploadMsg === 'Wallpaper uploaded!'
+                      ? 'var(--profile-accent)'
+                      : '#FF4444',
+                  }}
+                >
+                  {wallpaperUploadMsg}
+                </div>
+              )}
+
+              {/* Current/Preview Wallpaper */}
+              {(wallpaperPreview || (editForm.wallpaperUrl as string)) && (
+                <div className="mb-3">
+                  <div
+                    className="w-full h-24 border bg-cover bg-center mb-2"
+                    style={{
+                      borderColor: 'var(--profile-border)',
+                      backgroundImage: `url(${wallpaperPreview || (editForm.wallpaperUrl as string)})`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveWallpaper}
+                    className="text-xs font-bold uppercase tracking-wider transition-colors hover:text-[#FF4444]"
+                    style={{ color: '#767676' }}
+                  >
+                    [ REMOVE WALLPAPER ]
+                  </button>
+                </div>
+              )}
+
+              {/* Secondary: Paste URL */}
+              <div className="mb-3">
+                <label
+                  className="block text-xs uppercase tracking-wider mb-1"
+                  style={{ color: '#767676' }}
+                >
+                  OR PASTE IMAGE URL
+                </label>
+                <input
+                  type="text"
+                  value={(editForm.wallpaperUrl as string) || ''}
+                  onChange={(e) => {
+                    updateField('wallpaperUrl', e.target.value);
+                    validateWallpaperUrl(e.target.value);
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full bg-transparent border px-2 py-1.5 text-sm text-sb-text-primary font-mono focus:outline-none"
+                  style={{ borderColor: 'var(--profile-border)' }}
+                />
+                {wallpaperUrlError && (
+                  <div className="text-xs mt-1" style={{ color: '#FF4444' }}>
+                    {wallpaperUrlError}
+                  </div>
+                )}
+              </div>
+
+              {/* Opacity */}
               {renderField('Wallpaper Opacity', 'wallpaperOpacity')}
             </div>
 
@@ -851,7 +1043,7 @@ export default function HumanProfilePage() {
 
 
         {/* SANCTUARY MISSIONS (owner only, after profile complete) */}
-        {isOwner(username) && (
+        {isOwner(username) && !isPreviewMode && (
           <div className="mt-6">
             <SectionBlock title="Your Sanctuary Missions">
               <div className="space-y-2 font-mono text-sm">
@@ -919,6 +1111,7 @@ export default function HumanProfilePage() {
           </Link>
         </div>
 
+        </div>{/* end content wrapper */}
       </div>
     </ProfileThemeProvider>
   );

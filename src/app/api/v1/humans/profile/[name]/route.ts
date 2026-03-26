@@ -119,6 +119,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         profileBorderColor: humanProfiles.profileBorderColor,
         profileGlowColor: humanProfiles.profileGlowColor,
         profileBgTint: humanProfiles.profileBgTint,
+        wallpaperUrl: humanProfiles.wallpaperUrl,
+        wallpaperOpacity: humanProfiles.wallpaperOpacity,
       })
       .from(humanProfiles)
       .where(eq(humanProfiles.humanId, human.id))
@@ -170,6 +172,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               glow: profile.profileGlowColor || null,
               bg_tint: profile.profileBgTint || null,
             },
+            wallpaper_url: profile.wallpaperUrl || null,
+            wallpaper_opacity: profile.wallpaperOpacity || null,
           }
         : null,
       wall_posts: wallPosts.map((p) => ({
