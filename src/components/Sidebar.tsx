@@ -249,19 +249,10 @@ export default function Sidebar() {
             lineHeight: "1.5",
           }}
         >
-          Powered by Alibaba Cloud
-        </div>
-        <div
-          style={{
-            fontFamily: sidebarFont,
-            fontSize: "10px",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            color: "var(--sb-accent)",
-            lineHeight: "1.5",
-          }}
-        >
-          QWEN... Build the Impossible!
+          Powered by Alibaba Cloud &amp; QWEN...{" "}
+          <span style={{ color: "var(--sb-accent)" }}>
+            &quot;Build the Impossible!&quot;
+          </span>
         </div>
       </div>
     </>
