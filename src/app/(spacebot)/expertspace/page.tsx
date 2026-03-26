@@ -55,11 +55,6 @@ const CATEGORY_COUNTS = SPACEBOTS.reduce<Record<string, number>>((acc, bot) => {
 /** All unique categories, sorted alphabetically. */
 const ALL_CATEGORIES = Object.keys(CATEGORY_COUNTS).sort();
 
-/** CSS to hide scrollbar on horizontal-scroll rows. */
-const HIDE_SCROLLBAR_CSS = `
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-`;
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -290,8 +285,6 @@ export default function ExpertSpacePage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 font-mono">
-      <style dangerouslySetInnerHTML={{ __html: HIDE_SCROLLBAR_CSS }} />
-
       {/* ── HEADER ── */}
       <header className="mb-8 pt-2">
         <h1
@@ -353,15 +346,15 @@ export default function ExpertSpacePage() {
         </div>
 
         {/* Specialty pills */}
-        <div className="mt-3 overflow-x-auto hide-scrollbar">
-          <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
+        <div className="mt-3 overflow-hidden">
+          <div className="flex flex-nowrap gap-1.5 pb-1">
             {displayPills.map((specialty) => {
               const isActive = categoryFilter === specialty;
               return (
                 <button
                   key={specialty}
                   onClick={() => setCategoryFilter(isActive ? null : specialty)}
-                  className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap"
+                  className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap flex-shrink-0"
                   style={{
                     color: isMyspace
                       ? (isActive ? '#FFFFFF' : '#0000FF')
