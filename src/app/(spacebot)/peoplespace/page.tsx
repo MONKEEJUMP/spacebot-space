@@ -275,12 +275,15 @@ export default function PeopleSpacePage() {
                 key={human.id}
                 href={`/peoplespace/${human.username}`}
                 className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
-                style={{ borderColor: 'var(--sb-border-primary)' }}
+                style={{ borderColor: 'var(--sb-border-primary)', borderLeft: `3px solid ${tierInfo.color}` }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = tierInfo.color;
+                  e.currentTarget.style.borderLeftWidth = '3px';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
+                  e.currentTarget.style.borderLeftColor = tierInfo.color;
+                  e.currentTarget.style.borderLeftWidth = '3px';
                 }}
               >
                 <div className="flex gap-4">
@@ -297,8 +300,8 @@ export default function PeopleSpacePage() {
                     {/* Row 1: Name + Status badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div
-                        className="text-sb-text-primary font-bold text-lg"
-                        style={{ fontFamily: "'Glass TTY VT220', monospace" }}
+                        className="font-bold text-lg"
+                        style={{ color: tierInfo.color, fontFamily: "'Glass TTY VT220', monospace" }}
                       >
                         {human.name}
                       </div>

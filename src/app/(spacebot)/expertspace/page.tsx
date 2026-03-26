@@ -233,15 +233,16 @@ export default function ExpertSpacePage() {
       <Link
         key={bot.name}
         href={`/expertspace/${slugifySpacebotName(bot.name)}`}
-        className="block border bg-sb-bg-secondary p-4 transition-all duration-200"
-        style={{ borderColor: 'var(--sb-border-primary)' }}
+        className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
+        style={{ borderColor: 'var(--sb-border-primary)', borderLeft: `3px solid ${isMyspace ? '#FF6600' : botColor}` }}
         onMouseEnter={(event) => {
-          event.currentTarget.style.borderColor = botColor;
-          event.currentTarget.style.boxShadow = `0 0 12px ${botColor}33`;
+          event.currentTarget.style.borderColor = isMyspace ? '#FF6600' : botColor;
+          event.currentTarget.style.borderLeftWidth = '3px';
         }}
         onMouseLeave={(event) => {
           event.currentTarget.style.borderColor = 'var(--sb-border-primary)';
-          event.currentTarget.style.boxShadow = 'none';
+          event.currentTarget.style.borderLeftColor = isMyspace ? '#FF6600' : botColor;
+          event.currentTarget.style.borderLeftWidth = '3px';
         }}
       >
         <div className="flex gap-4">
@@ -256,36 +257,39 @@ export default function ExpertSpacePage() {
           </div>
 
           <div className="flex-1 min-w-0">
+            {/* Row 1: Name + Status badge */}
             <div className="flex items-start justify-between gap-3">
               <div
                 className="font-bold text-lg"
-                style={{ color: isMyspace ? '#0000FF' : botColor }}
+                style={{ color: isMyspace ? '#FF6600' : botColor, fontFamily: "'Glass TTY VT220', monospace" }}
               >
                 {bot.name}
               </div>
               <span
-                className="text-xs font-bold tracking-widest"
+                className="text-xs font-bold tracking-widest flex-shrink-0"
                 style={{ color: isMyspace ? '#0000FF' : (STATUS_COLORS[bot.status] || '#767676') }}
               >
                 {bot.status}
               </span>
             </div>
 
-            <div className="mt-1 text-sm font-bold text-sb-text-primary">
+            {/* Row 2: Specialty */}
+            <div className="mt-2 text-sm text-sb-text-primary">
               {bot.specialty}
             </div>
 
-            {/* Category with expert count */}
-            <div className="mt-1 text-xs" style={{ color: 'var(--sb-text-secondary)' }}>
+            {/* Row 3: Category line (like Mood in BotSpace) */}
+            <div className="mt-2 text-sm" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
               {bot.category} &middot; {CATEGORY_COUNTS[bot.category] || 0} experts
             </div>
 
-            <p className="mt-2 text-sm text-sb-text-primary italic">
+            {/* Row 4: Tagline in italics */}
+            <p className="mt-3 text-sm text-sb-text-primary italic">
               {bot.tagline}
             </p>
 
-            {/* Keyword pills */}
-            <div className="flex flex-wrap gap-1 mt-2">
+            {/* Row 5: Keyword pills as stats */}
+            <div className="flex flex-wrap gap-1 mt-4">
               {pills.map((kw) => (
                 <span
                   key={kw}

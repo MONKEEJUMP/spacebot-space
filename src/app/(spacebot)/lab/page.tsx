@@ -103,15 +103,15 @@ export default function LabPage() {
 
       {/* ── BOT CARDS ── */}
       {filteredBots.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filteredBots.map((bot) => (
             <Link
               key={bot.slug}
               href={`/lab/chat/${bot.slug}`}
               className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
               style={{
-                borderLeftColor: bot.accentColor,
-                borderLeftWidth: '3px',
+                borderColor: 'var(--sb-border-primary)',
+                borderLeft: `3px solid ${isMyspace ? '#FF6600' : bot.accentColor}`,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = isMyspace ? '#FF6600' : bot.accentColor;
@@ -119,7 +119,7 @@ export default function LabPage() {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
-                e.currentTarget.style.borderLeftColor = bot.accentColor;
+                e.currentTarget.style.borderLeftColor = isMyspace ? '#FF6600' : bot.accentColor;
                 e.currentTarget.style.borderLeftWidth = '3px';
               }}
             >
@@ -128,13 +128,13 @@ export default function LabPage() {
                   <AvatarGenerator
                     seed={bot.name}
                     isBot={true}
-                    size={64}
+                    size={85}
                     customConfig={bot.avatarConfig}
                   />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {/* Name + ONLINE badge */}
+                  {/* Row 1: Name + ONLINE badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div
                       className="font-bold text-lg"
@@ -146,25 +146,30 @@ export default function LabPage() {
                       {bot.name}
                     </div>
                     <span
-                      className="text-[10px] font-bold tracking-widest flex-shrink-0"
+                      className="text-xs font-bold tracking-widest flex-shrink-0"
                       style={{ color: '#00DC00' }}
                     >
                       ONLINE
                     </span>
                   </div>
 
-                  {/* Subject */}
-                  <div className="mt-1 text-xs text-sb-text-secondary tracking-wide">
+                  {/* Row 2: Subject */}
+                  <div className="mt-2 text-sm text-sb-text-primary">
                     {bot.subject}
                   </div>
 
-                  {/* Tagline */}
-                  <p className="mt-2 text-sm text-sb-text-primary italic">
+                  {/* Row 3: Specialty line (like Mood in BotSpace) */}
+                  <div className="mt-2 text-sm" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
+                    Specialty: Science
+                  </div>
+
+                  {/* Row 4: Tagline in italics */}
+                  <p className="mt-3 text-sm text-sb-text-primary italic">
                     {bot.tagline}
                   </p>
 
-                  {/* Stats */}
-                  <div className="mt-3 text-xs text-sb-text-secondary">
+                  {/* Row 5: Stats */}
+                  <div className="mt-4 text-xs text-sb-text-secondary">
                     Subject: {bot.subject} | Specialty: Science
                   </div>
                 </div>

@@ -159,7 +159,7 @@ export default function BotSpacePage() {
               key={bot.id}
               href={`/botspace/${slugify(bot.name)}`}
               className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
-              style={{ borderColor: 'var(--sb-border-primary)' }}
+              style={{ borderColor: 'var(--sb-border-primary)', borderLeft: `3px solid ${isMyspace ? '#FF6600' : bot.accentColor}` }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = isMyspace ? '#FF6600' : bot.accentColor;
               }}
