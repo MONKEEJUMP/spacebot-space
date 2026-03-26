@@ -31,6 +31,7 @@ interface SavedAvatarConfig {
 interface DirectoryHuman {
   id: string;
   name: string;
+  username: string;
   tier: string;
   avatarConfig: SavedAvatarConfig | null;
   joinedAt: string;
@@ -272,7 +273,7 @@ export default function PeopleSpacePage() {
             return (
               <Link
                 key={human.id}
-                href={`/peoplespace/profile/${encodeURIComponent(human.name)}`}
+                href={`/peoplespace/${human.username}`}
                 className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
                 style={{ borderColor: 'var(--sb-border-primary)' }}
                 onMouseEnter={(e) => {

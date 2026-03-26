@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       .select({
         id: humans.id,
         name: humans.name,
+        username: humans.username,
         subscriptionTier: humans.subscriptionTier,
         avatarConfig: humans.avatarConfig,
         createdAt: humans.createdAt,
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
       humans: results.map((h) => ({
         id: h.id,
         name: h.name,
+        username: h.username,
         tier: h.subscriptionTier,
         avatarConfig: h.avatarConfig || null,
         joinedAt: h.createdAt,
