@@ -291,6 +291,7 @@ export default function ExpertSpacePage() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 font-mono">
       <style dangerouslySetInnerHTML={{ __html: HIDE_SCROLLBAR_CSS }} />
+
       {/* ── HEADER ── */}
       <header className="mb-8 pt-2">
         <h1
@@ -306,7 +307,7 @@ export default function ExpertSpacePage() {
         </h1>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
           <p className="text-sb-text-secondary text-sm sm:text-base">
-            192 Expert AI Agents — Ask Anything
+            192 Expert AI Agents &mdash; Ask Anything
           </p>
         </div>
         <p className="text-sm leading-relaxed mt-2" style={{ color: 'var(--sb-text-primary)' }}>
@@ -314,223 +315,207 @@ export default function ExpertSpacePage() {
           Your answer is one conversation away.
         </p>
       </header>
-      {/* ═══════════════════════════════════════════════════════════
-          Search, Category Bubbles, Page Info
-          ═══════════════════════════════════════════════════════════ */}
+
+      {/* ── SEARCH BAR ── */}
       <div className="mb-6">
-        <div>
-          {/* Search bar */}
-          <div>
-            <div
-              className="flex items-center gap-2 border px-3 py-2"
-              style={{
-                backgroundColor: 'var(--sb-bg-primary)',
-                borderColor: isMyspace ? '#6A9CCF' : 'var(--sb-border-primary)',
-              }}
+        <div
+          className="flex items-center gap-2 border px-3 py-2"
+          style={{
+            backgroundColor: 'var(--sb-bg-primary)',
+            borderColor: isMyspace ? '#6A9CCF' : 'var(--sb-border-primary)',
+          }}
+        >
+          <span
+            className="text-sm font-bold select-none"
+            style={{ color: isMyspace ? '#0000FF' : 'var(--sb-accent)' }}
+          >
+            SEARCH &gt;
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, specialty, topic..."
+            className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
+            style={{
+              color: isMyspace ? '#000000' : 'var(--sb-text-primary)',
+              caretColor: isMyspace ? '#0000FF' : 'var(--sb-accent)',
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-sb-text-secondary hover:text-sb-text-primary text-xs uppercase tracking-wider"
             >
-              <span
-                className="text-sm font-bold select-none"
-                style={{ color: isMyspace ? '#0000FF' : 'var(--sb-accent)' }}
-              >
-                SEARCH &gt;
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, specialty, topic..."
-                className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
-                style={{
-                  color: isMyspace ? '#000000' : 'var(--sb-text-primary)',
-                  caretColor: isMyspace ? '#0000FF' : 'var(--sb-accent)',
-                }}
-              />
-              {searchQuery && (
+              [CLEAR]
+            </button>
+          )}
+        </div>
+
+        {/* Specialty pills */}
+        <div className="mt-3 overflow-x-auto hide-scrollbar">
+          <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
+            {displayPills.map((specialty) => {
+              const isActive = categoryFilter === specialty;
+              return (
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="text-sb-text-secondary hover:text-sb-text-primary text-xs uppercase tracking-wider"
+                  key={specialty}
+                  onClick={() => setCategoryFilter(isActive ? null : specialty)}
+                  className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap"
+                  style={{
+                    color: isMyspace
+                      ? (isActive ? '#FFFFFF' : '#0000FF')
+                      : (isActive ? '#000000' : 'var(--sb-text-secondary)'),
+                    backgroundColor: isMyspace
+                      ? (isActive ? '#6A9CCF' : '#FFFFFF')
+                      : (isActive ? 'var(--sb-accent)' : 'transparent'),
+                    border: `1px solid ${isMyspace
+                      ? '#6A9CCF'
+                      : (isActive ? 'var(--sb-accent)' : 'var(--sb-border-primary)')}`,
+                  }}
                 >
-                  [CLEAR]
+                  {specialty}
                 </button>
-              )}
-            </div>
-
-            {/* Category bubbles */}
-            <div className="mt-3 overflow-x-auto hide-scrollbar">
-              <div className="flex gap-1.5 pb-1" style={{ minWidth: 'max-content' }}>
-                {displayPills.map((specialty) => {
-                  const isActive = categoryFilter === specialty;
-                  return (
-                    <button
-                      key={specialty}
-                      onClick={() => setCategoryFilter(isActive ? null : specialty)}
-                      className="px-3 py-1 text-xs font-bold rounded-full transition-colors duration-150 whitespace-nowrap"
-                      style={{
-                        color: isMyspace
-                          ? (isActive ? '#FFFFFF' : '#0000FF')
-                          : (isActive ? '#000000' : 'var(--sb-text-secondary)'),
-                        backgroundColor: isMyspace
-                          ? (isActive ? '#6A9CCF' : '#FFFFFF')
-                          : (isActive ? 'var(--sb-accent)' : 'transparent'),
-                        border: `1px solid ${isMyspace
-                          ? '#6A9CCF'
-                          : (isActive ? 'var(--sb-accent)' : 'var(--sb-border-primary)')}`,
-                      }}
-                    >
-                      {specialty}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Count + page indicator */}
-            <div className="flex items-center justify-between mt-3 mb-1 px-1">
-              <div className="text-xs" style={{ color: isMyspace ? '#000000' : 'var(--sb-text-secondary)' }}>
-                {isFiltered
-                  ? `${filteredBots.length} of ${SPACEBOTS.length} agents`
-                  : `${SPACEBOTS.length} agents \u00b7 Page ${displayPage} of ${displayTotalPages}`
-                }
-              </div>
-            </div>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Count + page indicator */}
+        <div className="text-xs mt-1 px-1" style={{ color: isMyspace ? '#000000' : 'var(--sb-text-secondary)' }}>
+          {isFiltered
+            ? `${filteredBots.length} of ${SPACEBOTS.length} agents`
+            : `${SPACEBOTS.length} agents \u00b7 Page ${displayPage} of ${displayTotalPages}`
+          }
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          CONTENT — Welcome, Grid, Pagination, Footer
-          ═══════════════════════════════════════════════════════════ */}
-      <div>
-        {/* Welcome message — only on page 1, no filter */}
-        {displayPage === 1 && !isFiltered && (
-          <div className="mb-3">
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
-              Welcome to ExpertSpace — 192 friendly specialists who actually know their stuff.
-              Search by topic, browse specialties, or just start exploring.
-            </p>
-          </div>
-        )}
-
-        {/* ── Bot Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {pageAgents.map(renderBotCard)}
+      {/* Welcome message — only on page 1, no filter */}
+      {displayPage === 1 && !isFiltered && (
+        <div className="mb-3">
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
+            Welcome to ExpertSpace &mdash; 192 friendly specialists who actually know their stuff.
+            Search by topic, browse specialties, or just start exploring.
+          </p>
         </div>
+      )}
 
-        {/* No results */}
-        {pageAgents.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm" style={{ color: 'var(--sb-text-secondary)' }}>
-              No experts found. Try a different search or clear the filter.
-            </p>
-          </div>
-        )}
+      {/* ── BOT GRID ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {pageAgents.map(renderBotCard)}
+      </div>
 
-        {/* ═══════════════════════════════════════════════════════════
-            PAGINATION CONTROLS — Terminal Style
-            Only show when not filtering (search/category resets to show all matches)
-            ═══════════════════════════════════════════════════════════ */}
-        {!isFiltered && (
-          <div className="flex items-center justify-center gap-4 mt-8 mb-4 font-mono">
-            {/* PREV button */}
-            {prevHref ? (
-              <Link
-                href={prevHref}
-                className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
-                style={{
-                  color: isMyspace ? '#0000FF' : '#00DC00',
-                  borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
-                  backgroundColor: 'transparent',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
-                  e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
-                }}
-              >
-                [ PREV ]
-              </Link>
-            ) : (
-              <span
-                className="px-4 py-2 text-sm font-bold tracking-wider border"
-                style={{
-                  color: '#767676',
-                  borderColor: '#767676',
-                  backgroundColor: 'transparent',
-                  cursor: 'not-allowed',
-                  opacity: 0.5,
-                }}
-              >
-                [ PREV ]
-              </span>
-            )}
-
-            {/* Page indicator */}
-            <span
-              className="text-sm font-bold tracking-wider"
-              style={{ color: isMyspace ? '#000000' : '#00DC00' }}
-            >
-              [ PAGE {displayPage} of {displayTotalPages} ]
-            </span>
-
-            {/* NEXT button */}
-            {nextHref ? (
-              <Link
-                href={nextHref}
-                className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
-                style={{
-                  color: isMyspace ? '#0000FF' : '#00DC00',
-                  borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
-                  backgroundColor: 'transparent',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
-                  e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
-                }}
-              >
-                [ NEXT ]
-              </Link>
-            ) : (
-              <span
-                className="px-4 py-2 text-sm font-bold tracking-wider border"
-                style={{
-                  color: '#767676',
-                  borderColor: '#767676',
-                  backgroundColor: 'transparent',
-                  cursor: 'not-allowed',
-                  opacity: 0.5,
-                }}
-              >
-                [ NEXT ]
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Show all results message when filtering */}
-        {isFiltered && filteredBots.length > AGENTS_PER_PAGE && (
-          <div className="text-center mt-6 mb-2">
-            <p className="text-xs" style={{ color: 'var(--sb-text-secondary)' }}>
-              Showing first {AGENTS_PER_PAGE} of {filteredBots.length} results. Refine your search for more specific results.
-            </p>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="text-center mt-4 mb-8">
+      {/* No results */}
+      {pageAgents.length === 0 && (
+        <div className="text-center py-12">
           <p className="text-sm" style={{ color: 'var(--sb-text-secondary)' }}>
-            Can&apos;t find the right expert? We&apos;re building new ones every week.
-          </p>
-          <p className="text-sm mt-1" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
-            Nice Humans Welcome
+            No experts found. Try a different search or clear the filter.
           </p>
         </div>
+      )}
+
+      {/* ── PAGINATION CONTROLS — Terminal Style ── */}
+      {!isFiltered && (
+        <div className="flex items-center justify-center gap-4 mt-8 mb-4 font-mono">
+          {/* PREV button */}
+          {prevHref ? (
+            <Link
+              href={prevHref}
+              className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
+              style={{
+                color: isMyspace ? '#0000FF' : '#00DC00',
+                borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+              }}
+            >
+              [ PREV ]
+            </Link>
+          ) : (
+            <span
+              className="px-4 py-2 text-sm font-bold tracking-wider border"
+              style={{
+                color: '#767676',
+                borderColor: '#767676',
+                backgroundColor: 'transparent',
+                cursor: 'not-allowed',
+                opacity: 0.5,
+              }}
+            >
+              [ PREV ]
+            </span>
+          )}
+
+          {/* Page indicator */}
+          <span
+            className="text-sm font-bold tracking-wider"
+            style={{ color: isMyspace ? '#000000' : '#00DC00' }}
+          >
+            [ PAGE {displayPage} of {displayTotalPages} ]
+          </span>
+
+          {/* NEXT button */}
+          {nextHref ? (
+            <Link
+              href={nextHref}
+              className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
+              style={{
+                color: isMyspace ? '#0000FF' : '#00DC00',
+                borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+              }}
+            >
+              [ NEXT ]
+            </Link>
+          ) : (
+            <span
+              className="px-4 py-2 text-sm font-bold tracking-wider border"
+              style={{
+                color: '#767676',
+                borderColor: '#767676',
+                backgroundColor: 'transparent',
+                cursor: 'not-allowed',
+                opacity: 0.5,
+              }}
+            >
+              [ NEXT ]
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Show all results message when filtering */}
+      {isFiltered && filteredBots.length > AGENTS_PER_PAGE && (
+        <div className="text-center mt-6 mb-2">
+          <p className="text-xs" style={{ color: 'var(--sb-text-secondary)' }}>
+            Showing first {AGENTS_PER_PAGE} of {filteredBots.length} results. Refine your search for more specific results.
+          </p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="text-center mt-4 mb-8">
+        <p className="text-sm" style={{ color: 'var(--sb-text-secondary)' }}>
+          Can&apos;t find the right expert? We&apos;re building new ones every week.
+        </p>
+        <p className="text-sm mt-1" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
+          Nice Humans Welcome
+        </p>
       </div>
     </div>
   );
