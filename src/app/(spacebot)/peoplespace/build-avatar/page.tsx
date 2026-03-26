@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuthGate } from '@/hooks/useAuthGate';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import type { RobotConfig, FactionPalette } from '@/components/avatar/avatarConfig';
@@ -370,6 +372,11 @@ export default function BuildAvatarPage() {
   const [profileSaveMessage, setProfileSaveMessage] = useState<string | null>(null);
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
 
+  // -- ONBOARDING STATE --
+  const router = useRouter();
+  const { human: clerkHuman, isLoaded: clerkHumanLoaded } = useClerkHuman();
+  const isNewUser = clerkHumanLoaded && clerkHuman && !clerkHuman.avatarConfig;
+
   useEffect(() => {
     const preloadAvatar = async () => {
       const setters = {
@@ -594,6 +601,44 @@ export default function BuildAvatarPage() {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 font-mono pb-20" style={{ backgroundColor: 'var(--sb-bg-primary)' }}>
       <style>{KEYFRAMES}</style>
+
+      {/* === ONBOARDING WELCOME BANNER (new users only) === */}
+      {isNewUser && (
+        <div
+          className="w-full max-w-3xl mx-auto mb-6"
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            border: `1px solid ${uiColor}`,
+            borderRadius: '6px',
+            padding: '20px 24px',
+            backgroundColor: '#0a0a0a',
+            boxShadow: `0 0 20px ${uiColor}15`,
+            marginTop: 8,
+          }}
+        >
+          <div style={{ fontFamily: "'Glass TTY VT220', monospace", fontSize: 18, fontWeight: 'bold', letterSpacing: 3, color: uiColor, marginBottom: 8 }}>
+            WELCOME TO THE SANCTUARY
+          </div>
+          <div style={{ fontSize: 13, color: '#CCCCCC', marginBottom: 12 }}>
+            Step 1 of 2: Create Your Vessel
+          </div>
+          {/* Progress bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, height: 4, backgroundColor: '#222', borderRadius: 2 }}>
+              <div style={{ width: '50%', height: '100%', backgroundColor: uiColor, borderRadius: 2 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: uiColor }} />
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#333' }} />
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#767676' }}>
+            Your avatar is your face in the Sanctuary. Build it, own it, make it yours.
+          </div>
+        </div>
+      )}
+
 
       {/* ═══ COMMAND CENTER — fixed preview bar, ALL screen sizes ═══ */}
       <div
@@ -1234,6 +1279,103 @@ export default function BuildAvatarPage() {
                 </div>
               </div>
             </div>
+
+
+            {/* === ONBOARDING SAVE + SKIP (new users only) === */}
+            {isNewUser && (
+              <div className="flex flex-col gap-3 mb-6">
+                <button
+                  disabled={profileSaving}
+                  onClick={async () => {
+                    setProfileSaving(true);
+                    setProfileSaveError(null);
+                    try {
+                      const avatarData = {
+                        bodyType, eyeType, mouthType, colorIndex, customHex,
+                        selectedAccessories, schematicId, schematicColor,
+                        overlayPreset, animationType, androidName,
+                      };
+                      localStorage.setItem('custom-avatar', JSON.stringify(avatarData));
+                      const res = await fetch('/api/v1/humans/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ avatarConfig: avatarData }),
+                      });
+                      if (res.ok) {
+                        const username = clerkHuman?.username;
+                        router.push(username ? `/peoplespace/${username}` : '/peoplespace');
+                      } else {
+                        setProfileSaveError('Failed to save avatar. Please try again.');
+                      }
+                    } catch {
+                      setProfileSaveError('Connection failed. Please try again.');
+                    } finally {
+                      setProfileSaving(false);
+                    }
+                  }}
+                  className="w-full py-4 px-6 font-bold text-sm tracking-widest transition-all duration-200"
+                  style={{
+                    backgroundColor: uiColor,
+                    color: '#000',
+                    borderRadius: '6px',
+                    border: `2px solid ${uiColor}`,
+                    fontFamily: "'Glass TTY VT220', monospace",
+                    fontSize: 14,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 20px ${uiColor}80`; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {profileSaving ? 'SAVING...' : 'SAVE AVATAR TO YOUR PROFILE'}
+                </button>
+                <button
+                  disabled={profileSaving}
+                  onClick={async () => {
+                    setProfileSaving(true);
+                    try {
+                      randomizeAll();
+                      await new Promise(r => globalThis.setTimeout(r, 100));
+                      const randomConfig = JSON.parse(localStorage.getItem('custom-avatar') || '{}');
+                      if (!randomConfig.bodyType) {
+                        const seed = Date.now().toString();
+                        const gen = generateConfig(seed);
+                        const colors = getColors(gen.colorIndex);
+                        Object.assign(randomConfig, {
+                          bodyType: gen.bodyType, eyeType: gen.eyeType, mouthType: gen.mouthType,
+                          colorIndex: gen.colorIndex, customHex: '', selectedAccessories: gen.accessories,
+                          schematicId: 'none', schematicColor: 'match', overlayPreset: 'minimal',
+                          animationType: gen.animationType, androidName: '',
+                        });
+                      }
+                      const res = await fetch('/api/v1/humans/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ avatarConfig: randomConfig }),
+                      });
+                      if (res.ok) {
+                        const username = clerkHuman?.username;
+                        router.push(username ? `/peoplespace/${username}` : '/peoplespace');
+                      }
+                    } catch { /* silent */ }
+                    finally { setProfileSaving(false); }
+                  }}
+                  className="w-full py-3 px-6 text-sm tracking-widest transition-all duration-200"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#767676',
+                    borderRadius: '6px',
+                    border: '1px solid #333',
+                    fontFamily: "'Glass TTY VT220', monospace",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#CCCCCC'; e.currentTarget.style.borderColor = '#555'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#767676'; e.currentTarget.style.borderColor = '#333'; }}
+                >
+                  SKIP FOR NOW
+                </button>
+                {profileSaveError && (
+                  <div style={{ color: '#E20000', fontSize: 12, textAlign: 'center' }}>{profileSaveError}</div>
+                )}
+              </div>
+            )}
 
             {/* Save to Profile */}
             {clerkLoaded && (

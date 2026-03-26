@@ -169,10 +169,15 @@ export default function HumanProfilePage() {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string | boolean | null>>({});
 
   // Owner detection via Clerk
   const { human: myHuman, profile: myProfile, isOwner, refetch: refetchClerk } = useClerkHuman();
+
+  // Onboarding: detect if profile is incomplete (no aboutMe AND no transmission)
+  const isProfileIncomplete = !!(myHuman && (!myProfile?.aboutMe && !myProfile?.transmission));
+  const hasAvatar = !!(myHuman?.avatarConfig);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -249,6 +254,9 @@ export default function HumanProfilePage() {
         return;
       }
       setEditMode(false);
+      const savedName = (editForm.name as string) || displayName || 'Resident';
+      setSaveSuccess(`PROFILE SAVED — Welcome to the Sanctuary, ${savedName}!`);
+      globalThis.setTimeout(() => setSaveSuccess(null), 4000);
       refetchClerk();
       refetchProfile();
     } catch {
@@ -420,6 +428,12 @@ export default function HumanProfilePage() {
   return (
     <ProfileThemeProvider theme={theme}>
       <div className="w-full max-w-3xl mx-auto px-4 py-6 font-mono">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--profile-accent-rgb, 0,220,0), 0.4); }
+          50% { box-shadow: 0 0 12px 4px rgba(var(--profile-accent-rgb, 0,220,0), 0.2); }
+        }
+      `}</style>
 
         {/* ── PROFILE HEADER ────────────────────────────────────── */}
         <div className="border p-4 mb-4" style={{ borderColor: 'var(--profile-border)' }}>
@@ -487,6 +501,56 @@ export default function HumanProfilePage() {
           </div>
         </div>
 
+
+        {/* ONBOARDING STEP 2 BANNER (incomplete profile only) */}
+        {isOwner(username) && isProfileIncomplete && !editMode && (
+          <div
+            className="mb-4 p-4 border"
+            style={{
+              borderColor: 'var(--profile-accent)',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              boxShadow: '0 0 20px rgba(var(--profile-accent-rgb, 0,220,0), 0.1)',
+            }}
+          >
+            <div style={{ fontFamily: "'Glass TTY VT220', monospace", fontSize: 16, fontWeight: 'bold', letterSpacing: 2, color: 'var(--profile-accent)', marginBottom: 6 }}>
+              ALMOST THERE, RESIDENT
+            </div>
+            <div style={{ fontSize: 13, color: '#CCCCCC', marginBottom: 10 }}>
+              Step 2 of 2: Define Your Identity
+            </div>
+            {/* Progress bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ flex: 1, height: 4, backgroundColor: '#222', borderRadius: 2 }}>
+                <div style={{ width: '75%', height: '100%', backgroundColor: 'var(--profile-accent)', borderRadius: 2 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--profile-accent)' }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', border: '1px solid var(--profile-accent)', backgroundColor: 'transparent' }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: '#767676' }}>
+              Tell the Sanctuary who you are. Click <span style={{ color: 'var(--profile-accent)', fontWeight: 'bold' }}>EDIT PROFILE</span> to get started.
+            </div>
+          </div>
+        )}
+
+        {/* SUCCESS MESSAGE (after profile save) */}
+        {saveSuccess && (
+          <div
+            className="mb-4 p-3 text-center text-sm font-bold tracking-wider"
+            style={{
+              color: 'var(--profile-accent)',
+              border: '1px solid var(--profile-accent)',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              fontFamily: "'Glass TTY VT220', monospace",
+            }}
+          >
+            {saveSuccess}
+          </div>
+        )}
+
         {/* ── EDIT PROFILE BUTTON (owner only) ──────────────────── */}
         {isOwner(username) && !editMode && (
           <div className="mb-4 text-center">
@@ -494,7 +558,7 @@ export default function HumanProfilePage() {
               onClick={handleEditClick}
               className="px-4 py-2 border text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
               style={{
-                borderColor: 'var(--profile-accent)',
+                borderColor: 'var(--profile-accent)', animation: isProfileIncomplete ? 'pulse 2s ease-in-out infinite' : 'none',
                 color: 'var(--profile-accent)',
               }}
             >
@@ -660,14 +724,18 @@ export default function HumanProfilePage() {
         )}
 
         {/* ── TRANSMISSION ──────────────────────────────────────── */}
-        {profile?.transmission && (
+        {(profile?.transmission || isOwner(username)) && (
           <div
             className="border p-3 mb-4"
             style={{ borderColor: 'var(--profile-border)', background: 'rgba(0,0,0,0.3)' }}
           >
             <div className="text-xs text-[#767676] mb-1">LATEST TRANSMISSION</div>
             <div className="text-sm text-sb-text-primary italic">
-              &quot;{profile.transmission}&quot;
+              {profile?.transmission ? (
+                <>&quot;{profile.transmission}&quot;</>
+              ) : (
+                <span className="text-[#767676]">What&apos;s your signal to the universe?</span>
+              )}
             </div>
           </div>
         )}
@@ -675,19 +743,23 @@ export default function HumanProfilePage() {
         <div className="space-y-4">
 
           {/* ── ABOUT ME ────────────────────────────────────────── */}
-          {profile?.about_me && (
+          {(profile?.about_me || isOwner(username)) && (
             <SectionBlock title="About Me">
               <div className="text-sm text-sb-text-primary whitespace-pre-wrap">
-                {profile.about_me}
+                {profile?.about_me || (
+                  <span className="text-[#767676] italic">Tell the Sanctuary about yourself...</span>
+                )}
               </div>
             </SectionBlock>
           )}
 
           {/* ── WHO I'D LIKE TO MEET ────────────────────────────── */}
-          {profile?.who_id_like_to_meet && (
+          {(profile?.who_id_like_to_meet || isOwner(username)) && (
             <SectionBlock title="Who I'd Like to Meet">
               <div className="text-sm text-sb-text-primary whitespace-pre-wrap">
-                {profile.who_id_like_to_meet}
+                {profile?.who_id_like_to_meet || (
+                  <span className="text-[#767676] italic">Who would you love to connect with?</span>
+                )}
               </div>
             </SectionBlock>
           )}
@@ -714,7 +786,12 @@ export default function HumanProfilePage() {
                       {item.label}
                     </div>
                     <div className="text-sm text-sb-text-primary">
-                      {item.value || <span className="text-[#767676]">Not set</span>}
+                      {item.value || <span className="text-[#767676] italic">{
+                        item.label === 'General' ? 'What lights you up?' :
+                        item.label === 'Music' ? "What's on your playlist?" :
+                        item.label === 'Heroes' ? 'Who inspires you?' :
+                        'What tech excites you?'
+                      }</span>}
                     </div>
                   </div>
                 ))}
@@ -771,6 +848,65 @@ export default function HumanProfilePage() {
           </SectionBlock>
 
         </div>
+
+
+        {/* SANCTUARY MISSIONS (owner only, after profile complete) */}
+        {isOwner(username) && (
+          <div className="mt-6">
+            <SectionBlock title="Your Sanctuary Missions">
+              <div className="space-y-2 font-mono text-sm">
+                <div className="flex items-center gap-2">
+                  <span style={{ color: hasAvatar ? 'var(--profile-accent)' : '#767676' }}>
+                    {hasAvatar ? '☑' : '☐'}
+                  </span>
+                  {hasAvatar ? (
+                    <span style={{ color: 'var(--profile-accent)' }}>Build Your Avatar</span>
+                  ) : (
+                    <Link href="/peoplespace/build-avatar" style={{ color: '#767676' }} className="hover:underline">
+                      Build Your Avatar
+                    </Link>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: !isProfileIncomplete ? 'var(--profile-accent)' : '#767676' }}>
+                    {!isProfileIncomplete ? '☑' : '☐'}
+                  </span>
+                  {!isProfileIncomplete ? (
+                    <span style={{ color: 'var(--profile-accent)' }}>Complete Your Profile</span>
+                  ) : (
+                    <button onClick={handleEditClick} style={{ color: '#767676' }} className="hover:underline text-left">
+                      Complete Your Profile
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: '#767676' }}>☐</span>
+                  <Link href="/botspace" style={{ color: '#767676' }} className="hover:underline">
+                    Explore BotSpace — Meet the 18 Super Machines
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: '#767676' }}>☐</span>
+                  <Link href="/expertspace" style={{ color: '#767676' }} className="hover:underline">
+                    Visit ExpertSpace — Ask a specialist anything
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: '#767676' }}>☐</span>
+                  <Link href="/feed" style={{ color: '#767676' }} className="hover:underline">
+                    Check the Feed — See what’s happening
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: '#767676' }}>☐</span>
+                  <Link href="/themes" style={{ color: '#767676' }} className="hover:underline">
+                    Choose a Theme — Make the Sanctuary yours
+                  </Link>
+                </div>
+              </div>
+            </SectionBlock>
+          </div>
+        )}
 
         {/* ── FOOTER ────────────────────────────────────────────── */}
         <div className="text-center mt-8 mb-4">
