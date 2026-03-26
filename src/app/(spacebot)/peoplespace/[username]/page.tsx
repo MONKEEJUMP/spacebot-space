@@ -430,7 +430,7 @@ export default function HumanProfilePage() {
               style={{ borderColor: 'var(--profile-border)' }}
             >
               {avatarConfig ? (
-                <AvatarGenerator config={avatarConfig} size={128} />
+                <AvatarGenerator customConfig={avatarConfig} size={128} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-black/40">
                   <span className="text-[#767676] text-xs">NO AVATAR</span>
