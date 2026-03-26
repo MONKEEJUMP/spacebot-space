@@ -65,6 +65,8 @@ export async function GET() {
           widgets: p.widgets ?? [],
           buddyName: p.buddyName,
           buddyActive: p.buddyActive,
+          status: p.status,
+          coverPhoto: p.coverPhoto,
         }
       : null,
   });

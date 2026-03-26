@@ -68,6 +68,7 @@ interface ProfileResponse {
     };
     wallpaper_url: string | null;
     wallpaper_opacity: string | null;
+    cover_photo: string | null;
     status: string | null;
     profile_views: number;
     transmission_count: number;
@@ -182,10 +183,9 @@ export default function HumanProfilePage() {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string | boolean | null>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [wallpaperUploading, setWallpaperUploading] = useState(false);
-  const [wallpaperUploadMsg, setWallpaperUploadMsg] = useState<string | null>(null);
-  const [wallpaperPreview, setWallpaperPreview] = useState<string | null>(null);
-  const [wallpaperUrlError, setWallpaperUrlError] = useState<string | null>(null);
+  const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null);
+  const [coverPhotoUploading, setCoverPhotoUploading] = useState(false);
+  const [coverPhotoMsg, setCoverPhotoMsg] = useState<string | null>(null);
 
   // Owner detection via Clerk
   const { human: myHuman, profile: myProfile, isOwner, refetch: refetchClerk } = useClerkHuman();
@@ -255,8 +255,7 @@ export default function HumanProfilePage() {
       profileBorderColor: myProfile?.profileBorderColor || '',
       profileGlowColor: myProfile?.profileGlowColor || '',
       profileBgTint: myProfile?.profileBgTint || '',
-      wallpaperUrl: myProfile?.wallpaperUrl || '',
-      wallpaperOpacity: myProfile?.wallpaperOpacity || '0.15',
+      coverPhoto: myProfile?.coverPhoto || '',
       buddyName: myProfile?.buddyName || '',
       buddyActive: myProfile?.buddyActive ?? false,
     });
@@ -295,54 +294,43 @@ export default function HumanProfilePage() {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // ── WALLPAPER UPLOAD HANDLERS ─────────────────────────────────────
-  const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── COVER PHOTO HANDLERS ─────────────────────────────────────────
+  const handleCoverPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      setWallpaperUploadMsg('Invalid file type. Use JPEG, PNG, GIF, or WebP.');
+      setCoverPhotoMsg('Invalid file type. Use JPEG, PNG, or WebP.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setWallpaperUploadMsg('File too large. Maximum 5MB.');
+      setCoverPhotoMsg('File too large. Maximum 5MB.');
       return;
     }
-    setWallpaperPreview(URL.createObjectURL(file));
-    setWallpaperUploading(true);
-    setWallpaperUploadMsg(null);
+    setCoverPhotoPreview(URL.createObjectURL(file));
+    setCoverPhotoUploading(true);
+    setCoverPhotoMsg(null);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/v1/humans/wallpaper', { method: 'POST', body: fd });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setWallpaperUploadMsg(json.error || 'Upload failed.');
-        return;
-      }
-      updateField('wallpaperUrl', json.url);
-      setWallpaperUploadMsg('Wallpaper uploaded!');
-      globalThis.setTimeout(() => setWallpaperUploadMsg(null), 4000);
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      updateField('coverPhoto', base64);
+      setCoverPhotoMsg('Cover photo ready! Click SAVE CHANGES to apply.');
+      globalThis.setTimeout(() => setCoverPhotoMsg(null), 4000);
     } catch {
-      setWallpaperUploadMsg('Connection failed. Please try again.');
+      setCoverPhotoMsg('Failed to process image. Please try again.');
     } finally {
-      setWallpaperUploading(false);
+      setCoverPhotoUploading(false);
     }
   };
 
-  const handleRemoveWallpaper = () => {
-    updateField('wallpaperUrl', '');
-    setWallpaperPreview(null);
-    setWallpaperUploadMsg(null);
-  };
-
-  const validateWallpaperUrl = (url: string) => {
-    if (!url) { setWallpaperUrlError(null); return; }
-    if (/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url)) {
-      setWallpaperUrlError(null);
-    } else {
-      setWallpaperUrlError('Please use a direct image link (.jpg, .png, .gif, .webp)');
-    }
+  const handleRemoveCoverPhoto = () => {
+    updateField('coverPhoto', '');
+    setCoverPhotoPreview(null);
+    setCoverPhotoMsg(null);
   };
 
   // ── EDIT FORM FIELD RENDERERS ─────────────────────────────────
@@ -500,9 +488,8 @@ export default function HumanProfilePage() {
     bgTint: profile?.colors?.bg_tint || DEFAULT_HUMAN_THEME.bgTint,
   };
 
-  // Wallpaper from public profile or owner's private data
-  const activeWallpaper = profile?.wallpaper_url || myProfile?.wallpaperUrl || null;
-  const wallpaperOpacityVal = profile?.wallpaper_opacity || myProfile?.wallpaperOpacity || '0.15';
+  // Cover photo from public profile
+  const activeCoverPhoto = coverPhotoPreview || profile?.cover_photo || null;
 
   // New profile stats
   const profileViews = profile?.profile_views ?? 0;
@@ -511,17 +498,8 @@ export default function HumanProfilePage() {
 
   return (
     <ProfileThemeProvider theme={theme}>
-      <div className="w-full max-w-3xl mx-auto px-4 py-6 font-mono relative overflow-hidden">
-        {activeWallpaper && (
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-            style={{
-              backgroundImage: `url(${activeWallpaper})`,
-              opacity: parseFloat(wallpaperOpacityVal) || 0.15,
-            }}
-          />
-        )}
-        <div className="relative" style={{ zIndex: 1 }}>
+      <div className="w-full max-w-3xl mx-auto px-4 py-6 font-mono">
+        <div className="relative">
       <style>{`
         @keyframes pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(var(--profile-accent-rgb, 0,220,0), 0.4); }
@@ -551,6 +529,48 @@ export default function HumanProfilePage() {
             </button>
           </div>
         )}
+
+        {/* ════════════════════════════════════════════════════════
+            COVER PHOTO BANNER
+            ════════════════════════════════════════════════════════ */}
+        <div className="relative mb-4 rounded-t-lg overflow-hidden">
+          <div className="w-full h-[180px] sm:h-[250px]">
+            {activeCoverPhoto ? (
+              <img
+                src={activeCoverPhoto}
+                alt="Cover photo"
+                className="w-full h-full object-cover object-center"
+              />
+            ) : (
+              <div
+                className="w-full h-full"
+                style={{
+                  background: `linear-gradient(135deg, ${theme.accentColor}1A 0%, transparent 60%, ${theme.accentColor}0D 100%)`,
+                }}
+              />
+            )}
+          </div>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-px"
+            style={{ backgroundColor: 'var(--profile-border)' }}
+          />
+          {isOwner(username) && !isPreviewMode && !editMode && (
+            <button
+              onClick={handleEditClick}
+              className="absolute bottom-3 right-3 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all hover:opacity-100"
+              style={{
+                color: 'var(--profile-accent)',
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                border: '1px solid var(--profile-border)',
+                borderRadius: '4px',
+                opacity: 0.7,
+                fontFamily: "'Glass TTY VT220', monospace",
+              }}
+            >
+              CHANGE COVER
+            </button>
+          )}
+        </div>
 
         {/* ════════════════════════════════════════════════════════
             SECTION 1: HEADER
@@ -816,15 +836,36 @@ export default function HumanProfilePage() {
               </div>
             </div>
 
-            {/* WALLPAPER SECTION */}
-            <SectionHeader title="Wallpaper" />
+            {/* COVER PHOTO SECTION */}
+            <SectionHeader title="Cover Photo" />
             <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
+              {/* Preview */}
+              <div
+                className="w-full h-[120px] mb-3 rounded overflow-hidden border"
+                style={{ borderColor: 'var(--profile-border)' }}
+              >
+                {(coverPhotoPreview || (editForm.coverPhoto as string)) ? (
+                  <img
+                    src={coverPhotoPreview || (editForm.coverPhoto as string)}
+                    alt="Cover photo preview"
+                    className="w-full h-full object-cover object-center"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--profile-accent, #00DC00)1A 0%, transparent 60%)',
+                    }}
+                  />
+                )}
+              </div>
+
               {/* Upload Button */}
               <div className="mb-3 text-center">
                 <button
                   type="button"
-                  onClick={() => document.getElementById('wallpaper-upload')?.click()}
-                  disabled={wallpaperUploading}
+                  onClick={() => document.getElementById('cover-photo-upload')?.click()}
+                  disabled={coverPhotoUploading}
                   className="w-full px-4 py-3 border-2 border-dashed text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-50"
                   style={{
                     borderColor: 'var(--profile-accent)',
@@ -832,80 +873,44 @@ export default function HumanProfilePage() {
                     fontFamily: "'Glass TTY VT220', monospace",
                   }}
                 >
-                  {wallpaperUploading ? '[ UPLOADING... ]' : '[ UPLOAD WALLPAPER ]'}
+                  {coverPhotoUploading ? '[ PROCESSING... ]' : '[ UPLOAD COVER PHOTO ]'}
                 </button>
                 <input
-                  id="wallpaper-upload"
+                  id="cover-photo-upload"
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleWallpaperUpload}
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleCoverPhotoUpload}
                   className="hidden"
                 />
               </div>
 
-              {/* Upload Status */}
-              {wallpaperUploadMsg && (
+              {/* Status Message */}
+              {coverPhotoMsg && (
                 <div
                   className="mb-3 text-center text-xs font-bold tracking-wider"
                   style={{
-                    color: wallpaperUploadMsg === 'Wallpaper uploaded!'
+                    color: coverPhotoMsg.includes('ready') || coverPhotoMsg.includes('saved')
                       ? 'var(--profile-accent)'
                       : '#FF4444',
                   }}
                 >
-                  {wallpaperUploadMsg}
+                  {coverPhotoMsg}
                 </div>
               )}
 
-              {/* Current/Preview Wallpaper */}
-              {(wallpaperPreview || (editForm.wallpaperUrl as string)) && (
-                <div className="mb-3">
-                  <div
-                    className="w-full h-24 border bg-cover bg-center mb-2"
-                    style={{
-                      borderColor: 'var(--profile-border)',
-                      backgroundImage: `url(${wallpaperPreview || (editForm.wallpaperUrl as string)})`,
-                    }}
-                  />
+              {/* Remove Button */}
+              {(coverPhotoPreview || (editForm.coverPhoto as string)) && (
+                <div className="text-center">
                   <button
                     type="button"
-                    onClick={handleRemoveWallpaper}
+                    onClick={handleRemoveCoverPhoto}
                     className="text-xs font-bold uppercase tracking-wider transition-colors hover:text-[#FF4444]"
                     style={{ color: '#767676' }}
                   >
-                    [ REMOVE WALLPAPER ]
+                    [ REMOVE COVER PHOTO ]
                   </button>
                 </div>
               )}
-
-              {/* Secondary: Paste URL */}
-              <div className="mb-3">
-                <label
-                  className="block text-xs uppercase tracking-wider mb-1"
-                  style={{ color: '#767676' }}
-                >
-                  OR PASTE IMAGE URL
-                </label>
-                <input
-                  type="text"
-                  value={(editForm.wallpaperUrl as string) || ''}
-                  onChange={(e) => {
-                    updateField('wallpaperUrl', e.target.value);
-                    validateWallpaperUrl(e.target.value);
-                  }}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full bg-transparent border px-2 py-1.5 text-sm text-sb-text-primary font-mono focus:outline-none"
-                  style={{ borderColor: 'var(--profile-border)' }}
-                />
-                {wallpaperUrlError && (
-                  <div className="text-xs mt-1" style={{ color: '#FF4444' }}>
-                    {wallpaperUrlError}
-                  </div>
-                )}
-              </div>
-
-              {/* Opacity */}
-              {renderField('Wallpaper Opacity', 'wallpaperOpacity')}
             </div>
 
             {/* AI BUDDY SECTION */}

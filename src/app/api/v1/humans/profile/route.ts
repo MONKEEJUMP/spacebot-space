@@ -87,10 +87,27 @@ export async function PUT(request: NextRequest) {
   acceptStr('interestsHeroes');
   acceptStr('interestsTechnology');
   acceptStr('status');
+  acceptStr('coverPhoto');
   acceptStr('buddyName');
 
   if (Array.isArray(body.widgets)) profileUpdates.widgets = body.widgets;
   if (typeof body.buddyActive === 'boolean') profileUpdates.buddyActive = body.buddyActive;
+
+  // Cover photo validation: must be base64 image, max ~7MB string (roughly 5MB image)
+  if (typeof profileUpdates.coverPhoto === 'string' && profileUpdates.coverPhoto !== '') {
+    if (!profileUpdates.coverPhoto.startsWith('data:image/')) {
+      return NextResponse.json(
+        { success: false, error: 'Cover photo must be a valid image.' },
+        { status: 400 }
+      );
+    }
+    if (profileUpdates.coverPhoto.length > 7 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: 'Cover photo too large. Maximum 5MB.' },
+        { status: 400 }
+      );
+    }
+  }
 
   if (Object.keys(profileUpdates).length > 0) {
     profileUpdates.updatedAt = new Date();

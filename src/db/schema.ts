@@ -375,6 +375,7 @@ export const humanProfiles = pgTable('human_profiles', {
   buddyName: varchar('buddy_name', { length: 50 }),
   buddyActive: boolean('buddy_active').default(false).notNull(),
   status: varchar('status', { length: 100 }),
+  coverPhoto: text('cover_photo'),
   profileViews: integer('profile_views').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

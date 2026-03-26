@@ -31,6 +31,7 @@ interface ClerkHumanProfile {
   buddyName: string | null;
   buddyActive: boolean;
   status: string | null;
+  coverPhoto: string | null;
 }
 
 export function useClerkHuman() {

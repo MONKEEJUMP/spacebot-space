@@ -122,6 +122,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         profileBgTint: humanProfiles.profileBgTint,
         wallpaperUrl: humanProfiles.wallpaperUrl,
         wallpaperOpacity: humanProfiles.wallpaperOpacity,
+        coverPhoto: humanProfiles.coverPhoto,
         status: humanProfiles.status,
         profileViews: humanProfiles.profileViews,
       })
@@ -197,6 +198,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
             wallpaper_url: profile.wallpaperUrl || null,
             wallpaper_opacity: profile.wallpaperOpacity || null,
+            cover_photo: profile.coverPhoto || null,
             status: profile.status || null,
             profile_views: profile.profileViews || 0,
             transmission_count: transmissionCount,
