@@ -587,7 +587,7 @@ export default function BuildAvatarPage() {
 
   // ─── Layout ───
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 font-mono pb-20">
+    <div className="w-full max-w-6xl mx-auto px-4 font-mono pb-20" style={{ backgroundColor: 'var(--sb-bg-primary)' }}>
       <style>{KEYFRAMES}</style>
 
       {/* ═══ COMMAND CENTER — fixed preview bar, ALL screen sizes ═══ */}
@@ -595,7 +595,7 @@ export default function BuildAvatarPage() {
         id="avatar-command-center"
         style={{
           position: 'fixed',
-          top: 44,
+          top: 0,
           left: 0,
           right: 0,
           zIndex: 50,
