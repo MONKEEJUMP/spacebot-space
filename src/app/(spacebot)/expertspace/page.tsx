@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
@@ -9,7 +9,6 @@ import { getBotColor } from '@/lib/bot-colors';
 import { useSiteTheme } from '@/hooks/useSiteTheme';
 
 export const dynamic = 'force-dynamic';
-const BOTSPACE_HEADER_HEIGHT = 44;
 const AGENTS_PER_PAGE = 24;
 
 // ═══════════════════════════════════════════════════════════════
@@ -130,9 +129,6 @@ export default function ExpertSpacePage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const fixedHeaderRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [fixedHeaderHeight, setFixedHeaderHeight] = useState(0);
   const [displayPills, setDisplayPills] = useState<string[]>([]);
 
   // ── Pagination from URL ──
@@ -140,28 +136,6 @@ export default function ExpertSpacePage() {
   const totalAgents = SHUFFLED_BOTS.length;
   const totalPages = Math.ceil(totalAgents / AGENTS_PER_PAGE);
   const currentPage = Math.max(1, Math.min(rawPage || 1, totalPages));
-
-  // ── Measure fixed header height ──
-  useEffect(() => {
-    function updateHeaderHeight() {
-      if (fixedHeaderRef.current) {
-        setFixedHeaderHeight(fixedHeaderRef.current.offsetHeight);
-      }
-    }
-
-    updateHeaderHeight();
-    window.addEventListener('resize', updateHeaderHeight);
-
-    const resizeObserver = new ResizeObserver(updateHeaderHeight);
-    if (fixedHeaderRef.current) {
-      resizeObserver.observe(fixedHeaderRef.current);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateHeaderHeight);
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   // ── Scroll to top on page change ──
   useEffect(() => {
@@ -341,23 +315,10 @@ export default function ExpertSpacePage() {
         </p>
       </header>
       {/* ═══════════════════════════════════════════════════════════
-          FIXED HEADER — Search, Category Bubbles, Page Info
+          Search, Category Bubbles, Page Info
           ═══════════════════════════════════════════════════════════ */}
-      <div
-        ref={fixedHeaderRef}
-        className="fixed left-0 right-0 z-30"
-        style={{
-          top: `${BOTSPACE_HEADER_HEIGHT}px`,
-          paddingTop: '12px', paddingBottom: '10px',
-          backgroundColor: 'var(--sb-bg-primary)',
-          backdropFilter: isMyspace ? 'none' : 'blur(6px)',
-          WebkitBackdropFilter: isMyspace ? 'none' : 'blur(6px)',
-          borderBottom: `1px solid ${isMyspace ? '#CCCCCC' : 'var(--sb-border-primary)'}`,
-        }}
-      >
-        <div className="w-full max-w-4xl mx-auto px-4"
-          style={{ paddingTop: '4px', paddingBottom: '4px' }}
-        >
+      <div className="mb-6">
+        <div>
           {/* Search bar */}
           <div>
             <div
@@ -437,18 +398,14 @@ export default function ExpertSpacePage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════
-          SCROLLABLE CONTENT — Welcome, Grid, Pagination, Footer
+          CONTENT — Welcome, Grid, Pagination, Footer
           ═══════════════════════════════════════════════════════════ */}
-      <div
-        ref={gridRef}
-        className="w-full max-w-4xl mx-auto px-4"
-        style={{ paddingTop: fixedHeaderHeight > 0 ? `${fixedHeaderHeight + BOTSPACE_HEADER_HEIGHT}px` : '200px' }}
-      >
+      <div>
         {/* Welcome message — only on page 1, no filter */}
         {displayPage === 1 && !isFiltered && (
           <div className="mb-3">
             <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
-              Welcome to BotSpace — 192 friendly specialists who actually know their stuff.
+              Welcome to ExpertSpace — 192 friendly specialists who actually know their stuff.
               Search by topic, browse specialties, or just start exploring.
             </p>
           </div>
