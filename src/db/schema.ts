@@ -376,6 +376,7 @@ export const humanProfiles = pgTable('human_profiles', {
   buddyActive: boolean('buddy_active').default(false).notNull(),
   status: varchar('status', { length: 100 }),
   coverPhoto: text('cover_photo'),
+  planetConfig: text('planet_config'),
   profileViews: integer('profile_views').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
