@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useAuthGate } from '@/hooks/useAuthGate';
 import { useClerkHuman } from '@/hooks/useClerkHuman';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -29,7 +28,6 @@ const MAX_FEATURES = 3;
 const MAX_NAME_LENGTH = 24;
 
 export default function PlanetSpacePage() {
-  const { isAllowed, isLoaded } = useAuthGate();
   const { human } = useClerkHuman();
   const router = useRouter();
 
@@ -51,7 +49,7 @@ export default function PlanetSpacePage() {
 
   // Load existing planet config
   useEffect(() => {
-    if (!isAllowed) return;
+    if (!human) return;
     const stored = localStorage.getItem('custom-planet');
     if (stored) {
       try {
@@ -72,7 +70,7 @@ export default function PlanetSpacePage() {
         }
       })
       .catch(() => { /* silent */ });
-  }, [isAllowed]);
+  }, [human]);
 
   // Auto-save to localStorage on config change
   useEffect(() => {
@@ -116,6 +114,10 @@ export default function PlanetSpacePage() {
   };
 
   const saveToProfile = async () => {
+    if (!human) {
+      router.push('/sign-in');
+      return;
+    }
     setIsSaving(true);
     setSaveMessage('');
     try {
@@ -158,48 +160,7 @@ export default function PlanetSpacePage() {
     setIsSaving(false);
   };
 
-  // ═══════════════════════════════════════════════════════════════
-  // AUTH GATE
-  // ═══════════════════════════════════════════════════════════════
 
-  if (!isLoaded) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div style={{ color: 'var(--sb-text-secondary)', fontFamily: "'Glass TTY VT220', monospace", fontSize: '14px' }}>
-          LOADING PLANET SPACE...
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAllowed) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '16px' }}>
-        <div style={{ color: 'var(--sb-text-primary)', fontFamily: "'Glass TTY VT220', monospace", fontSize: '18px' }}>
-          PLANET SPACE
-        </div>
-        <div style={{ color: 'var(--sb-text-secondary)', fontFamily: "'Glass TTY VT220', monospace", fontSize: '14px' }}>
-          Sign in to build your planet.
-        </div>
-        <Link
-          href="/sign-in"
-          style={{
-            color: '#000',
-            backgroundColor: 'var(--sb-accent)',
-            padding: '10px 24px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            fontFamily: "'Glass TTY VT220', monospace",
-            fontSize: '14px',
-            fontWeight: 'bold',
-            letterSpacing: '1px',
-          }}
-        >
-          SIGN IN
-        </Link>
-      </div>
-    );
-  }
 
   // ═══════════════════════════════════════════════════════════════
   // RENDER HELPERS
