@@ -118,9 +118,9 @@ export default function HeroHeader() {
         <div className="flex items-center justify-center gap-2 mb-10">
           <span
             className="w-2 h-2 rounded-full animate-heartbeatDot"
-            style={{ backgroundColor: "#00DC00", boxShadow: "0 0 6px #00DC00, 0 0 12px #00DC00" }}
+            style={{ backgroundColor: "var(--sb-accent)", boxShadow: "0 0 6px var(--sb-accent), 0 0 12px var(--sb-accent)" }}
           />
-          <span className="font-mono text-xs" style={{ color: "#00DC00" }}>
+          <span className="font-mono text-xs" style={{ color: "var(--sb-accent)" }}>
             SYSTEM ONLINE
           </span>
         </div>
