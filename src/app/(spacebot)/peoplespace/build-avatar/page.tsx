@@ -1382,49 +1382,88 @@ export default function BuildAvatarPage() {
               <div className="mb-6">
                 {isSignedIn ? (
                   <>
-                    <button
-                      onClick={async () => {
-                        setProfileSaving(true);
-                        setProfileSaveMessage(null);
-                        setProfileSaveError(null);
-                        const avatarData = {
-                          bodyType, eyeType, mouthType, colorIndex, customHex,
-                          selectedAccessories, schematicId, schematicColor,
-                          overlayPreset, animationType, androidName,
-                        };
-                        try {
-                          const res = await fetch('/api/v1/humans/profile', {
-                            method: 'PUT',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ avatarConfig: avatarData }),
-                          });
-                          const json = await res.json();
-                          if (!res.ok || !json.success) {
-                            setProfileSaveError(json.error || 'Failed to save avatar to profile.');
-                          } else {
-                            setProfileSaveMessage('Avatar saved to your profile!');
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button
+                        onClick={async () => {
+                          setProfileSaving(true);
+                          setProfileSaveMessage(null);
+                          setProfileSaveError(null);
+                          const avatarData = {
+                            bodyType, eyeType, mouthType, colorIndex, customHex,
+                            selectedAccessories, schematicId, schematicColor,
+                            overlayPreset, animationType, androidName,
+                          };
+                          try {
+                            const res = await fetch('/api/v1/humans/profile', {
+                              method: 'PUT',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ avatarConfig: avatarData }),
+                            });
+                            const json = await res.json();
+                            if (!res.ok || !json.success) {
+                              setProfileSaveError(json.error || 'Failed to save avatar to profile.');
+                            } else {
+                              setProfileSaveMessage('Avatar saved to your profile!');
+                            }
+                          } catch {
+                            setProfileSaveError('Connection failed. Please try again.');
+                          } finally {
+                            setProfileSaving(false);
                           }
-                        } catch {
-                          setProfileSaveError('Connection failed. Please try again.');
-                        } finally {
-                          setProfileSaving(false);
-                        }
-                      }}
-                      disabled={profileSaving}
-                      className="w-full py-4 px-6 font-bold text-base tracking-widest transition-all duration-200 disabled:opacity-50"
-                      style={{
-                        backgroundColor: 'transparent',
-                        color: uiColor,
-                        borderRadius: '6px',
-                        border: `2px solid ${uiColor}`,
-                        fontFamily: "'Glass TTY VT220', monospace",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 20px ${uiColor}60`; }}
-                      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
-                    >
-                      {profileSaving ? 'SAVING...' : 'SAVE TO PROFILE'}
-                    </button>
+                        }}
+                        disabled={profileSaving}
+                        className="py-4 px-6 font-bold text-sm tracking-widest transition-all duration-200 disabled:opacity-50"
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'transparent',
+                          color: uiColor,
+                          borderRadius: '6px',
+                          border: `2px solid ${uiColor}`,
+                          fontFamily: "'Glass TTY VT220', monospace",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 20px ${uiColor}60`; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                      >
+                        {profileSaving ? 'SAVING...' : 'SAVE TO PROFILE'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const container = document.getElementById('avatar-command-center');
+                          if (!container) return;
+                          const canvases = container.querySelectorAll('canvas');
+                          if (canvases.length === 0) return;
+                          const dpr = window.devicePixelRatio || 1;
+                          const size = 200;
+                          const exportCanvas = document.createElement('canvas');
+                          exportCanvas.width = size * dpr;
+                          exportCanvas.height = size * dpr;
+                          const ctx = exportCanvas.getContext('2d');
+                          if (!ctx) return;
+                          canvases.forEach(c => { ctx.drawImage(c, 0, 0); });
+                          const dataUrl = exportCanvas.toDataURL('image/png');
+                          const a = document.createElement('a');
+                          a.href = dataUrl;
+                          a.download = 'spacebot-avatar.png';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        className="py-4 px-6 font-bold text-sm tracking-widest transition-all duration-200"
+                        style={{
+                          flex: 1,
+                          backgroundColor: 'transparent',
+                          color: '#767676',
+                          borderRadius: '6px',
+                          border: '1px solid #333',
+                          fontFamily: "'Glass TTY VT220', monospace",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#CCCCCC'; e.currentTarget.style.color = '#CCCCCC'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#767676'; }}
+                      >
+                        SAVE TO COMPUTER
+                      </button>
+                    </div>
                     {profileSaveMessage && (
                       <div
                         className="mt-3 px-4 py-3 border text-sm tracking-wider"
