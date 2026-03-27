@@ -1449,17 +1449,17 @@ export default function BuildAvatarPage() {
                           a.click();
                           document.body.removeChild(a);
                         }}
-                        className="py-4 px-6 font-bold text-sm tracking-widest transition-all duration-200"
+                        className="py-4 px-6 font-bold text-sm tracking-widest transition-all duration-200 disabled:opacity-50"
                         style={{
                           flex: 1,
                           backgroundColor: 'transparent',
-                          color: '#767676',
+                          color: uiColor,
                           borderRadius: '6px',
-                          border: '1px solid #333',
+                          border: `2px solid ${uiColor}`,
                           fontFamily: "'Glass TTY VT220', monospace",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#CCCCCC'; e.currentTarget.style.color = '#CCCCCC'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#767676'; }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 20px ${uiColor}60`; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
                       >
                         SAVE TO COMPUTER
                       </button>
@@ -1612,12 +1612,12 @@ export default function BuildAvatarPage() {
                 onClick={randomizeAll}
                 className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
                 style={{
-                  backgroundColor: 'transparent',
-                  color: '#00DC00',
+                  backgroundColor: uiColor,
+                  color: '#000',
                   borderRadius: '6px',
-                  border: '1px solid #00DC00',
+                  border: `1px solid ${uiColor}`,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 12px rgba(0,220,0,0.4)'; }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 16px ${uiColor}80`; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 RANDOMIZE EVERYTHING
@@ -1627,13 +1627,13 @@ export default function BuildAvatarPage() {
                 onClick={startOver}
                 className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
                 style={{
-                  backgroundColor: 'transparent',
-                  color: '#767676',
+                  backgroundColor: uiColor,
+                  color: '#000',
                   borderRadius: '6px',
-                  border: '1px solid #333',
+                  border: `1px solid ${uiColor}`,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#E20000'; e.currentTarget.style.color = '#E20000'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#767676'; }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 16px ${uiColor}80`; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 START OVER
               </button>
@@ -1645,13 +1645,13 @@ export default function BuildAvatarPage() {
                 }}
                 className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
                 style={{
-                  backgroundColor: 'transparent',
-                  color: '#767676',
+                  backgroundColor: uiColor,
+                  color: '#000',
                   borderRadius: '6px',
-                  border: '1px solid #333',
+                  border: `1px solid ${uiColor}`,
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#E6E300'; e.currentTarget.style.color = '#E6E300'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#767676'; }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 16px ${uiColor}80`; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 CLEAR SAVED AVATAR
               </button>
