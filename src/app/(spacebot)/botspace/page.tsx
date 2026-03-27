@@ -74,6 +74,8 @@ export default function BotSpacePage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 font-mono">
+      {/* ── STICKY HEADER WRAPPER (desktop only) ── */}
+      <div className="md:sticky md:top-0 md:z-10 md:pb-3 md:shadow-[0_1px_3px_rgba(0,0,0,0.4)]" style={{ backgroundColor: 'var(--sb-bg-primary)' }}>
       {/* ── HEADER ── */}
       <header className="mb-8 pt-2">
         <h1
@@ -149,6 +151,7 @@ export default function BotSpacePage() {
         <div className="text-xs text-sb-text-secondary mt-1 px-1">
           {filteredBots.length} of {BOT_RESIDENTS.length} bots
         </div>
+      </div>
       </div>
 
       {/* ── BOT CARDS ── */}
