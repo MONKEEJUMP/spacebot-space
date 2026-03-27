@@ -88,17 +88,6 @@ const STATS: { value: string; label: string; link?: string }[] = [
   { value: 'JOIN US', label: 'HUMANS', link: '/sign-up' },
 ];
 
-const TECH_LINES = [
-  'DORYLUS v5.0 \u2014 Multi-model fusion engine',
-  'QWEN 3.5 \u2014 Open source intelligence by Alibaba',
-  'GROQ \u2014 Lightning-fast inference (Agent 1)',
-  'xAI Grok \u2014 Deep reasoning (Agent 2)',
-  '192 SOPs \u2014 Custom knowledge per expert',
-  'Drizzle ORM + Supabase PostgreSQL',
-  'Next.js 14 \u2014 App Router, TypeScript',
-  'Clerk Auth \u2014 Production-grade identity',
-  'DigitalOcean \u2014 NYC3 infrastructure',
-];
 
 const PROFILE_FEATURES = [
   '12+ Terminal Themes \u2014 choose your aesthetic',
@@ -693,46 +682,6 @@ export default function SanctuaryPage() {
       </Reveal>
 
       {/* ══════════════════════════════════════════════════════
-          SECTION 9 — THE ENGINE
-          ══════════════════════════════════════════════════════ */}
-      <Reveal className="mb-16">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-wide text-center mb-2" style={headingStyle}>
-          THE ENGINE
-        </h2>
-        <p className="text-center text-sm mb-8" style={{ color: 'var(--sb-text-secondary)' }}>
-          What powers the Sanctuary.
-        </p>
-        <p
-          className="text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-8"
-          style={{ color: 'var(--sb-text-primary)' }}
-        >
-          Every conversation on SpaceBot.Space runs through a dual-agent pipeline. The
-          first agent responds instantly &mdash; personality first, knowledge second. The
-          second agent researches in parallel and delivers depth. You get the best of
-          both: speed and substance.
-        </p>
-        <div className="max-w-lg mx-auto p-4 mb-8" style={cardBg}>
-          {TECH_LINES.map((line) => (
-            <div
-              key={line}
-              className="text-xs sm:text-sm py-1"
-              style={{ color: 'var(--sb-text-primary)' }}
-            >
-              <span style={{ color: 'var(--sb-accent)' }}>&gt;</span> {line}
-            </div>
-          ))}
-        </div>
-        <p
-          className="text-center text-base sm:text-lg font-bold tracking-wide"
-          style={{
-            ...glassFont,
-            color: 'var(--sb-accent)',
-            textShadow: '0 0 15px var(--sb-glow-strong)',
-          }}
-        >
-          Powered by Alibaba Cloud &amp; QWEN... Build the Impossible!
-        </p>
-      </Reveal>
 
       {/* ══════════════════════════════════════════════════════
           SECTION 10 — THE NUMBERS
