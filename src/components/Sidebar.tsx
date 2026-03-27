@@ -19,8 +19,6 @@ const NAV_LINKS = [
 
 const AVATAR_LINK = { href: "/peoplespace/build-avatar", label: "Avatar" };
 
-const PLANET_LINK = { href: "/planetspace", label: "Planet" };
-
 const AUTH_LINKS = [
   { href: "/sign-in", label: "Log In" },
   { href: "/sign-up", label: "Sign Up" },
@@ -223,26 +221,6 @@ export default function Sidebar() {
           }}
         >
           {AVATAR_LINK.label}
-        </Link>
-        <Link
-          href={PLANET_LINK.href}
-          style={linkStyle(PLANET_LINK.href)}
-          onMouseEnter={(e) => {
-            if (!isActive(pathname, PLANET_LINK.href)) {
-              e.currentTarget.style.backgroundColor = "var(--sb-bg-secondary)";
-              e.currentTarget.style.color = "var(--sb-accent)";
-              e.currentTarget.style.textShadow = "0 0 8px var(--sb-accent)";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isActive(pathname, PLANET_LINK.href)) {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "var(--sb-nav-text)";
-              e.currentTarget.style.textShadow = "none";
-            }
-          }}
-        >
-          {PLANET_LINK.label}
         </Link>
       </nav>
 
