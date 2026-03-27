@@ -36,6 +36,12 @@ function ThemeCard({
   const borderColor = theme.vars['--sb-border-primary'];
   const navText = theme.vars['--sb-nav-text'];
 
+  // Invert and Light Mode preview boxes: use current site theme bg
+  // so they show black in dark mode, white in light/invert mode
+  const previewBg = (theme.id === 'invert' || theme.id === 'light')
+    ? 'var(--sb-bg-secondary)'
+    : bgSecondary;
+
   return (
     <button
       type="button"
@@ -91,7 +97,7 @@ function ThemeCard({
         className="mt-3 p-3 text-sm font-mono"
         style={{
           border: `1px solid ${borderColor}`,
-          backgroundColor: bgSecondary,
+          backgroundColor: previewBg,
         }}
       >
         <div style={{ color: accent }}>
