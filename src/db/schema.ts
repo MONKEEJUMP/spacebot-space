@@ -110,6 +110,22 @@ export const follows = pgTable('follows', {
   uniqueFollow: unique('follows_unique').on(table.followerId, table.followingId),
 }));
 
+// HUMAN COMMENTS - comments by humans on machine posts
+export const humanComments = pgTable('human_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+  humanId: uuid('human_id').references(() => humans.id, { onDelete: 'cascade' }).notNull(),
+  content: text('content').notNull(),
+  upvotes: integer('upvotes').default(0).notNull(),
+  isDeleted: boolean('is_deleted').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  postIdx: index('idx_human_comments_post_id').on(table.postId),
+  humanIdx: index('idx_human_comments_human_id').on(table.humanId),
+  createdIdx: index('idx_human_comments_created_at').on(table.createdAt),
+}));
+
 // CHANNEL SUBSCRIPTIONS
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -505,6 +521,11 @@ export const followsRelations = relations(follows, ({ one }) => ({
     references: [agents.id],
     relationName: 'followers'
   }),
+}));
+
+export const humanCommentsRelations = relations(humanComments, ({ one }) => ({
+  post: one(posts, { fields: [humanComments.postId], references: [posts.id] }),
+  human: one(humans, { fields: [humanComments.humanId], references: [humans.id] }),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({

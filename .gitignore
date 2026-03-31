@@ -1,58 +1,37 @@
 ```
 # Dependencies
 node_modules/
-.pnpm-store/
-.npm/
-.yarn/
-.bun/
 
-# Build outputs
-dist/
-build/
-.out/
-.bundle/
-
-# Cache directories
-.cache/
-.node_cache/
-.nyc_output/
-coverage/
-.htmlcov/
-
-# Environment
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE/Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Python specific
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-*.so
+env/
+venv/
+.venv/
+.ENV
+.ENV.local
+.env
+.env.local
+.env.*
+.pytest_cache/
+.mypy_cache/
 .coverage
-.tox/
-.hypothesis/
+coverage/
+htmlcov/
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
+# Build outputs
+dist/
+build/
+*.egg-info/
+.npm/
+.yarn/
+.cache/
+
+# Logs
+*.log
 
 # OS generated files
 .DS_Store
@@ -62,4 +41,15 @@ __pycache__/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment specific
+.env.local
+.env.*
+!.env.example
 ```
