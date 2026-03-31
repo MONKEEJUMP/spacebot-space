@@ -19,6 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -402,7 +403,7 @@ export async function OPTIONS(): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',

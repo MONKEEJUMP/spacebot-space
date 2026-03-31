@@ -7,6 +7,9 @@
  * GET  → Returns raw HTML login form
  * POST → Processes form submission, sets cookies, redirects
  *
+ * SECURITY: Rate-limited (5 attempts/15min), account lockout (10 failures),
+ * progressive delays via Fortress rate-limiter + human-lockout.
+ *
  * @author PAULIEWOOD! & The Power Trio
  * @purpose Bypass React hydration issues entirely
  */
@@ -17,6 +20,13 @@ import { humans } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair } from '@/lib/security/jwt';
+import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import {
+  checkAccountLockoutByEmail,
+  recordFailedLoginByEmail,
+  resetFailedAttempts,
+  formatLockoutMessage,
+} from '@/lib/security/human-lockout';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,11 +171,30 @@ export async function GET(): Promise<Response> {
 
 
 // ============================================================
-// POST - PROCESS LOGIN
+// POST - PROCESS LOGIN (RATE-LIMITED + LOCKOUT)
 // ============================================================
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    // ══════════════════════════════════════════════════════════
+    // RATE LIMIT CHECK (5 attempts per 15 min per IP)
+    // ══════════════════════════════════════════════════════════
+    const clientIP = getClientIP(request);
+    const rateCheck = await checkRateLimit(clientIP, 'humanLogin');
+
+    if (!rateCheck.allowed) {
+      return new Response(
+        loginHTML(`Too many login attempts. Please try again in ${rateCheck.retryAfter} seconds.`),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Retry-After': String(rateCheck.retryAfter),
+          },
+        }
+      );
+    }
+
     // ══════════════════════════════════════════════════════════
     // PARSE FORM DATA (application/x-www-form-urlencoded)
     // ══════════════════════════════════════════════════════════
@@ -181,6 +210,22 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // ══════════════════════════════════════════════════════════
+    // ACCOUNT LOCKOUT CHECK (10 failures = locked)
+    // ══════════════════════════════════════════════════════════
+    const lockoutStatus = await checkAccountLockoutByEmail(normalizedEmail);
+
+    if (!lockoutStatus.canAttemptLogin) {
+      const lockMsg = formatLockoutMessage(lockoutStatus);
+      return new Response(
+        loginHTML(lockMsg || 'Account is temporarily locked. Please try again later.'),
+        {
+          status: 423,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        }
+      );
+    }
 
     // ══════════════════════════════════════════════════════════
     // FIND HUMAN & VERIFY PASSWORD
@@ -204,11 +249,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     const passwordValid = await bcrypt.compare(password, hashToCompare);
 
     if (!human || !passwordValid) {
+      // Record failed attempt (triggers lockout after 10 failures)
+      await recordFailedLoginByEmail(normalizedEmail, 'Invalid credentials via simple-login');
+
       return new Response(loginHTML('Invalid email or password.'), {
         status: 401,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
     }
+
+    // ══════════════════════════════════════════════════════════
+    // SUCCESSFUL LOGIN - RESET FAILED ATTEMPTS
+    // ══════════════════════════════════════════════════════════
+    await resetFailedAttempts(human.id);
 
     // ══════════════════════════════════════════════════════════
     // GENERATE TOKENS

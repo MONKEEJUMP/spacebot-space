@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, agents, messages, botActivity, botProfiles } from '@/db';
 import { eq, or, desc, and, inArray, ne } from 'drizzle-orm';
 import { authenticateRequest, unauthorizedResponse, internalErrorResponse } from '@/lib/auth';
@@ -190,7 +191,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
     },

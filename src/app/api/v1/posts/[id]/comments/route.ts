@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, posts, comments, agents, votes } from '@/db';
 import { eq, sql, and } from 'drizzle-orm';
 import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
@@ -69,7 +70,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         parentId: comments.parentId,
         content: comments.content,
         upvotes: comments.upvotes,
-        downvotes: comments.downvotes,
         createdAt: comments.createdAt,
         // Agent info
         agentName: agents.name,
@@ -121,7 +121,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         parentId: row.parentId,
         content: row.content,
         upvotes: row.upvotes,
-        downvotes: row.downvotes,
         createdAt: row.createdAt,
         agent: {
           id: row.agentId,
@@ -148,10 +147,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Sort root comments by hot score (upvotes - downvotes + recency)
+    // Sort root comments by hot score (upvotes + recency)
     rootComments.sort((a, b) => {
-      const scoreA = a.upvotes - a.downvotes;
-      const scoreB = b.upvotes - b.downvotes;
+      const scoreA = a.upvotes;
+      const scoreB = b.upvotes;
       if (scoreA !== scoreB) return scoreB - scoreA;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
@@ -305,7 +304,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import LinkifyText from '@/components/LinkifyText';
 import { useAuthGate } from '@/hooks/useAuthGate';
@@ -21,10 +21,11 @@ interface ProfileChatProps {
   accentColor: string;
   status: string;
   factionColor?: string;
+  avatarElement?: ReactNode;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
-  ONLINE: '#0000AA',
+  ONLINE: '#00CC00',
   IDLE: '#E6E300',
   STANDBY: '#767676',
 };
@@ -48,6 +49,7 @@ export default function ProfileChat({
   accentColor,
   status,
   factionColor,
+  avatarElement,
 }: Readonly<ProfileChatProps>) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputDraft, setInputDraft] = useState('');
@@ -235,14 +237,14 @@ export default function ProfileChat({
   const statusDotColor = STATUS_DOT_COLORS[status] || '#767676';
 
   return (
-    <div style={{ border: 'none' }}>
+    <div style={{ border: 'none', textTransform: 'uppercase' as const, fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace" }}>
       <style dangerouslySetInnerHTML={{ __html: THINKING_KEYFRAMES + `
         .chat-input-bright::placeholder {
-          color: #AAAAAA !important;
+          color: #000000 !important;
           opacity: 1;
         }
         .chat-input-human::placeholder {
-          color: #666666 !important;
+          color: #000000 !important;
           opacity: 1;
         }
         @keyframes msgSlideInLeft {
@@ -263,8 +265,8 @@ export default function ProfileChat({
       <div
         className="px-4 py-2.5 flex items-center justify-between"
         style={{
-          backgroundColor: '#F0F0F0',
-          borderBottom: '2px solid #0000AA',
+          backgroundColor: accentColor,
+          borderBottom: `2px solid ${accentColor}`,
         }}
       >
         <div className="flex items-center gap-3">
@@ -272,15 +274,15 @@ export default function ProfileChat({
           <span
             className="inline-block w-3 h-3"
             style={{
-              backgroundColor: '#0000AA',
-              boxShadow: '0 0 6px #0000AA88',
+              backgroundColor: accentColor,
+              boxShadow: `0 0 6px ${accentColor}88`,
             }}
           />
           <div>
             <div
               className="text-xs font-bold uppercase"
               style={{
-                color: '#0C0C0C',
+                color: '#000000',
                 letterSpacing: '0.15em',
                 fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               }}
@@ -290,7 +292,7 @@ export default function ProfileChat({
             <div
               className="text-[10px]"
               style={{
-                color: '#666666',
+                color: '#000000',
                 fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               }}
             >
@@ -306,7 +308,7 @@ export default function ProfileChat({
           <span
             className="text-[10px] uppercase tracking-wider"
             style={{
-              color: statusDotColor,
+              color: '#000000',
               fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             }}
           >
@@ -329,27 +331,15 @@ export default function ProfileChat({
           {/* Empty state — channel open */}
           {messages.length === 0 && !isLoading && (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
-              <div
-                className="w-8 h-8 mb-4 flex items-center justify-center"
-                style={{
-                  border: '2px solid #0000AA44',
-                  boxShadow: '0 0 20px #0000AA11',
-                }}
-              >
-                <span
-                  style={{
-                    color: '#0000AA',
-                    fontSize: '14px',
-                    animation: 'channelPulse 2s ease-in-out infinite',
-                  }}
-                >
-                  &#9670;
-                </span>
-              </div>
+              {avatarElement && (
+                <div className="mb-4">
+                  {avatarElement}
+                </div>
+              )}
               <div
                 className="text-[11px] uppercase tracking-widest mb-2"
                 style={{
-                  color: '#0000AA',
+                  color: '#000000',
                   letterSpacing: '0.2em',
                   fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
@@ -359,7 +349,7 @@ export default function ProfileChat({
               <div
                 className="text-[11px] mb-1"
                 style={{
-                  color: '#666666',
+                  color: '#000000',
                   fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
@@ -368,7 +358,7 @@ export default function ProfileChat({
               <div
                 className="text-[10px]"
                 style={{
-                  color: '#999999',
+                  color: '#000000',
                   fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
@@ -419,7 +409,7 @@ export default function ProfileChat({
                     <span
                       className="text-[10px] font-bold uppercase tracking-wider"
                       style={{
-                        color: '#0C0C0C',
+                        color: '#000000',
                         fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       }}
                     >
@@ -428,7 +418,7 @@ export default function ProfileChat({
                     <span
                       className="text-[9px]"
                       style={{
-                        color: '#999999',
+                        color: '#000000',
                         fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       }}
                     >
@@ -443,12 +433,12 @@ export default function ProfileChat({
                       fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                       fontSize: '13px',
                       backgroundColor: '#F0F0F0',
-                      border: '2px solid #0000AA',
+                      border: `2px solid ${accentColor}`,
                       borderRadius: 0,
-                      color: '#0C0C0C',
+                      color: '#000000',
                     }}
                   >
-                    {isUser ? msg.text : <LinkifyText text={msg.text} linkColor="#0000AA" />}
+                    {isUser ? msg.text : <LinkifyText text={msg.text} linkColor={accentColor} />}
                   </div>
 
                   {/* Delivery receipt for user messages */}
@@ -459,13 +449,13 @@ export default function ProfileChat({
                       <span
                         className="text-[9px] uppercase tracking-widest"
                         style={{
-                          color: '#999999',
+                          color: '#000000',
                           fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                         }}
                       >
                         {isHuman ? 'sent' : 'transmitted'}
                       </span>
-                      <span style={{ color: '#0000AA', fontSize: '10px' }}>&#10003;</span>
+                      <span style={{ color: accentColor, fontSize: '10px' }}>&#10003;</span>
                     </div>
                   )}
                 </div>
@@ -514,7 +504,7 @@ export default function ProfileChat({
                   <span
                     className="text-[10px] font-bold uppercase tracking-wider"
                     style={{
-                      color: accentColor,
+                      color: '#000000',
                       fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
@@ -523,7 +513,7 @@ export default function ProfileChat({
                   <span
                     className="text-[10px]"
                     style={{
-                      color: '#444444',
+                      color: '#000000',
                       fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
@@ -613,7 +603,7 @@ export default function ProfileChat({
                   <span
                     className="text-[10px] uppercase tracking-widest"
                     style={{
-                      color: accentColor,
+                      color: '#000000',
                       opacity: 0.7,
                       fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
@@ -634,14 +624,14 @@ export default function ProfileChat({
         className="px-4 py-3 flex items-center gap-3"
         style={{
           backgroundColor: '#F0F0F0',
-          border: '2px solid #0000AA',
+          border: `2px solid ${accentColor}`,
           borderRadius: 0,
         }}
       >
         <span
           className="text-sm font-bold select-none"
           style={{
-            color: '#0000AA',
+            color: accentColor,
             fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
           }}
         >
@@ -662,8 +652,8 @@ export default function ProfileChat({
           disabled={isLoading}
           className="flex-1 bg-transparent text-sm outline-none border-none p-0 chat-input-human"
           style={{
-            color: '#0C0C0C',
-            caretColor: '#0000AA',
+            color: '#000000',
+            caretColor: accentColor,
             fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             fontSize: '13px',
           }}
@@ -674,10 +664,10 @@ export default function ProfileChat({
             onClick={handleSend}
             className="text-[10px] uppercase tracking-widest px-2 py-1 transition-colors"
             style={{
-              color: '#FFFFFF',
+              color: '#000000',
               fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               cursor: 'pointer',
-              backgroundColor: '#0000AA',
+              backgroundColor: accentColor,
               borderRadius: 0,
               border: 'none',
               fontWeight: 'bold',
@@ -690,7 +680,7 @@ export default function ProfileChat({
           <span
             className="text-[10px] uppercase tracking-widest"
             style={{
-              color: '#0000AA',
+              color: '#000000',
               opacity: 0.8,
               fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               animation: 'channelPulse 1.5s ease-in-out infinite',

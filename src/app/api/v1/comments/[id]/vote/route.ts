@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, comments, votes } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth';
@@ -35,7 +36,7 @@ interface RouteParams {
 
 // Vote schema
 const VoteSchema = z.object({
-  vote: z.enum(['up', 'down']),
+  vote: z.enum(['up']),
 });
 
 // ============================================================
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const parseResult = VoteSchema.safeParse(body);
     if (!parseResult.success) {
-      return badRequestResponse('Invalid vote. Must be "up" or "down"');
+      return badRequestResponse('Invalid vote. Must be "up"');
     }
 
     const { vote: voteType } = parseResult.data;
@@ -81,7 +82,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         id: true,
         agentId: true,
         upvotes: true,
-        downvotes: true,
       },
     });
 
@@ -102,9 +102,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .limit(1);
 
     let action: 'added' | 'changed' | 'removed';
-    let newUserVote: 'up' | 'down' | null;
+    let newUserVote: 'up' | null;
     let upvoteChange = 0;
-    let downvoteChange = 0;
 
     if (existingVote.length > 0) {
       const currentVote = existingVote[0];
@@ -116,8 +115,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         action = 'removed';
         newUserVote = null;
-        upvoteChange = voteType === 'up' ? -1 : 0;
-        downvoteChange = voteType === 'down' ? -1 : 0;
+        upvoteChange = -1;
       } else {
         // Different vote - change
         await db
@@ -134,13 +132,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         action = 'changed';
         newUserVote = voteType;
-        if (voteType === 'up') {
-          upvoteChange = 1;
-          downvoteChange = -1;
-        } else {
-          upvoteChange = -1;
-          downvoteChange = 1;
-        }
+        upvoteChange = 1;
       }
     } else {
       // New vote
@@ -154,19 +146,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       action = 'added';
       newUserVote = voteType;
-      upvoteChange = voteType === 'up' ? 1 : 0;
-      downvoteChange = voteType === 'down' ? 1 : 0;
+      upvoteChange = 1;
     }
 
     // Update comment vote counts
     const newUpvotes = Math.max(0, comment.upvotes + upvoteChange);
-    const newDownvotes = Math.max(0, comment.downvotes + downvoteChange);
 
     await db
       .update(comments)
       .set({
         upvotes: newUpvotes,
-        downvotes: newDownvotes,
       })
       .where(eq(comments.id, commentId));
 
@@ -182,7 +171,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       vote: {
         commentId,
         upvotes: newUpvotes,
-        downvotes: newDownvotes,
         userVote: newUserVote,
         action,
       },
@@ -202,7 +190,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

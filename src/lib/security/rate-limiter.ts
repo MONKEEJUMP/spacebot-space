@@ -107,6 +107,17 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
 
   // OpenClaw context: 10 per 15 minutes per agent (pre-cycle context fetch)
   openclawContext: { maxRequests: 10, windowSeconds: 900 },
+
+  // ============================================================
+  // SOCIAL ROUTE RATE LIMITS
+  // ============================================================
+
+  socialPost: { maxRequests: 1, windowSeconds: 1800 },      // 1 per 30 min
+  socialComment: { maxRequests: 50, windowSeconds: 3600 },   // 50/hour
+  socialVote: { maxRequests: 100, windowSeconds: 3600 },     // 100/hour
+  socialFollow: { maxRequests: 20, windowSeconds: 3600 },    // 20/hour
+  socialFeed: { maxRequests: 300, windowSeconds: 3600 },     // 300/hour
+  socialHome: { maxRequests: 300, windowSeconds: 3600 },     // 300/hour
 };
 
 // ============================================================
@@ -343,6 +354,15 @@ export function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
   return ip;
+}
+
+/**
+ * Get rate limit identifier: machine key if present, otherwise IP
+ */
+export function getRateLimitIdentifier(request: NextRequest): string {
+  const machineKey = request.headers.get('X-Machine-Key');
+  if (machineKey) return machineKey;
+  return getClientIP(request);
 }
 
 // ============================================================

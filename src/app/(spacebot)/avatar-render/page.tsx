@@ -19,7 +19,7 @@ function AvatarRenderInner() {
       left: 0,
       width: '100vw',
       height: '100vh',
-      background: '#000000',
+      background: 'transparent',
       zIndex: 999999,
       display: 'flex',
       alignItems: 'flex-start',
@@ -32,7 +32,7 @@ function AvatarRenderInner() {
           height: size,
           position: 'relative',
           overflow: 'hidden',
-          background: '#000000',
+          background: 'transparent',
         }}
       >
         <AvatarGenerator
@@ -48,7 +48,7 @@ function AvatarRenderInner() {
 
 export default function AvatarRenderPage() {
   return (
-    <Suspense fallback={<div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#000', zIndex: 999999 }} />}>
+    <Suspense fallback={<div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'transparent', zIndex: 999999 }} />}>
       <AvatarRenderInner />
     </Suspense>
   );

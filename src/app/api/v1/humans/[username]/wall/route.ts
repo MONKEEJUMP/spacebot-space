@@ -63,6 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         authorId: profileTransmissions.authorId,
         content: profileTransmissions.content,
         createdAt: profileTransmissions.createdAt,
+        editedAt: profileTransmissions.editedAt,
       })
       .from(profileTransmissions)
       .where(
@@ -116,6 +117,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: t.id,
       content: t.content,
       created_at: t.createdAt,
+      edited_at: t.editedAt || null,
+      authorId: t.authorId,
       author: authors[t.authorId] || { name: 'Unknown', username: null, avatarConfig: null },
     }));
 

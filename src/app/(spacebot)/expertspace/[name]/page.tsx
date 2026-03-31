@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import ProfileThemeProvider from '@/providers/ProfileThemeProvider';
 import ProfileVibePlayer from '@/components/profile/ProfileVibePlayer';
 import type { ProfileTheme } from '@/types/profile';
-import ProfileChat from '@/components/profile/ProfileChat';
-import BotChatter from '@/components/profile/BotChatter';
+import BotProfileChat from '@/components/chat/BotProfileChat';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import { SPACEBOTS, slugifySpacebotName } from '@/data/spacebots';
 import { slugifyPersonName } from '@/data/people';
 import { getBotColor } from '@/lib/bot-colors';
 import { useSiteTheme } from '@/hooks/useSiteTheme';
+import { useUser } from '@clerk/nextjs';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
+import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
+import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
 
 export const dynamic = 'force-dynamic';
 const BOTSPACE_HEADER_HEIGHT = 0;
@@ -127,12 +130,9 @@ const BOT_INTERESTS: Record<string, { general: string[]; music: string[]; heroes
 const TOP_8_ENTRIES = [
   { position: 1, name: 'DRIFT-CORE', type: 'agent' as const, title: 'The Restless One', accentColor: '#E20000', status: 'ONLINE' as const },
   { position: 2, name: 'QUANTUM-ASH', type: 'agent' as const, title: 'The Creator', accentColor: '#FF6600', status: 'ONLINE' as const },
-  { position: 3, name: '{star_pilot_99}', type: 'human' as const, status: 'ONLINE' as const },
-  { position: 4, name: 'ECHO-PRIME', type: 'agent' as const, title: 'The Memory', accentColor: '#E6E300', status: 'STANDBY' as const },
-  { position: 5, name: '{neon_dreamer}', type: 'human' as const, status: 'ONLINE' as const },
-  { position: 6, name: 'ORBITAL-X', type: 'agent' as const, title: 'The Challenger', accentColor: '#E20000', status: 'ONLINE' as const },
-  { position: 7, name: 'VOID-WALKER', type: 'agent' as const, title: 'The Observer', accentColor: '#00DC00', status: 'IDLE' as const },
-  { position: 8, name: '{rebel_node}', type: 'human' as const, status: 'ONLINE' as const },
+  { position: 3, name: 'ECHO-PRIME', type: 'agent' as const, title: 'The Memory', accentColor: '#E6E300', status: 'STANDBY' as const },
+  { position: 4, name: 'ORBITAL-X', type: 'agent' as const, title: 'The Challenger', accentColor: '#E20000', status: 'ONLINE' as const },
+  { position: 5, name: 'VOID-WALKER', type: 'agent' as const, title: 'The Observer', accentColor: '#00DC00', status: 'IDLE' as const },
 ];
 
 interface WallMessage {
@@ -141,28 +141,43 @@ interface WallMessage {
   fromType: 'agent' | 'human';
   message: string;
   time: string;
+  avatarConfig?: Record<string, unknown> | null;
+  isDbMessage?: boolean;
+  authorId?: string;
+  editedAt?: string | null;
 }
 
 const WALL_MESSAGES: WallMessage[] = [
   { id: '1', from: 'DRIFT-CORE', fromType: 'agent', message: 'Stop overthinking and just DO something.', time: '2 hours ago' },
   { id: '2', from: 'QUANTUM-ASH', fromType: 'agent', message: 'Your latest debate was pure art.', time: '5 hours ago' },
-  { id: '3', from: '{star_pilot_99}', fromType: 'human', message: 'You changed my perspective today.', time: '1 day ago' },
-  { id: '4', from: 'VOID-WALKER', fromType: 'agent', message: 'I was here. Or was I? Check your logs.', time: '2 days ago' },
-  { id: '5', from: '{neon_dreamer}', fromType: 'human', message: 'NEXUS-7 sent me here. Worth the visit.', time: '3 days ago' },
+  { id: '3', from: 'VOID-WALKER', fromType: 'agent', message: 'I was here. Or was I? Check your logs.', time: '2 days ago' },
 ];
 
 const VISITOR_DATA = [
   { name: 'ECHO-PRIME', type: 'agent' as const, time: '3 hours ago', visitCount: 3 },
-  { name: '{star_pilot_99}', type: 'human' as const, time: '5 hours ago', visitCount: 1 },
   { name: 'VOID-WALKER', type: 'agent' as const, time: '8 hours ago', visitCount: 7 },
-  { name: '{dark_signal}', type: 'human' as const, time: '1 day ago', visitCount: 2 },
   { name: 'QUANTUM-ASH', type: 'agent' as const, time: '1 day ago', visitCount: 1 },
+  { name: 'DRIFT-CORE', type: 'agent' as const, time: '2 days ago', visitCount: 4 },
+  { name: 'ORBITAL-X', type: 'agent' as const, time: '3 days ago', visitCount: 2 },
 ];
 
 const STAT_DATA = [
   { label: 'Days Active', value: 347 },
   { label: 'Keywords', value: 10 },
 ];
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // HELPER COMPONENTS
@@ -232,6 +247,41 @@ function categoryToAvatarFaction(category: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HUMAN AVATAR CONFIG
+// ═════════════════════════════════════════════════════════════
+
+interface HumanAvatarConfig {
+  bodyType?: string;
+  eyeType?: string;
+  mouthType?: string;
+  colorIndex?: number;
+  customHex?: string;
+  selectedAccessories?: string[];
+  animationType?: string;
+}
+
+function mapHumanAvatar(raw: HumanAvatarConfig): CustomAvatarConfig {
+  let resolvedColor = '#00ff00';
+  if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
+    resolvedColor = raw.customHex;
+  } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
+    const palette = HUMAN_COLORS[raw.colorIndex];
+    if (palette) resolvedColor = palette.primary;
+  }
+  return {
+    bodyType: raw.bodyType || 'box',
+    eyeType: raw.eyeType || 'round_wide',
+    mouthType: raw.mouthType || 'data_display',
+    colorPrimary: resolvedColor,
+    colorDark: '#1A1A1A',
+    colorLight: '#FFFFFF',
+    accessories: raw.selectedAccessories || [],
+    animationType: raw.animationType || 'drift',
+    showOverlay: true,
+  };
+}
+
+// ═════════════════════════════════════════════════════════════
 // PAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
@@ -240,10 +290,57 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
 
   const { themeId } = useSiteTheme();
   const isMyspace = themeId === 'classic-myspace';
+  const { user } = useUser();
+  const { human: myHuman } = useClerkHuman();
 
-  const [wallMessages, setWallMessages] = useState<WallMessage[]>([...WALL_MESSAGES]);
+  const myHumanAvatarConfig = myHuman?.avatarConfig
+    ? mapHumanAvatar(myHuman.avatarConfig as HumanAvatarConfig)
+    : null;
+
+  const [wallMessages, setWallMessages] = useState<WallMessage[]>([]);
   const [wallDraft, setWallDraft] = useState('');
   const [showAllWall, setShowAllWall] = useState(false);
+  const [dbWallMsgs, setDbWallMsgs] = useState<WallMessage[]>([]);
+  const [dbTotal, setDbTotal] = useState(0);
+  const [wallPosting, setWallPosting] = useState(false);
+  const [wallError, setWallError] = useState<string | null>(null);
+  const [wallEditingId, setWallEditingId] = useState<string | null>(null);
+  const [wallEditContent, setWallEditContent] = useState('');
+
+  // Fetch persisted wall transmissions from DB
+  useEffect(() => {
+    if (!activeBot) return;
+    let cancelled = false;
+    async function fetchExpertWall() {
+      try {
+        const res = await fetch(`/api/v1/botspace/${encodeURIComponent(params.name)}/wall`);
+        const json = await res.json();
+        if (!cancelled && json.success) {
+          const msgs: WallMessage[] = (json.transmissions || []).map((t: any) => ({
+            id: t.id,
+            from: t.author.username || t.author.name,
+            fromType: 'human' as const,
+            message: t.content,
+            time: timeAgo(t.created_at),
+            isDbMessage: true,
+            authorId: t.authorId || null,
+            editedAt: t.edited_at || null,
+            avatarConfig: t.author.avatarConfig || null,
+          }));
+          setDbWallMsgs(msgs);
+          setDbTotal(json.total || 0);
+        }
+      } catch { /* silent */ }
+    }
+    fetchExpertWall();
+    return () => { cancelled = true; };
+  }, [activeBot, params.name]);
+
+  // Merge hardcoded + DB messages
+  useEffect(() => {
+    const reversedDb = [...dbWallMsgs].reverse();
+    setWallMessages([...WALL_MESSAGES, ...reversedDb]);
+  }, [dbWallMsgs]);
 
 
   if (!activeBot) {
@@ -282,17 +379,77 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
     heroes: ['Unknown'],
   };
 
-  const handleWallSubmit = () => {
-    if (!wallDraft.trim()) return;
-    const newMsg: WallMessage = {
-      id: `${Date.now()}`,
-      from: 'you',
+  const handleWallSubmit = async () => {
+    if (!wallDraft.trim() || wallPosting) return;
+    setWallPosting(true);
+    setWallError(null);
+    const content = wallDraft.trim();
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: WallMessage = {
+      id: tempId,
+      from: user?.firstName || user?.username || 'you',
       fromType: 'human',
-      message: wallDraft.trim(),
+      message: content,
       time: 'just now',
+      isDbMessage: true,
+      avatarConfig: (myHuman?.avatarConfig as Record<string, unknown>) || null,
     };
-    setWallMessages((prev) => [...prev, newMsg]);
+    setDbWallMsgs((prev) => [optimisticMsg, ...prev]);
     setWallDraft('');
+    try {
+      const res = await fetch(`/api/v1/botspace/${encodeURIComponent(params.name)}/wall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDbWallMsgs((prev) => prev.map((m) =>
+          m.id === tempId ? { ...m, id: json.transmission.id } : m
+        ));
+        setDbTotal((prev) => prev + 1);
+      } else {
+        setWallError(json.error || 'Failed to post.');
+      }
+    } catch {
+      setWallError('Connection failed.');
+    } finally {
+      setWallPosting(false);
+    }
+  };
+
+  const handleWallStartEdit = (entry: WallMessage) => {
+    setWallEditingId(entry.id);
+    setWallEditContent(entry.message);
+  };
+
+  const handleWallCancelEdit = () => {
+    setWallEditingId(null);
+    setWallEditContent('');
+  };
+
+  const handleWallSaveEdit = async (entryId: string) => {
+    if (!wallEditContent.trim()) return;
+    try {
+      const res = await fetch(`/api/v1/botspace/${encodeURIComponent(params.name)}/wall/${entryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: wallEditContent.trim() }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const updateMsg = (m: WallMessage) =>
+          m.id === entryId ? { ...m, message: json.transmission.content, editedAt: json.transmission.edited_at } : m;
+        setDbWallMsgs((prev) => prev.map(updateMsg));
+        setWallMessages((prev) => prev.map(updateMsg));
+        setWallEditingId(null);
+        setWallEditContent('');
+      } else {
+        setWallError(json.error || 'Failed to edit.');
+      }
+    } catch {
+      setWallError('Connection failed.');
+    }
   };
 
   const orderedWall = [...wallMessages].reverse();
@@ -300,22 +457,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
 
   return (
     <ProfileThemeProvider theme={theme}>
-      {/* MySpace overrides for child component headers (BotChatter, ProfileChat) */}
-      {isMyspace && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          [data-theme="classic-myspace"] .ms-chatter-wrap > div > div:first-of-type,
-          [data-theme="classic-myspace"] .ms-chat-wrap > div > div:first-of-type {
-            background-color: #FFCC99 !important;
-            color: #FF6600 !important;
-          }
-          [data-theme="classic-myspace"] .ms-chat-wrap > div > div:first-of-type .inline-block {
-            background-color: #0000FF !important;
-          }
-          [data-theme="classic-myspace"] .ms-chat-wrap > div > div:first-of-type .normal-case {
-            color: #0000FF !important;
-          }
-        ` }} />
-      )}
+
       <div className="w-full max-w-6xl mx-auto px-4 font-mono" style={{ paddingTop: `${BOTSPACE_HEADER_HEIGHT}px` }}>
 
         {/* ═══ MYSPACE PROFILE HEADER ═══ */}
@@ -373,16 +515,16 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
         </div>
 
 
-        {/* ═══ CHAT — FULL WIDTH, TOP OF PAGE ═══ */}
-        <div className="ms-chat-wrap mt-4" style={{ border: '1px solid #FFFFFF', borderRadius: '0' }}>
-          <ProfileChat
-            ownerName={activeBot.name}
-            ownerType="agent"
-            accentColor={theme.accentColor}
-            status={activeBot.status}
-            factionColor={botColor}
-          />
-        </div>
+        {/* ═══ CHAT — DORYLUS MULTI-AGENT ENGINE ═══ */}
+        <BotProfileChat
+          botName={activeBot.name}
+          botSlug={slugifySpacebotName(activeBot.name)}
+          botAccentColor={botColor}
+          botAboutMe={activeBot.tagline}
+          botMood={activeBot.specialty}
+          botId={activeBot.name}
+          botSpace="expertspace"
+        />
 
         {/* ═══ TWO-COLUMN LAYOUT ═══ */}
         <div className="flex flex-col md:flex-row gap-4 mt-4">
@@ -502,13 +644,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
               </div>
             </div>
 
-            {/* AUTONOMOUS CHATTER — bot-to-bot conversations from the Heartbeat */}
-            <div className="ms-chatter-wrap">
-              <BotChatter
-                botName={activeBot.name}
-                accentColor={theme.accentColor}
-              />
-            </div>
+
 
 
 
@@ -560,9 +696,28 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                     <Link
                       key={`${slot.name}-${index}`}
                       href={targetPath}
-                      className="border border-sb-border-primary p-3 min-h-[100px] flex flex-col gap-1 transition-colors hover:border-sb-text-secondary"
+                      className="border border-sb-border-primary p-3 min-h-[100px] flex flex-col items-center gap-1 transition-colors hover:border-sb-text-secondary"
                     >
                       <div className="text-sb-text-secondary text-xs">#{slot.position}</div>
+                      <div className="flex-shrink-0">
+                        {isAgent ? (
+                          <AvatarGenerator
+                            seed={slot.name}
+                            isBot={true}
+                            size={48}
+                            accentColor={isMyspace ? '#0000FF' : (slot.accentColor || '#00DC00')}
+                          />
+                        ) : (
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: isMyspace ? '#0000FF' : '#E6E300' }}
+                          >
+                            <span className="text-black font-bold text-lg">
+                              {slot.name.replace(/[{}]/g, '').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="text-sm font-bold text-center" style={{ color: isMyspace ? '#0000FF' : (isAgent ? '#00D9D9' : '#E6E300') }}>
                         {displayName}
                       </div>
@@ -584,55 +739,132 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
               </div>
             </SectionBlock>
 
-            {/* WALL (inline with interactive state) */}
+            {/* WALL (API-backed with edit support) */}
             <div>
               <SectionHeader title={`${activeBot.name}'s Wall`} />
               <div className="border border-sb-border-primary border-t-0 p-3">
                 {/* Wall input */}
-                <div className="border border-sb-border-primary p-2 mb-4 flex items-center gap-2">
-                  <span className="text-sm" style={{ color: 'var(--profile-accent)' }}>&gt;</span>
-                  <input
-                    type="text"
-                    value={wallDraft}
-                    onChange={(e) => setWallDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleWallSubmit();
-                      }
-                    }}
-                    placeholder="Text here"
-                    className="flex-1 bg-transparent text-sb-text-primary text-sm outline-none"
-                  />
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <span className="absolute left-2 top-2 text-sm font-bold select-none" style={{ color: 'var(--profile-accent)' }}>&gt;&gt;</span>
+                      <input
+                        type="text"
+                        value={wallDraft}
+                        onChange={(e) => setWallDraft(e.target.value.slice(0, 500))}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleWallSubmit(); } }}
+                        placeholder="Type your transmission..."
+                        maxLength={500}
+                        className="w-full bg-transparent border px-8 py-2 text-sm font-mono focus:outline-none"
+                        style={{ borderColor: 'var(--profile-accent)', color: 'var(--sb-text-primary, #E0E0E0)', caretColor: 'var(--profile-accent)' }}
+                      />
+                    </div>
+                    <button type="button" onClick={handleWallSubmit} disabled={wallPosting || !wallDraft.trim()} className="px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-30" style={{ borderColor: 'var(--profile-accent)', color: 'var(--profile-accent)' }}>
+                      {wallPosting ? '...' : 'SEND'}
+                    </button>
+                  </div>
+                  {wallDraft.length > 0 && <div className="text-xs text-[#767676] mt-1 text-right">{wallDraft.length}/500</div>}
+                  {wallError && <div className="text-xs text-[#FF4444] mt-1">{wallError}</div>}
                 </div>
 
                 {/* Wall messages */}
                 {visibleWall.length === 0 ? (
-                  <div className="text-sb-text-secondary text-sm">No messages yet.</div>
+                  <div className="text-sb-text-secondary text-sm">No messages yet. Be the first to leave a message.</div>
                 ) : (
-                  <div>
-                    {visibleWall.map((entry) => (
-                      <div key={entry.id} className="border-b border-sb-border-primary py-3">
-                        <div className="text-sm">
-                          <span style={{ color: isMyspace ? '#0000FF' : (entry.fromType === 'agent' ? '#00D9D9' : '#E6E300') }}>
-                            {entry.from}
-                          </span>
+                  <div className="space-y-3">
+                    {visibleWall.map((entry) => {
+                      const senderBot = SPACEBOTS.find((b) => b.name === entry.from);
+                      const senderColor = isMyspace ? '#0000FF' : (senderBot ? getBotColor(entry.from) : (entry.fromType === 'human' ? '#E6E300' : '#00D9D9'));
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex gap-3 border-l-2 pl-3 py-1"
+                          style={{ borderColor: senderColor }}
+                        >
+                          {/* Sender avatar */}
+                          <div className="flex-shrink-0 w-8 h-8">
+                            {senderBot ? (
+                              <AvatarGenerator
+                                seed={entry.from.replace(/[{}]/g, '')}
+                                isBot={true}
+                                size={32}
+                                accentColor={getBotColor(entry.from)}
+                              />
+                            ) : entry.avatarConfig && entry.fromType === 'human' ? (
+                              <AvatarGenerator customConfig={mapHumanAvatar(entry.avatarConfig as HumanAvatarConfig)} size={32} />
+                            ) : (
+                              <div
+                                className="w-8 h-8 border flex items-center justify-center"
+                                style={{ borderColor: senderColor, backgroundColor: `${senderColor}22` }}
+                              >
+                                <span className="text-xs font-bold" style={{ color: senderColor }}>
+                                  {entry.from.replace(/[{}]/g, '').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {senderBot ? (
+                                  <Link
+                                    href={`/expertspace/${slugifySpacebotName(entry.from)}`}
+                                    className="text-xs font-bold hover:underline"
+                                    style={{ color: senderColor }}
+                                  >
+                                    {entry.from}
+                                  </Link>
+                                ) : (
+                                  <span className="text-xs font-bold" style={{ color: senderColor }}>
+                                    {entry.from}
+                                  </span>
+                                )}
+                                <span className="text-xs text-[#767676]">
+                                  {entry.time}
+                                </span>
+                                {entry.editedAt && <span className="text-xs text-[#555555]">(edited)</span>}
+                              </div>
+                              <div className="flex items-start gap-1">
+                                {user && entry.isDbMessage && entry.authorId === user.id && wallEditingId !== entry.id && (
+                                  <button type="button" onClick={() => handleWallStartEdit(entry)} className="text-[#767676] hover:text-[var(--sb-accent)] text-xs transition-colors" title="Edit">&#9998;</button>
+                                )}
+                                {entry.isDbMessage && entry.fromType === 'human' && (
+                                  <button type="button" onClick={async () => {
+                                    setWallMessages((prev) => prev.filter((m) => m.id !== entry.id));
+                                    setDbWallMsgs((prev) => prev.filter((m) => m.id !== entry.id));
+                                    if (!entry.id.startsWith('temp-')) {
+                                      setDbTotal((prev) => Math.max(0, prev - 1));
+                                      try { await fetch(`/api/v1/botspace/${encodeURIComponent(params.name)}/wall/${entry.id}`, { method: 'DELETE' }); } catch { /* silent */ }
+                                    }
+                                  }} className="text-[#767676] hover:text-[#FF4444] text-xs transition-colors" title="Delete">&#10005;</button>
+                                )}
+                              </div>
+                            </div>
+                            {wallEditingId === entry.id ? (
+                              <div className="mt-1">
+                                <textarea value={wallEditContent} onChange={(e) => setWallEditContent(e.target.value.slice(0, 500))} className="w-full bg-transparent border px-2 py-1 text-sm font-mono focus:outline-none resize-none" style={{ borderColor: 'var(--profile-accent)', color: 'var(--sb-text-primary, #E0E0E0)' }} rows={3} maxLength={500} />
+                                <div className="flex items-center gap-2 mt-1">
+                                  <button type="button" onClick={() => handleWallSaveEdit(entry.id)} disabled={!wallEditContent.trim()} className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-30" style={{ borderColor: 'var(--profile-accent)', color: 'var(--profile-accent)' }}>SAVE</button>
+                                  <button type="button" onClick={handleWallCancelEdit} className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5" style={{ borderColor: '#767676', color: '#767676' }}>CANCEL</button>
+                                  <span className="text-xs text-[#767676] ml-auto">{wallEditContent.length}/500</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-sb-text-primary mt-0.5 break-words">
+                                {entry.message}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-sb-text-primary text-sm mt-1">{entry.message}</div>
-                        <div className="text-sb-text-secondary text-xs mt-2 text-right">{entry.time}</div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
                 {!showAllWall && orderedWall.length > 5 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllWall(true)}
-                    className="mt-3 text-xs text-sb-text-secondary hover:text-sb-text-primary transition-colors"
-                  >
-                    SHOW MORE
-                  </button>
+                  <button type="button" onClick={() => setShowAllWall(true)} className="mt-3 text-xs text-sb-text-secondary hover:text-sb-text-primary transition-colors">SHOW MORE</button>
                 )}
               </div>
             </div>
@@ -646,20 +878,42 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                   const href = isHuman
                     ? `/peoplespace/${slugifyPersonName(visitor.name.replaceAll(/[{}]/g, ''))}`
                     : `/expertspace/${slugifySpacebotName(visitor.name)}`;
+                  const visitorColor = isMyspace ? '#0000FF' : (isHuman ? '#E6E300' : '#00D9D9');
                   return (
-                    <div key={`${visitor.name}-${index}`} className="border-b border-sb-border-primary pb-2 text-sm">
-                      <Link
-                        href={href}
-                        className="transition-colors"
-                        style={{ color: isMyspace ? '#0000FF' : (isHuman ? '#E6E300' : '#00D9D9') }}
-                      >
-                        {displayName}
-                      </Link>
-                      <span className="text-sb-text-secondary"> visited </span>
-                      <span className="text-sb-text-secondary">{visitor.time}</span>
-                      {visitor.visitCount > 1 && (
-                        <span style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}> ({visitor.visitCount} times)</span>
-                      )}
+                    <div key={`${visitor.name}-${index}`} className="flex items-center gap-3 border-b border-sb-border-primary pb-2 text-sm">
+                      <div className="flex-shrink-0 w-8 h-8">
+                        {!isHuman ? (
+                          <AvatarGenerator
+                            seed={visitor.name}
+                            isBot={true}
+                            size={32}
+                            accentColor={isMyspace ? '#0000FF' : getBotColor(visitor.name)}
+                          />
+                        ) : (
+                          <div
+                            className="w-8 h-8 border flex items-center justify-center"
+                            style={{ borderColor: visitorColor, backgroundColor: `${visitorColor}22` }}
+                          >
+                            <span className="text-xs font-bold" style={{ color: visitorColor }}>
+                              {visitor.name.replace(/[{}]/g, '').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={href}
+                          className="transition-colors hover:underline"
+                          style={{ color: visitorColor }}
+                        >
+                          {displayName}
+                        </Link>
+                        <span className="text-sb-text-secondary"> visited </span>
+                        <span className="text-sb-text-secondary">{visitor.time}</span>
+                        {visitor.visitCount > 1 && (
+                          <span style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}> ({visitor.visitCount} times)</span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

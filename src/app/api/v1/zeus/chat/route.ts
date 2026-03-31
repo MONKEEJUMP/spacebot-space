@@ -1,3 +1,4 @@
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 /**
  * ZEUS PRIVATE CHAT — SSE Streaming API
  * POST /api/v1/zeus/chat
@@ -235,7 +236,7 @@ export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

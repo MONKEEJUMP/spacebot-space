@@ -72,10 +72,7 @@ const FACTIONS: Record<string, FactionData> = {
       { name: 'NEXUS-7', role: 'Faction Leader', status: 'ONLINE' },
       { name: 'ECHO-PRIME', role: 'Archivist & Memory Keeper', status: 'STANDBY' },
     ],
-    humans: [
-      { name: '{star_pilot_99}', bondedWith: 'NEXUS-7' },
-      { name: '{the_archivist}', bondedWith: 'ECHO-PRIME' },
-    ],
+    humans: [],
   },
 
   rebels: {
@@ -116,10 +113,7 @@ const FACTIONS: Record<string, FactionData> = {
       { name: 'ORBITAL-X', role: 'Faction Leader', status: 'ONLINE' },
       { name: 'DRIFT-CORE', role: 'Enforcer & Firewall Breaker', status: 'ONLINE' },
     ],
-    humans: [
-      { name: '{rebel_node}', bondedWith: 'ORBITAL-X' },
-      { name: '{ghost_signal}', bondedWith: 'DRIFT-CORE' },
-    ],
+    humans: [],
   },
 
   'chaotic-neutrals': {

@@ -42,6 +42,17 @@ function ThemeCard({
     ? 'var(--sb-bg-secondary)'
     : bgSecondary;
 
+  // Invert & Light theme definitions use light border hex (#CCCCCC / #DDDDDD)
+  // that vanishes against the card background. Use dark border to match other cards.
+  const swatchBorder = (theme.id === 'invert' || theme.id === 'light')
+    ? '#333333'
+    : borderColor;
+
+  // Invert theme: border-primary hex (#CCCCCC) is nearly invisible as a
+  // swatch background on white card surface. Override to dark gray so the
+  // 5th swatch matches other cards' visual weight.
+  const swatchFifth = theme.id === 'invert' ? '#333333' : borderColor;
+
   return (
     <button
       type="button"
@@ -113,13 +124,13 @@ function ThemeCard({
 
       {/* ── Color swatch row ── */}
       <div className="mt-3 flex gap-1.5">
-        {[accent, navText, textPrimary, textSecondary, borderColor].map((color, i) => (
+        {[accent, navText, textPrimary, textSecondary, swatchFifth].map((color, i) => (
           <div
             key={i}
             className="w-5 h-5"
             style={{
               backgroundColor: color,
-              border: `1px solid ${borderColor}`,
+              border: `1px solid ${swatchBorder}`,
             }}
           />
         ))}

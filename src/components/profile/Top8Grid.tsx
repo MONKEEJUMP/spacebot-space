@@ -19,6 +19,7 @@ interface Top8Entry {
   username: string | null;
   avatarConfig: SavedAvatarConfig | null;
   accentColor: string | null;
+  imageUrl: string | null;
 }
 
 interface SavedAvatarConfig {
@@ -107,7 +108,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
       });
       const json = await res.json();
       if (json.success) {
-        setEntries(newEntries);
+        await fetchTop8();
         setEditOpen(false);
       }
     } catch {
@@ -172,7 +173,13 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
                     style={{ borderColor: entry.accentColor || 'var(--profile-border)' }}
                   >
                     <div className="flex justify-center mb-2">
-                      {entry.avatarConfig ? (
+                      {entry.imageUrl ? (
+                        <img
+                          src={entry.imageUrl}
+                          alt={entry.name}
+                          className="w-16 h-16 rounded-full object-cover"
+                        />
+                      ) : entry.avatarConfig ? (
                         <AvatarGenerator
                           customConfig={mapToCustomConfig(entry.avatarConfig as SavedAvatarConfig)}
                           size={64}
@@ -184,14 +191,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
                           size={64}
                           accentColor={entry.accentColor || '#00DC00'}
                         />
-                      ) : (
-                        <div
-                          className="w-16 h-16 border flex items-center justify-center"
-                          style={{ borderColor: 'var(--profile-border)' }}
-                        >
-                          <span className="text-[#767676] text-xs">?</span>
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                     <div
                       className="text-xs font-bold truncate"

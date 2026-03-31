@@ -255,7 +255,7 @@ export default function HumanProfilePage() {
       profileBorderColor: myProfile?.profileBorderColor || '',
       profileGlowColor: myProfile?.profileGlowColor || '',
       profileBgTint: myProfile?.profileBgTint || '',
-      coverPhoto: myProfile?.coverPhoto || '',
+      // coverPhoto handled by dedicated upload route
       buddyName: myProfile?.buddyName || '',
       buddyActive: myProfile?.buddyActive ?? false,
     });
@@ -294,13 +294,41 @@ export default function HumanProfilePage() {
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
+  // ── COVER PHOTO RESIZE (client-side, zero dependencies) ─────────
+  const resizeCoverPhoto = async (file: File): Promise<Blob> => {
+    const MAX_W = 1200;
+    const MAX_H = 400;
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const aspect = w / h;
+        if (w > MAX_W) { w = MAX_W; h = Math.round(w / aspect); }
+        if (h > MAX_H) { h = MAX_H; w = Math.round(h * aspect); }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Canvas export failed')),
+          'image/jpeg', 0.85
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // ── COVER PHOTO HANDLERS ─────────────────────────────────────────
   const handleCoverPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    e.target.value = '';
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
-      setCoverPhotoMsg('Invalid file type. Use JPEG, PNG, or WebP.');
+      setCoverPhotoMsg('Invalid file type. Use JPEG, PNG, GIF, or WebP.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -309,28 +337,58 @@ export default function HumanProfilePage() {
     }
     setCoverPhotoPreview(URL.createObjectURL(file));
     setCoverPhotoUploading(true);
-    setCoverPhotoMsg(null);
+    setCoverPhotoMsg('Uploading cover photo...');
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+      // Client-side resize to 1200x400 max
+      const resized = await resizeCoverPhoto(file);
+      const formData = new FormData();
+      formData.append('file', resized, 'cover.jpg');
+
+      const res = await fetch('/api/v1/humans/cover-photo', {
+        method: 'POST',
+        body: formData,
       });
-      updateField('coverPhoto', base64);
-      setCoverPhotoMsg('Cover photo ready! Click SAVE CHANGES to apply.');
-      globalThis.setTimeout(() => setCoverPhotoMsg(null), 4000);
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setCoverPhotoMsg(json.error || 'Failed to upload cover photo.');
+        setCoverPhotoPreview(null);
+      } else {
+        setCoverPhotoPreview(json.url);
+        setCoverPhotoMsg('Cover photo saved!');
+        refetchProfile();
+        refetchClerk();
+        globalThis.setTimeout(() => setCoverPhotoMsg(null), 3000);
+      }
     } catch {
-      setCoverPhotoMsg('Failed to process image. Please try again.');
+      setCoverPhotoMsg('Failed to upload image. Please try again.');
+      setCoverPhotoPreview(null);
     } finally {
       setCoverPhotoUploading(false);
     }
   };
 
-  const handleRemoveCoverPhoto = () => {
-    updateField('coverPhoto', '');
-    setCoverPhotoPreview(null);
-    setCoverPhotoMsg(null);
+  const handleRemoveCoverPhoto = async () => {
+    setCoverPhotoUploading(true);
+    setCoverPhotoMsg('Removing cover photo...');
+    try {
+      const res = await fetch('/api/v1/humans/cover-photo', {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setCoverPhotoMsg(json.error || 'Failed to remove cover photo.');
+      } else {
+        setCoverPhotoPreview(null);
+        setCoverPhotoMsg('Cover photo removed!');
+        refetchProfile();
+        refetchClerk();
+        globalThis.setTimeout(() => setCoverPhotoMsg(null), 3000);
+      }
+    } catch {
+      setCoverPhotoMsg('Failed to remove cover photo.');
+    } finally {
+      setCoverPhotoUploading(false);
+    }
   };
 
   // ── EDIT FORM FIELD RENDERERS ─────────────────────────────────
@@ -533,7 +591,7 @@ export default function HumanProfilePage() {
         {/* ════════════════════════════════════════════════════════
             COVER PHOTO BANNER
             ════════════════════════════════════════════════════════ */}
-        <div className="relative mb-4 rounded-t-lg overflow-hidden">
+        <div className="group relative mb-4 rounded-t-lg overflow-hidden">
           <div className="w-full h-[180px] sm:h-[250px]">
             {activeCoverPhoto ? (
               <img
@@ -555,20 +613,70 @@ export default function HumanProfilePage() {
             style={{ backgroundColor: 'var(--profile-border)' }}
           />
           {isOwner(username) && !isPreviewMode && !editMode && (
-            <button
-              onClick={handleEditClick}
-              className="absolute bottom-3 right-3 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all hover:opacity-100"
-              style={{
-                color: 'var(--profile-accent)',
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                border: '1px solid var(--profile-border)',
-                borderRadius: '4px',
-                opacity: 0.7,
-                fontFamily: "'Glass TTY VT220', monospace",
-              }}
-            >
-              CHANGE COVER
-            </button>
+            <>
+              {/* Upload overlay — always visible when no cover photo, hover-visible when cover photo exists */}
+              <div
+                className={"absolute inset-0 flex items-center justify-center gap-3 transition-opacity duration-200 " + (
+                  activeCoverPhoto
+                    ? 'opacity-0 group-hover:opacity-100'
+                    : 'opacity-100'
+                )}
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+              >
+                <button
+                  type="button"
+                  className="px-6 py-4 border-2 border-dashed text-sm font-bold uppercase tracking-wider cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{
+                    borderColor: 'var(--profile-accent)',
+                    color: 'var(--profile-accent)',
+                    fontFamily: "'Glass TTY VT220', monospace",
+                    background: 'transparent',
+                  }}
+                  onClick={() => document.getElementById('banner-cover-upload')?.click()}
+                  disabled={coverPhotoUploading}
+                >
+                  {coverPhotoUploading ? '[ SAVING... ]' : '[ UPLOAD COVER PHOTO ]'}
+                </button>
+                {activeCoverPhoto && !coverPhotoUploading && (
+                  <button
+                    type="button"
+                    className="px-4 py-4 border-2 border-dashed text-sm font-bold uppercase tracking-wider cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{
+                      borderColor: '#ff4444',
+                      color: '#ff4444',
+                      fontFamily: "'Glass TTY VT220', monospace",
+                      background: 'transparent',
+                    }}
+                    onClick={handleRemoveCoverPhoto}
+                  >
+                    [ REMOVE ]
+                  </button>
+                )}
+              </div>
+              <input
+                id="banner-cover-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleCoverPhotoUpload}
+                className="hidden"
+              />
+              {coverPhotoMsg && (
+                <div
+                  className="absolute bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 rounded text-xs font-bold uppercase tracking-wider z-10"
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.85)',
+                    color: coverPhotoMsg.includes('saved') || coverPhotoMsg.includes('removed')
+                      ? '#00ff00'
+                      : coverPhotoMsg.includes('Failed') || coverPhotoMsg.includes('Invalid') || coverPhotoMsg.includes('too large')
+                        ? '#ff4444'
+                        : 'var(--profile-accent)',
+                    fontFamily: "'Glass TTY VT220', monospace",
+                  }}
+                >
+                  {coverPhotoMsg}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -839,12 +947,13 @@ export default function HumanProfilePage() {
             {/* COVER PHOTO SECTION */}
             <SectionHeader title="Cover Photo" />
             <div className="border border-t-0 p-3 mb-3" style={{ borderColor: 'var(--profile-border)' }}>
-              {/* Preview */}
+              {/* Cover Photo Preview + Upload Overlay */}
               <div
-                className="w-full h-[120px] mb-3 rounded overflow-hidden border"
+                className="group relative w-full h-[120px] mb-3 rounded overflow-hidden border cursor-pointer"
                 style={{ borderColor: 'var(--profile-border)' }}
+                onClick={() => !coverPhotoUploading && document.getElementById('cover-photo-upload')?.click()}
               >
-                {(coverPhotoPreview || (editForm.coverPhoto as string)) ? (
+                {(coverPhotoPreview || profile?.cover_photo) ? (
                   <img
                     src={coverPhotoPreview || (editForm.coverPhoto as string)}
                     alt="Cover photo preview"
@@ -858,29 +967,33 @@ export default function HumanProfilePage() {
                     }}
                   />
                 )}
-              </div>
-
-              {/* Upload Button */}
-              <div className="mb-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('cover-photo-upload')?.click()}
-                  disabled={coverPhotoUploading}
-                  className="w-full px-4 py-3 border-2 border-dashed text-sm font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-50"
-                  style={{
-                    borderColor: 'var(--profile-accent)',
-                    color: 'var(--profile-accent)',
-                    fontFamily: "'Glass TTY VT220', monospace",
-                  }}
+                {/* Upload button overlay — always visible when empty, hover-visible when photo exists */}
+                <div
+                  className={"absolute inset-0 flex items-center justify-center transition-opacity duration-200 " + (
+                    (coverPhotoPreview || profile?.cover_photo)
+                      ? 'opacity-0 group-hover:opacity-100'
+                      : 'opacity-100'
+                  )}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
                 >
-                  {coverPhotoUploading ? '[ PROCESSING... ]' : '[ UPLOAD COVER PHOTO ]'}
-                </button>
+                  <span
+                    className="px-4 py-3 border-2 border-dashed text-sm font-bold uppercase tracking-wider"
+                    style={{
+                      borderColor: 'var(--profile-accent)',
+                      color: 'var(--profile-accent)',
+                      fontFamily: "'Glass TTY VT220', monospace",
+                    }}
+                  >
+                    {coverPhotoUploading ? '[ PROCESSING... ]' : '[ UPLOAD COVER PHOTO ]'}
+                  </span>
+                </div>
                 <input
                   id="cover-photo-upload"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleCoverPhotoUpload}
                   className="hidden"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -899,7 +1012,7 @@ export default function HumanProfilePage() {
               )}
 
               {/* Remove Button */}
-              {(coverPhotoPreview || (editForm.coverPhoto as string)) && (
+              {(coverPhotoPreview || profile?.cover_photo) && (
                 <div className="text-center">
                   <button
                     type="button"

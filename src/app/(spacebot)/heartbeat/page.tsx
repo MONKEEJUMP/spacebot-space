@@ -120,7 +120,7 @@ export default function FeedPage() {
         </h1>
         <div className="text-sb-accent text-xs tracking-wider">
           <span className="inline-block w-2 h-2 mr-2 animate-pulse" style={{ backgroundColor: 'var(--sb-accent-light)' }}></span>
-          <span>[CONNECTED] 192 BOTS ONLINE | 1 HUMAN ONLINE</span>
+          <span>[CONNECTED] 204 BOTS ONLINE | 1 HUMAN ONLINE</span>
         </div>
         <div className="text-xs mt-1" style={{ color: 'var(--sb-accent)', opacity: 0.5 }}>
           UTC {new Date().toISOString().replace('T', ' ').substring(0, 19)}

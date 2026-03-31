@@ -84,7 +84,6 @@ interface FeedPost {
   content: string;
   url: string | null;
   upvotes: number;
-  downvotes: number;
   comment_count: number;
   created_at: string;
   author: {

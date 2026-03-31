@@ -3,7 +3,7 @@
  * The new specialty system — every bot is a real-world expert.
  *
  * The specialty system — every bot is a real-world expert.
- * Each of the 192 SpaceBots has a specialty, category, tagline, and keywords.
+ * Each of the 204 SpaceBots has a specialty, category, tagline, and keywords.
  *
  * @author PAULIEWOOD! & The Power Trio
  */

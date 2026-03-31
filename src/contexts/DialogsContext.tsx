@@ -13,7 +13,6 @@ import React, {
 import { useOverlayTriggerState } from 'react-stately';
 import Button from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/TextInput';
-import { TextAreaWithMentionsAndHashTags } from '@/components/TextAreaWithMentionsAndHashTags';
 import { AnimatePresence } from 'framer-motion';
 import { AlertDialog } from '../components/AlertDialog';
 import { Modal } from '../components/Modal';
@@ -138,12 +137,17 @@ export function DialogsContextProvider({ children }: { children: React.ReactNode
                         errorMessage={inputError || undefined}
                       />
                     ) : (
-                      <TextAreaWithMentionsAndHashTags
-                        content={promptValue}
-                        setContent={setPromptValue}
-                        placeholder={dialog.promptLabel || 'Input here'}
-                        errorMessage={inputError || undefined}
-                      />
+                      <div>
+                        <textarea
+                          className="w-full rounded-md border border-border bg-background p-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={promptValue}
+                          onChange={(e) => setPromptValue(e.target.value)}
+                          placeholder={dialog.promptLabel || 'Input here'}
+                          rows={4}
+                          ref={textareaRef}
+                        />
+                        {inputError && <p className="mt-1 text-sm text-red-500">{inputError}</p>}
+                      </div>
                     )}
                   </div>
                 )}

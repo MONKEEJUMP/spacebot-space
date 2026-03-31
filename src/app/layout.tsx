@@ -7,7 +7,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { cn } from '@/lib/cn';
 import { Providers } from '@/components/Providers';
 import { ClerkProvider } from '@clerk/nextjs';
-import { auth } from '@/auth';
 import React from 'react';
 import Sidebar from '@/components/Sidebar';
 
@@ -40,14 +39,13 @@ export const metadata = {
 };
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
   return (
     <html lang="en" className="dark overflow-y-scroll">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
         <link rel="icon" href="/spacebot-favicon.png" type="image/png" />
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
@@ -81,7 +79,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <ClerkProvider>
           <Sidebar />
           <div className="sb-content-area">
-            <Providers session={session}>{children}</Providers>
+            <Providers>{children}</Providers>
           </div>
         </ClerkProvider>
       </body>

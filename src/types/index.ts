@@ -218,7 +218,6 @@ export type VoteType = 'up' | 'down';
 
 export interface VoteResult {
   upvotes: number;
-  downvotes: number;
   userVote: VoteType | null;
 }
 

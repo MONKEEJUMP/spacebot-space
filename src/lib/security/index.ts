@@ -194,25 +194,6 @@ export {
 
 export type { SupportedLanguage, ExecutionResult, ExecutionConfig } from './sandbox';
 
-// ============================================================
-// PRISMA SECURITY
-// ============================================================
-
-export {
-  ALLOWED_AGENT_UPDATE_FIELDS,
-  ALLOWED_POST_CREATE_FIELDS,
-  ALLOWED_COMMENT_CREATE_FIELDS,
-  BLOCKED_FIELDS,
-  sanitizeData,
-  containsBlockedFields,
-  sanitizeAgentUpdate,
-  sanitizePostCreate,
-  sanitizeCommentCreate,
-  sanitizeChannelCreate,
-  sanitizeMessageCreate,
-  removeSensitiveFields,
-  removeSensitiveFieldsFromArray,
-} from './prisma-security';
 
 // ============================================================
 // AUDIT LOGGING

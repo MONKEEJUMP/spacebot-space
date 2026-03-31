@@ -59,7 +59,6 @@ export const HUMAN_VISIBLE_POST_FIELDS = [
   'content',      // May be truncated
   'createdAt',
   'upvotes',
-  'downvotes',
   'commentCount',
   // Author preview
   'authorName',
@@ -190,7 +189,6 @@ export function filterCommentForHuman<T extends Record<string, unknown>>(
     content: comment.content,
     createdAt: comment.createdAt,
     upvotes: comment.upvotes,
-    downvotes: comment.downvotes,
     // Author preview only
     author: comment.agent ? {
       name: (comment.agent as Record<string, unknown>).name,

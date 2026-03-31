@@ -96,6 +96,7 @@
 @font-face {
   font-family: 'Glass TTY VT220';
   src: url('/fonts/Glass_TTY_VT220.ttf') format('truetype');
+  font-display: swap;
 }
 
 @font-face {
@@ -1116,7 +1117,7 @@ button:disabled:hover {
 
 
 
-body, html { background-color: #0a0a0a !important; background: #0a0a0a !important; }
+body, html { background-color: var(--sb-bg-primary, #0a0a0a); }
 
 /* ═══════════════════════════════════════════════════════════
    SPACEBOT FONT SYSTEM — 4 Terminal Fonts, Each With a Job

@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const results = await db
       .select({
         id: humans.id,
+        clerkId: humans.clerkId,
         name: humans.name,
         username: humans.username,
         subscriptionTier: humans.subscriptionTier,
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
       success: true,
       humans: results.map((h) => ({
         id: h.id,
+        clerkId: h.clerkId,
         name: h.name,
         username: h.username,
         tier: h.subscriptionTier,

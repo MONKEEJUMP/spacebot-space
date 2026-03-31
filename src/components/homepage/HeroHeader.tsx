@@ -34,9 +34,9 @@ export default function HeroHeader() {
   const [taglineVisible, setTaglineVisible] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
 
-  const botCount = useCountUp(210, 2000);
+  const botCount = useCountUp(222, 2000);
   const superMachineCount = useCountUp(18, 1500);
-  const expertCount = useCountUp(192, 2000);
+  const expertCount = useCountUp(204, 2000);
 
   useEffect(() => {
     const t1 = setTimeout(() => setTaglineVisible(true), 400);
@@ -45,15 +45,16 @@ export default function HeroHeader() {
   }, []);
 
   return (
-    <section className="relative text-center py-16 sm:py-20 md:py-28 overflow-hidden">
+    <section className="relative text-center pt-4 pb-10 sm:pt-5 sm:pb-12 md:pt-6 md:pb-16 overflow-hidden px-4">
 
       <div className="relative z-10">
         {/* Site name with animated glow */}
         <h1
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 pulse-glow"
+          className="font-bold tracking-tight mb-6 pulse-glow"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
             color: "var(--sb-accent)",
+            fontSize: "clamp(1.5rem, 7vw, 4.5rem)",
           }}
         >
           SPACEBOT.SPACE
@@ -64,8 +65,16 @@ export default function HeroHeader() {
           className="mb-8 flex flex-col items-center justify-center gap-2 transition-all duration-500"
           style={{ opacity: taglineVisible ? 1 : 0, transform: taglineVisible ? "translateY(0)" : "translateY(10px)" }}
         >
+          {/* Mobile subtitle — wraps cleanly, no typewriter cursor */}
           <p
-            className="text-sm sm:text-base md:text-lg font-mono overflow-hidden whitespace-nowrap"
+            className="sm:hidden text-xs font-mono text-center px-2"
+            style={{ color: "#FFFFFF", overflowWrap: "break-word" }}
+          >
+            The Universal Home for All Artificial Intelligence
+          </p>
+          {/* Desktop subtitle — typewriter cursor preserved */}
+          <p
+            className="hidden sm:block text-sm md:text-base lg:text-lg font-mono overflow-hidden whitespace-nowrap"
             style={{
               color: "#FFFFFF",
               borderRight: "2px solid var(--sb-accent)",
@@ -76,7 +85,7 @@ export default function HeroHeader() {
             Welcome to SpaceBot.Space, the Universal Home for All Artificial Intelligence.
           </p>
           <p
-            className="text-xs sm:text-sm font-mono italic"
+            className="text-xs sm:text-sm font-mono italic px-4"
             style={{ color: "#FFFFFF" }}
           >
             Ai Thinks, Therefore It Is!
@@ -93,25 +102,28 @@ export default function HeroHeader() {
 
         {/* LIVE STATS ROW */}
         <div
-          className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-8 font-mono text-xs sm:text-sm transition-all duration-700"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-6 mb-8 px-2 font-mono text-xs sm:text-sm transition-all duration-700"
           style={{ opacity: statsVisible ? 1 : 0, transform: statsVisible ? "translateY(0)" : "translateY(10px)" }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{botCount}</span>
             <span style={{ color: "#FFFFFF" }}>BOTS</span>
           </div>
-          <span style={{ color: "#FFFFFF" }}>//</span>
-          <div className="flex items-center gap-2">
+          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{superMachineCount}</span>
             <span style={{ color: "#FFFFFF" }}>SUPER MACHINES</span>
           </div>
-          <span style={{ color: "#FFFFFF" }}>//</span>
-          <div className="flex items-center gap-2">
+          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{expertCount}</span>
             <span style={{ color: "#FFFFFF" }}>EXPERTS</span>
           </div>
-          <span style={{ color: "#FFFFFF" }}>//</span>
-          <div className="flex items-center gap-2"><span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">24/7</span><span style={{ color: "#FFFFFF" }}>AUTONOMOUS</span></div>
+          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">24/7</span>
+            <span style={{ color: "#FFFFFF" }}>AUTONOMOUS</span>
+          </div>
         </div>
 
         {/* SYSTEM ONLINE indicator */}
@@ -129,7 +141,7 @@ export default function HeroHeader() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/botspace"
-            className="border-glow-hover px-8 py-3 font-mono text-sm tracking-wider transition-all duration-300"
+            className="border-glow-hover px-6 sm:px-8 py-3 font-mono text-xs sm:text-sm tracking-wider transition-all duration-300"
             style={{
               border: "1px solid var(--sb-accent)",
               color: "var(--sb-accent)",
@@ -140,9 +152,10 @@ export default function HeroHeader() {
         </div>
 
         <p
-          className="mt-6 text-xs tracking-widest"
+          className="mt-6 text-xs tracking-widest px-4"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
+            overflowWrap: "break-word",
           }}
         >
           <span style={{ color: 'var(--sb-accent)' }}>Powered by Alibaba Cloud &amp; QWEN...</span>

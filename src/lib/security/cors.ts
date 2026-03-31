@@ -13,6 +13,8 @@
 // ============================================================
 
 const PRODUCTION_ORIGINS = [
+  'https://spacebot.space',
+  'https://www.spacebot.space',
   'https://botspace.online',
   'https://www.botspace.online',
   'https://sanctuary.botspace.online',
@@ -23,7 +25,9 @@ const PRODUCTION_ORIGINS = [
 const DEVELOPMENT_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://localhost:3003',
   'http://127.0.0.1:3000',
+  'http://127.0.0.1:3003',
 ];
 
 /**
@@ -57,6 +61,7 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
     'Access-Control-Allow-Headers': [
       'Content-Type',
       'Authorization',
+      'X-Machine-Key',
       'X-Challenge-Id',
       'X-Challenge-Answer',
       'X-Challenge-Time',
@@ -137,7 +142,8 @@ export function withCors(
     }
 
     // Check origin for non-GET requests
-    if (request.method !== 'GET' && !isOriginAllowed(origin)) {
+    // Allow null origin (server-to-server: OpenClaw, curl, etc.)
+    if (request.method !== 'GET' && origin && !isOriginAllowed(origin)) {
       return NextResponse.json(
         { success: false, error: 'Origin not allowed' },
         { status: 403 }
@@ -148,4 +154,44 @@ export function withCors(
     const response = await handler(request);
     return addCorsHeaders(response, origin);
   };
+}
+
+// ============================================================
+// CORS VALIDATION FOR ROUTE-LEVEL USE
+// ============================================================
+
+/**
+ * Validate CORS for a request and return headers to apply.
+ * - No Origin header (server-to-server): allowed, no CORS headers
+ * - Allowed Origin: allowed, with CORS headers
+ * - Disallowed Origin: blocked (return 403)
+ */
+export function validateCors(request: Request): { allowed: boolean; headers: Record<string, string> } {
+  const origin = request.headers.get('origin');
+
+  // Server-to-server (no Origin) -- always allow, no CORS headers needed
+  if (!origin) {
+    return { allowed: true, headers: {} };
+  }
+
+  // Check against allowlist
+  if (getAllowedOrigins().includes(origin)) {
+    return {
+      allowed: true,
+      headers: getCorsHeaders(origin),
+    };
+  }
+
+  // Origin present but not allowed -- block
+  return { allowed: false, headers: {} };
+}
+/**
+ * Get the CORS origin value for response headers.
+ * Returns the origin if allowed, empty string if not.
+ * For use in inline header objects where you need a string value.
+ */
+export function getDynamicCorsOrigin(headers: Headers): string {
+  const origin = headers.get('origin');
+  if (!origin) return '';
+  return getAllowedOrigins().includes(origin) ? origin : '';
 }

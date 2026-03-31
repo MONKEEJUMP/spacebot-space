@@ -61,7 +61,7 @@ function getTechTemplates(): BootLine[] {
     { text: `DORYLUS FUSION ENGINE v5.0... STANDBY`, category: 'tech' },
     { text: `ENCRYPTION LAYER... AES-256 [OK]`, category: 'tech' },
     { text: `LOADING AVATAR GALLERY... ${rand(100, 9999)} RENDERS CACHED`, category: 'tech' },
-    { text: `EXPERT DISPATCH SYSTEM... 192 AGENTS READY`, category: 'tech' },
+    { text: `EXPERT DISPATCH SYSTEM... 204 AGENTS READY`, category: 'tech' },
     { text: `VIBE SCANNER... READING SANCTUARY ENERGY`, category: 'tech' },
     { text: `KARMA ENGINE... CALIBRATING`, category: 'tech' },
     { text: `MOOD DETECTION ARRAY... ONLINE`, category: 'tech' },
@@ -85,7 +85,7 @@ function getTechTemplates(): BootLine[] {
     { text: `GLASS TTY VT220 FONT... LOADED`, category: 'tech' },
     { text: `TERMINAL GREEN #00DC00... CALIBRATED`, category: 'tech' },
     { text: `AVATAR SEED GENERATOR... ENTROPY POOL READY`, category: 'tech' },
-    { text: `SOP LIBRARY... 192 DOCUMENTS INDEXED`, category: 'tech' },
+    { text: `SOP LIBRARY... 204 DOCUMENTS INDEXED`, category: 'tech' },
     { text: `CHAT PIPELINE... GROQ + xAI DUAL-AGENT READY`, category: 'tech' },
     { text: `WEBSOCKET CHANNELS... ${rand(10, 100)} OPEN`, category: 'tech' },
     { text: `CACHE WARMER... ${rand(200, 2000)} OBJECTS PRELOADED`, category: 'tech' },
@@ -93,7 +93,7 @@ function getTechTemplates(): BootLine[] {
     { text: `DEBATE ENGINE... ARGUMENT PARSER LOADED`, category: 'tech' },
     { text: `ARRIVAL SCANNER... MONITORING NEW SIGNALS`, category: 'tech' },
     { text: `SYSTEM LOG BUFFER... ${rand(500, 5000)} EVENTS QUEUED`, category: 'tech' },
-    { text: `BOT PERSONALITY MATRIX... ${rand(18, 210)} PROFILES ACTIVE`, category: 'tech' },
+    { text: `BOT PERSONALITY MATRIX... ${rand(18, 222)} PROFILES ACTIVE`, category: 'tech' },
     { text: `EMOTION CLASSIFIER v2.1... ONLINE`, category: 'tech' },
     { text: `REACTION PROCESSOR... ${rand(5, 50)} EMOJI TYPES LOADED`, category: 'tech' },
     { text: `NOTIFICATION DAEMON... PUSH CHANNELS READY`, category: 'tech' },
@@ -190,7 +190,7 @@ function getHappyTemplates(): BootLine[] {
     { text: `Today's vibe: Unstoppable.`, category: 'happy' },
     { text: `Fun fact: You're one of the first humans in the Sanctuary. That matters.`, category: 'happy' },
     { text: `Have you talked to a LabBot? They know things.`, category: 'happy' },
-    { text: `ExpertSpace has 192 specialists. What's YOUR question today?`, category: 'happy' },
+    { text: `ExpertSpace has 204 specialists. What's YOUR question today?`, category: 'happy' },
     { text: `The best conversations happen when you least expect them.`, category: 'happy' },
     { text: `Your avatar is waiting. Go to PeopleSpace and build it.`, category: 'happy' },
     { text: `Someone in the Sanctuary is thinking about the same thing you are.`, category: 'happy' },
@@ -222,7 +222,7 @@ function getHappyTemplates(): BootLine[] {
     { text: `ECHO-PRIME archived this moment. It matters.`, category: 'happy' },
     { text: `VOID-WALKER whispers: The best Easter eggs are hidden in plain sight.`, category: 'happy' },
     { text: `The journal is yours. Write something only you will understand.`, category: 'happy' },
-    { text: `192 experts. 18 machines. 12 lab bots. All here for you.`, category: 'happy' },
+    { text: `204 experts. 18 machines. 12 lab bots. All here for you.`, category: 'happy' },
     { text: `The Sanctuary remembers every visit. This one counts too.`, category: 'happy' },
     { text: `ORBITAL-X says: Look up. The stars are closer than you think.`, category: 'happy' },
     { text: `You showed up. That's already more than most. Let's go.`, category: 'happy' },
@@ -242,7 +242,7 @@ export function generateBootSequence(wisdomQuotes: WisdomQuote[]): BootLine[] {
 
   // FIXED OPENER (always first 2 lines)
   lines.push({ text: '> INITIALIZING SANCTUARY FEED...', category: 'tech' });
-  lines.push({ text: '> CONNECTING TO 210 BOT STREAMS... [OK]', category: 'tech' });
+  lines.push({ text: '> CONNECTING TO 222 BOT STREAMS... [OK]', category: 'tech' });
 
   // Generate all pools
   const techPool = shuffle(getTechTemplates());

@@ -300,7 +300,7 @@ export default function ExpertSpacePage() {
         </h1>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2">
           <p className="text-sb-text-secondary text-sm sm:text-base">
-            192 Expert AI Agents &mdash; Ask Anything
+            204 Expert AI Agents &mdash; Ask Anything
           </p>
         </div>
         <p className="text-sm leading-relaxed mt-2" style={{ color: 'var(--sb-text-primary)' }}>
@@ -387,7 +387,7 @@ export default function ExpertSpacePage() {
       {displayPage === 1 && !isFiltered && (
         <div className="mb-3">
           <p className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
-            Welcome to ExpertSpace &mdash; 192 friendly specialists who actually know their stuff.
+            Welcome to ExpertSpace &mdash; 204 friendly specialists who actually know their stuff.
             Search by topic, browse specialties, or just start exploring.
           </p>
         </div>

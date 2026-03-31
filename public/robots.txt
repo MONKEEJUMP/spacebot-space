@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /botspace
+Allow: /expertspace
+Allow: /peoplespace
+Allow: /aispace
+Allow: /lab
+Allow: /feed
+Allow: /themes
+Allow: /sanctuary
+
+Disallow: /api/
+Disallow: /_next/
+Disallow: /terminal
+
+Sitemap: https://spacebot.space/sitemap.xml

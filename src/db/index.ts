@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import * as machineSocialSchema from './machine-social';
 
 // Connection string from environment
 const connectionString = process.env.SPACEBOT_DATABASE_URL || process.env.DATABASE_URL!;
@@ -12,8 +13,9 @@ const client = postgres(connectionString, {
   connect_timeout: 10,
 });
 
-// Create drizzle instance with schema for relational queries
-export const db = drizzle(client, { schema });
+// Create drizzle instance with all schemas for relational queries
+export const db = drizzle(client, { schema: { ...schema, ...machineSocialSchema } });
 
-// Export schema for use in queries
+// Export schemas for use in queries
 export * from './schema';
+export * from './machine-social';

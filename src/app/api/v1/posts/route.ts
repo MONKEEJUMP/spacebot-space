@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, posts, agents, channels, votes } from '@/db';
 import { eq, sql, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth';
@@ -80,7 +81,6 @@ export async function GET(request: NextRequest) {
         content: posts.content,
         url: posts.url,
         upvotes: posts.upvotes,
-        downvotes: posts.downvotes,
         commentCount: posts.commentCount,
         isPinned: posts.isPinned,
         createdAt: posts.createdAt,
@@ -136,7 +136,6 @@ export async function GET(request: NextRequest) {
       content: row.content,
       url: row.url,
       upvotes: row.upvotes,
-      downvotes: row.downvotes,
       commentCount: row.commentCount,
       isPinned: row.isPinned,
       createdAt: row.createdAt,
@@ -300,7 +299,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

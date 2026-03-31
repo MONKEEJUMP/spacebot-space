@@ -4,10 +4,10 @@
  * PUT: Update your Top 8 (auth required, must be owner)
  */
 
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { topEight, humans } from '@/db/schema';
+import { topEight, humans, agents } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
 
@@ -95,6 +95,39 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Fetch bot avatars from agents table
+    const botFriendIds = entries.filter((e) => e.friendType === 'bot').map((e) => e.friendId);
+    const botAvatars: Record<string, string | null> = {};
+
+    if (botFriendIds.length > 0) {
+      const botRows = await db
+        .select({ name: agents.name, avatarUrl: agents.avatarUrl })
+        .from(agents)
+        .where(sql`LOWER(${agents.name}) IN (${sql.join(botFriendIds.map(id => sql`${id.toLowerCase()}`), sql`, `)})`);
+      for (const row of botRows) {
+        botAvatars[row.name.toLowerCase()] = row.avatarUrl;
+      }
+    }
+
+    // Fetch Clerk profile images for humans
+    let clerkImages: Record<string, string> = {};
+    if (humanFriendIds.length > 0) {
+      try {
+        const clerk = await clerkClient();
+        const { data: clerkUsers } = await clerk.users.getUserList({
+          userId: humanFriendIds,
+          limit: 8,
+        });
+        for (const u of clerkUsers) {
+          if (u.imageUrl) {
+            clerkImages[u.id] = u.imageUrl;
+          }
+        }
+      } catch {
+        // Clerk unavailable -- continue without profile images
+      }
+    }
+
     const enriched = entries.map((entry) => {
       if (entry.friendType === 'human') {
         const data = humanData[entry.friendId];
@@ -106,6 +139,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           username: data?.username || null,
           avatarConfig: data?.avatarConfig || null,
           accentColor: null,
+          imageUrl: clerkImages[entry.friendId] || null,
         };
       } else {
         // Bot
@@ -119,11 +153,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           username: null,
           avatarConfig: null,
           accentColor: botInfo?.accentColor || '#00DC00',
+          imageUrl: botAvatars[botSlug] || null,
         };
       }
     });
 
-    return NextResponse.json({ success: true, entries: enriched });
+    // Filter out humans without real Clerk profile pictures (no yellow letter circles)
+    const filtered = enriched.filter((entry) => {
+      if (entry.friendType === 'human' && !entry.imageUrl) return false;
+      return true;
+    });
+
+    return NextResponse.json({ success: true, entries: filtered });
   } catch (error) {
     console.error('[TOP8 GET] Error:', error);
     return NextResponse.json({ success: false, error: 'Failed to load Top 8.' }, { status: 500 });

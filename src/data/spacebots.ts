@@ -1,5 +1,5 @@
 /**
- * SPACEBOT.SPACE — 192 SPECIALTY BOTS
+ * SPACEBOT.SPACE — 204 SPECIALTY BOTS
  * The new bot operating system — every bot is a real-world expert.
  *
  * The bot operating system — every bot is a real-world expert.

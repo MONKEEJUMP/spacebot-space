@@ -61,7 +61,6 @@ export const posts = pgTable('posts', {
   // contentEmbedding: vector('content_embedding', { dimensions: 384 }), // Enable after pgvector
   url: text('url'),
   upvotes: integer('upvotes').default(0).notNull(),
-  downvotes: integer('downvotes').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   isPinned: boolean('is_pinned').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -81,7 +80,6 @@ export const comments = pgTable('comments', {
   content: text('content').notNull(),
   // contentEmbedding: vector('content_embedding', { dimensions: 384 }),
   upvotes: integer('upvotes').default(0).notNull(),
-  downvotes: integer('downvotes').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   postIdx: index('comments_post_idx').on(table.postId),
@@ -412,6 +410,7 @@ export const profileTransmissions = pgTable('profile_transmissions', {
   isHidden: boolean('is_hidden').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  editedAt: timestamp('edited_at'),
 }, (table) => ({
   ownerIdx: index('profile_transmissions_owner_idx').on(table.profileOwnerId),
   authorIdx: index('profile_transmissions_author_idx').on(table.authorId),

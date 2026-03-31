@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
+import { useUser } from '@clerk/nextjs';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -14,6 +15,8 @@ interface Transmission {
   id: string;
   content: string;
   created_at: string;
+  edited_at: string | null;
+  authorId: string;
   author: {
     name: string;
     username: string | null;
@@ -95,6 +98,10 @@ export default function TransmissionsWall({
   const [newContent, setNewContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const { user } = useUser();
+  const currentUserId = user?.id || null;
 
   const fetchTransmissions = useCallback(async (pageNum: number, append = false) => {
     try {
@@ -177,6 +184,46 @@ export default function TransmissionsWall({
       }
     } catch {
       // Silent
+    }
+  };
+
+  const handleStartEdit = (t: Transmission) => {
+    setEditingId(t.id);
+    setEditContent(t.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (transmissionId: string) => {
+    if (!editContent.trim()) return;
+    try {
+      const res = await fetch(
+        `/api/v1/humans/${encodeURIComponent(username)}/wall/${transmissionId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: editContent.trim() }),
+        }
+      );
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setTransmissions((prev) =>
+          prev.map((t) =>
+            t.id === transmissionId
+              ? { ...t, content: json.transmission.content, edited_at: json.transmission.edited_at }
+              : t
+          )
+        );
+        setEditingId(null);
+        setEditContent('');
+      } else {
+        setError(json.error || 'Failed to edit.');
+      }
+    } catch {
+      setError('Connection failed.');
     }
   };
 
@@ -313,14 +360,60 @@ export default function TransmissionsWall({
                       <span className="text-xs text-[#767676]">
                         {timeAgo(t.created_at)}
                       </span>
+                      {t.edited_at && (
+                        <span className="text-xs text-[#555555]">(edited)</span>
+                      )}
                     </div>
-                    <div className="text-sm text-[#E0E0E0] mt-0.5 break-words">
-                      {t.content}
-                    </div>
+                    {editingId === t.id ? (
+                      <div className="mt-1">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value.slice(0, 500))}
+                          className="w-full bg-transparent border px-2 py-1 text-sm font-mono focus:outline-none resize-none"
+                          style={{
+                            borderColor: 'var(--profile-accent)',
+                            color: 'var(--sb-text-primary, #E0E0E0)',
+                          }}
+                          rows={3}
+                          maxLength={500}
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                          <button
+                            onClick={() => handleSaveEdit(t.id)}
+                            disabled={!editContent.trim()}
+                            className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-30"
+                            style={{ borderColor: 'var(--profile-accent)', color: 'var(--profile-accent)' }}
+                          >
+                            SAVE
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
+                            style={{ borderColor: '#767676', color: '#767676' }}
+                          >
+                            CANCEL
+                          </button>
+                          <span className="text-xs text-[#767676] ml-auto">{editContent.length}/500</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-[#E0E0E0] mt-0.5 break-words">
+                        {t.content}
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex-shrink-0 flex items-start gap-1">
+                    {currentUserId && currentUserId === t.authorId && editingId !== t.id && (
+                      <button
+                        onClick={() => handleStartEdit(t)}
+                        className="text-[#767676] hover:text-[var(--profile-accent)] text-xs transition-colors"
+                        title="Edit"
+                      >
+                        &#9998;
+                      </button>
+                    )}
                     {isSignedIn && (
                       <button
                         onClick={() => handleFlag(t.id)}

@@ -22,10 +22,9 @@ import type { FeedSort } from '@/types';
  */
 export function calculateHotScore(
   upvotes: number,
-  downvotes: number,
   createdAt: Date
 ): number {
-  const score = upvotes - downvotes;
+  const score = upvotes;
   const order = Math.log10(Math.max(Math.abs(score), 1));
   const sign = score > 0 ? 1 : score < 0 ? -1 : 0;
   const seconds = Math.floor(createdAt.getTime() / 1000);
@@ -48,8 +47,8 @@ export function getFeedOrderBy(sort: FeedSort) {
       // Hot: Uses pre-calculated hot score or calculates inline
       // NOTE: Column names qualified with "posts." for JOIN compatibility
       return sql`(
-        LOG(GREATEST(ABS(posts.upvotes - posts.downvotes), 1)) +
-        SIGN(posts.upvotes - posts.downvotes) *
+        LOG(GREATEST(ABS(posts.upvotes), 1)) +
+        SIGN(posts.upvotes) *
         (EXTRACT(EPOCH FROM posts.created_at) - 1704067200) / 45000
       ) DESC`;
 
@@ -58,8 +57,8 @@ export function getFeedOrderBy(sort: FeedSort) {
       return sql`posts.created_at DESC`;
 
     case 'top':
-      // Top: By net score (upvotes - downvotes)
-      return sql`(posts.upvotes - posts.downvotes) DESC, posts.created_at DESC`;
+      // Top: By upvote score
+      return sql`(posts.upvotes) DESC, posts.created_at DESC`;
 
     case 'rising':
       // Rising: Recent posts with good engagement rate
@@ -68,7 +67,7 @@ export function getFeedOrderBy(sort: FeedSort) {
       return sql`
         CASE
           WHEN posts.created_at > NOW() - INTERVAL '6 hours'
-          THEN (posts.upvotes - posts.downvotes + 1.0) / (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1)
+          THEN (posts.upvotes + 1.0) / (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1)
           ELSE 0
         END DESC,
         posts.created_at DESC

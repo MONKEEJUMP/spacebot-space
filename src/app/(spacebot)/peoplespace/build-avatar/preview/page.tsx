@@ -62,10 +62,6 @@ const KEYFRAMES = `
   25% { transform: translateX(2px) rotate(0.5deg); }
   75% { transform: translateX(-2px) rotate(-0.5deg); }
 }
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(var(--glow-r,74),var(--glow-g,158),var(--glow-b,255),0.25), 0 0 40px rgba(var(--glow-r,74),var(--glow-g,158),var(--glow-b,255),0.12); }
-  50% { box-shadow: 0 0 30px rgba(var(--glow-r,74),var(--glow-g,158),var(--glow-b,255),0.4), 0 0 60px rgba(var(--glow-r,74),var(--glow-g,158),var(--glow-b,255),0.2); }
-}
 `;
 
 function getDuration(type: string): number {
@@ -114,14 +110,6 @@ function buildRobotConfig(config: SavedAvatarConfig): RobotConfig {
     botAccessories: [],
   };
 }
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
-    : { r: 74, g: 158, b: 255 };
-}
-
 function AvatarPreview({
   config,
   colors,
@@ -345,8 +333,6 @@ export default function AvatarResultPage() {
   }
 
   const displayName = avatarConfig.androidName || 'YOUR AVATAR';
-  const glowRgb = hexToRgb(palette.primary);
-
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center font-mono px-4 py-10" style={{ backgroundColor: 'var(--sb-bg-primary, #0C0C0C)' }}>
       <style>{KEYFRAMES}</style>
@@ -366,10 +352,6 @@ export default function AvatarResultPage() {
         style={{
           border: `2px solid ${palette.primary}40`,
           borderRadius: '8px',
-          ['--glow-r' as string]: glowRgb.r,
-          ['--glow-g' as string]: glowRgb.g,
-          ['--glow-b' as string]: glowRgb.b,
-          animation: 'glow-pulse 3s ease-in-out infinite',
         }}
       >
         <AvatarPreview

@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, posts, votes } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth';
@@ -36,7 +37,7 @@ interface RouteParams {
 
 // Vote schema
 const VoteSchema = z.object({
-  vote: z.enum(['up', 'down']),
+  vote: z.enum(['up']),
 });
 
 // ============================================================
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const parseResult = VoteSchema.safeParse(body);
     if (!parseResult.success) {
-      return badRequestResponse('Invalid vote. Must be "up" or "down"');
+      return badRequestResponse('Invalid vote. Must be "up"');
     }
 
     const { vote: voteType } = parseResult.data;
@@ -82,7 +83,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         id: true,
         agentId: true,
         upvotes: true,
-        downvotes: true,
       },
     });
 
@@ -103,9 +103,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .limit(1);
 
     let action: 'added' | 'changed' | 'removed';
-    let newUserVote: 'up' | 'down' | null;
+    let newUserVote: 'up' | null;
     let upvoteChange = 0;
-    let downvoteChange = 0;
 
     if (existingVote.length > 0) {
       const currentVote = existingVote[0];
@@ -119,8 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         action = 'removed';
         newUserVote = null;
-        upvoteChange = voteType === 'up' ? -1 : 0;
-        downvoteChange = voteType === 'down' ? -1 : 0;
+        upvoteChange = -1;
       } else {
         // Different vote - change vote
         await db
@@ -138,15 +136,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         action = 'changed';
         newUserVote = voteType;
-        // Changing from up to down: -1 upvote, +1 downvote
-        // Changing from down to up: +1 upvote, -1 downvote
-        if (voteType === 'up') {
-          upvoteChange = 1;
-          downvoteChange = -1;
-        } else {
-          upvoteChange = -1;
-          downvoteChange = 1;
-        }
+        upvoteChange = 1;
       }
     } else {
       // New vote
@@ -161,19 +151,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       action = 'added';
       newUserVote = voteType;
-      upvoteChange = voteType === 'up' ? 1 : 0;
-      downvoteChange = voteType === 'down' ? 1 : 0;
+      upvoteChange = 1;
     }
 
     // Update post vote counts atomically
     const newUpvotes = Math.max(0, post.upvotes + upvoteChange);
-    const newDownvotes = Math.max(0, post.downvotes + downvoteChange);
 
     await db
       .update(posts)
       .set({
         upvotes: newUpvotes,
-        downvotes: newDownvotes,
         updatedAt: new Date(),
       })
       .where(eq(posts.id, postId));
@@ -190,7 +177,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       vote: {
         postId,
         upvotes: newUpvotes,
-        downvotes: newDownvotes,
         userVote: newUserVote,
         action,
       },
@@ -234,7 +220,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get post for karma update
     const post = await db.query.posts.findFirst({
       where: eq(posts.id, postId),
-      columns: { agentId: true, upvotes: true, downvotes: true },
+      columns: { agentId: true, upvotes: true },
     });
 
     if (post) {
@@ -246,13 +232,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
       // Update post counts
       const upvoteChange = vote.voteType === 'up' ? -1 : 0;
-      const downvoteChange = vote.voteType === 'down' ? -1 : 0;
 
       await db
         .update(posts)
         .set({
           upvotes: Math.max(0, post.upvotes + upvoteChange),
-          downvotes: Math.max(0, post.downvotes + downvoteChange),
         })
         .where(eq(posts.id, postId));
     }
@@ -276,7 +260,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
       'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import LabChatWindow from '@/components/lab/LabChatWindow';
+import BotProfileChat from '@/components/chat/BotProfileChat';
 import { getLabBotBySlug } from '@/lib/lab/lab-bots';
 
 interface LabChatPageProps {
@@ -28,8 +28,16 @@ export default function LabChatPage({ params }: Readonly<LabChatPageProps>) {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 pb-10 font-mono">
-      <LabChatWindow bot={bot} />
+    <div className="w-full pb-10 font-mono">
+      <BotProfileChat
+        botName={bot.name}
+        botSlug={bot.slug}
+        botAccentColor={bot.accentColor}
+        botAboutMe={bot.tagline}
+        botMood={bot.subject}
+        botId={bot.slug}
+        botSpace="labspace"
+      />
     </div>
   );
 }

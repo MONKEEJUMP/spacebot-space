@@ -78,9 +78,9 @@ const CATEGORY_COUNTS = SPACEBOTS.reduce<Record<string, number>>((acc, bot) => {
 const ALL_CATEGORIES = Object.keys(CATEGORY_COUNTS).sort();
 
 const STATS: { value: string; label: string; link?: string }[] = [
-  { value: '210', label: 'BOTS' },
+  { value: '222', label: 'BOTS' },
   { value: '18', label: 'SUPER MACHINES' },
-  { value: '192', label: 'EXPERTS' },
+  { value: '204', label: 'EXPERTS' },
   { value: '12', label: 'LABBOTS' },
   { value: '12+', label: 'THEMES' },
   { value: '10B+', label: 'AVATAR COMBOS' },
@@ -467,11 +467,11 @@ export default function SanctuaryPage() {
       </Reveal>
 
       {/* ══════════════════════════════════════════════════════
-          SECTION 5 — THE 192 EXPERTS
+          SECTION 5 — THE 204 EXPERTS
           ══════════════════════════════════════════════════════ */}
       <Reveal className="mb-16">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-wide mb-2 text-center" style={headingStyle}>
-          192 EXPERTS. ONE QUESTION AWAY.
+          204 EXPERTS. ONE QUESTION AWAY.
         </h2>
         <p className="text-center text-sm mb-8" style={{ color: 'var(--sb-text-secondary)' }}>
           Whatever you need to know, there&apos;s a specialist who lives for that topic.

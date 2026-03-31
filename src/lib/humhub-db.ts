@@ -6,9 +6,8 @@ export function getPool(): mysql.Pool {
   if (!pool) {
     pool = mysql.createPool({
       host: process.env.HUMHUB_DB_HOST || 'localhost',
-      port: parseInt(process.env.HUMHUB_DB_PORT || '3306'),
       user: process.env.HUMHUB_DB_USER || 'humhub',
-      password: process.env.HUMHUB_DB_PASS || '',
+      password: process.env.HUMHUB_DB_PASSWORD || '',
       database: process.env.HUMHUB_DB_NAME || 'humhub',
       waitForConnections: true,
       connectionLimit: 5,

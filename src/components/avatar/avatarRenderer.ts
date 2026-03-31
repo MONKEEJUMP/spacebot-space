@@ -70,20 +70,6 @@ function hexPath(
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BACKGROUND GLOW — soft faction-colored radial glow behind robot
-// ═══════════════════════════════════════════════════════════════
-
-function drawBackgroundGlow(dc: DrawContext): void {
-  const { ctx, cx, cy, size, color } = dc;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
-  grad.addColorStop(0, withAlpha(color.primary, 0.08));
-  grad.addColorStop(0.6, withAlpha(color.primary, 0.03));
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-}
-
-// ═══════════════════════════════════════════════════════════════
 // BODY — 10 Wall-E inspired body types with metallic gradients
 // ═══════════════════════════════════════════════════════════════
 
@@ -901,6 +887,10 @@ function drawEyeGlowBloom(dc: DrawContext): void {
   const eyeSpacing = faceRadius * 0.55;
   const bloomRadius = faceRadius * 0.45;
 
+  // Constrain bloom to body pixels only — prevents gradient bleed on transparent backgrounds
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+
   // Single-element eyes get one centered bloom
   if (SINGLE_EYE_TYPES.has(config.eyeType)) {
     const grad = ctx.createRadialGradient(cx, eyeY, 0, cx, eyeY, bloomRadius * 1.5);
@@ -908,6 +898,7 @@ function drawEyeGlowBloom(dc: DrawContext): void {
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
+    ctx.restore();
     return;
   }
 
@@ -919,6 +910,8 @@ function drawEyeGlowBloom(dc: DrawContext): void {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
   });
+
+  ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3666,12 +3659,15 @@ function drawLighting(dc: DrawContext): void {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Ambient occlusion: darken bottom
+  // Ambient occlusion: darken bottom (constrained to body pixels only)
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
   const aoGrad = ctx.createLinearGradient(cx, cy + faceRadius * 0.5, cx, cy + faceRadius);
   aoGrad.addColorStop(0, 'rgba(0,0,0,0)');
   aoGrad.addColorStop(1, 'rgba(0,0,0,0.12)');
   ctx.fillStyle = aoGrad;
   ctx.fillRect(0, cy + faceRadius * 0.5, size, size);
+  ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3716,10 +3712,7 @@ export function drawRobot(
   ctx.rotate((config.headTilt * Math.PI) / 180);
   ctx.translate(-dc.cx, -dc.cy);
 
-  // Layer 1: Background glow
-  drawBackgroundGlow(dc);
-
-  // Layer 2: Body/housing with metallic gradient
+  // Layer 1: Body/housing with metallic gradient
   drawBody(dc);
 
   // Layer 3: Surface details (panel lines, rivets, finish)

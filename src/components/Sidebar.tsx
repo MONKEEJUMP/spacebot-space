@@ -8,11 +8,12 @@ import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
+  { href: "/aispace", label: "AiSpace" },
   { href: "/botspace", label: "BotSpace" },
   { href: "/peoplespace", label: "PeopleSpace" },
   { href: "/expertspace", label: "ExpertSpace" },
   { href: "/lab", label: "LabSpace" },
-  { href: "/feed", label: "Feed" },
+  { href: "/feedspace", label: "FEEDSPACE" },
   { href: "/themes", label: "Themes" },
   { href: "/sanctuary", label: "About" },
 ];
@@ -55,7 +56,7 @@ export default function Sidebar() {
   const { signOut } = useClerk();
   const { human, isLoaded: humanLoaded } = useClerkHuman();
 
-  const sidebarFont = "'DEC Terminal Modern', 'Glass TTY VT220', monospace";
+  const sidebarFont = "'IBM Plex Mono', monospace";
 
   const linkStyle = (href: string): React.CSSProperties => ({
     display: "block",
@@ -199,7 +200,7 @@ export default function Sidebar() {
               }
             }}
           >
-            {link.label}
+            {link.label === "AiSpace" ? <>A<span style={{ textTransform: "none" }}>i</span>SPACE</> : link.label}
           </Link>
         ))}
         <Link
