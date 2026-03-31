@@ -224,8 +224,11 @@ export function checkTierAccess(
     return { allowed: true };
   }
 
-  // Default: allow (for unclassified routes)
-  return { allowed: true };
+  // Default: deny (for unclassified routes - SECURITY: default deny)
+  return { 
+    allowed: false,
+    reason: 'Route not classified. Access denied by default for security.',
+  };
 }
 
 /**

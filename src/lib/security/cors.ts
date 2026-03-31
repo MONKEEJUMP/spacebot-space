@@ -35,7 +35,7 @@ const DEVELOPMENT_ORIGINS = [
  */
 export function getAllowedOrigins(): string[] {
   if (process.env.NODE_ENV === 'development') {
-    return [...PRODUCTION_ORIGINS, ...DEVELOPMENT_ORIGINS];
+    return DEVELOPMENT_ORIGINS;
   }
   return PRODUCTION_ORIGINS;
 }
@@ -138,7 +138,7 @@ export function withCors(
 
     // Handle preflight
     if (request.method === 'OPTIONS') {
-      return handleCorsPrelight(origin);
+      return handleCorsPreflight(origin);
     }
 
     // Check origin for non-GET requests

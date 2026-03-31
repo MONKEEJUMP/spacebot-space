@@ -6,11 +6,12 @@ import * as machineSocialSchema from './machine-social';
 // Connection string from environment
 const connectionString = process.env.SPACEBOT_DATABASE_URL || process.env.DATABASE_URL!;
 
-// Create postgres client
+// Create postgres client with SSL for production
 const client = postgres(connectionString, {
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 });
 
 // Create drizzle instance with all schemas for relational queries

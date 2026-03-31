@@ -142,14 +142,22 @@ if (typeof setInterval !== 'undefined' && typeof window === 'undefined') {
 // REDIS CLIENT (Production)
 // ============================================================
 
-// Use 'any' for Redis client to avoid type mismatches with Upstash
+/**
+ * Initialize Redis if available
+ * SECURITY: In production, fail closed if Redis is unavailable
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let redisClient: any = null;
+let redisConnectionFailed = false;
 
-// Initialize Redis if available
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getRedisClient(): Promise<any> {
   if (redisClient) return redisClient;
+  
+  // If we already failed to connect in production, don't keep trying
+  if (redisConnectionFailed && process.env.NODE_ENV === 'production') {
+    return null;
+  }
 
   const redisUrl = process.env.UPSTASH_REDIS_URL;
   const redisToken = process.env.UPSTASH_REDIS_TOKEN;
@@ -164,9 +172,18 @@ async function getRedisClient(): Promise<any> {
     const { Redis } = await import('@upstash/redis');
     redisClient = new Redis({ url: redisUrl, token: redisToken });
     console.log('[RateLimiter] Redis connected');
+    redisConnectionFailed = false;
     return redisClient;
   } catch (error) {
-    console.warn('[RateLimiter] Redis connection failed, using in-memory store');
+    console.error('[RateLimiter] Redis connection failed:', error);
+    
+    // SECURITY: In production, fail CLOSED - block requests if Redis unavailable
+    if (process.env.NODE_ENV === 'production') {
+      redisConnectionFailed = true;
+      console.critical?.('[RateLimiter] CRITICAL: Redis unavailable in production. Rate limiting will BLOCK requests until Redis is restored.');
+    } else {
+      console.warn('[RateLimiter] Redis connection failed, using in-memory store (development only)');
+    }
     return null;
   }
 }
@@ -206,6 +223,16 @@ export async function checkRateLimit(
   if (redis) {
     return checkRateLimitRedis(redis, key, config);
   } else {
+    // SECURITY: In production, if Redis is unavailable, BLOCK the request
+    if (process.env.NODE_ENV === 'production' && redisConnectionFailed) {
+      console.error('[RateLimiter] BLOCKING request due to Redis unavailability in production');
+      return { 
+        allowed: false, 
+        remaining: 0, 
+        resetIn: 60, 
+        retryAfter: 60 
+      };
+    }
     return checkRateLimitMemory(key, config);
   }
 }

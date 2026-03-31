@@ -363,7 +363,7 @@ export function generateChallenge(difficulty: 1 | 2 | 3 = 2): Omit<Challenge, 'a
 export function verifyChallenge(
   challengeId: string,
   providedAnswer: string,
-  responseTime: number
+  responseTime?: number  // Now optional - we calculate server-side
 ): {
   success: boolean;
   reason?: string;
@@ -386,8 +386,13 @@ export function verifyChallenge(
     return { success: false, reason: 'Too many attempts' };
   }
 
-  // Check time limit
-  if (responseTime > challenge.timeLimit) {
+  // SECURITY: Calculate response time SERVER-SIDE using challenge createdAt timestamp
+  // Do NOT trust client-provided responseTime which can be spoofed
+  const now = Date.now();
+  const actualResponseTime = now - challenge.createdAt;
+
+  // Check time limit using server-calculated time
+  if (actualResponseTime > challenge.timeLimit) {
     activeChallenges.delete(challengeId);
     return { success: false, reason: 'Time limit exceeded', passed: false };
   }

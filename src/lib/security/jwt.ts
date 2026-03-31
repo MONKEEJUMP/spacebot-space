@@ -153,6 +153,20 @@ export function verifyToken(token: string): DecodedToken | null {
 
     const [header, payloadEncoded, signature] = parts;
 
+    // SECURITY: Decode and verify the header algorithm to prevent alg:none attacks
+    let headerObj: { alg: string; typ: string };
+    try {
+      headerObj = JSON.parse(base64UrlDecode(header));
+    } catch {
+      return null;
+    }
+
+    // Explicitly verify algorithm is HS256 - reject alg:none or any other algorithm
+    if (headerObj.alg !== 'HS256') {
+      console.warn('[JWT] Rejected token with invalid algorithm:', headerObj.alg);
+      return null;
+    }
+
     // Verify signature
     const expectedSignature = createSignature(header, payloadEncoded);
 
