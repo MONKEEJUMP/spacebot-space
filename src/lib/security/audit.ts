@@ -138,17 +138,39 @@ async function flushAuditBuffer(): Promise<void> {
   const entries = [...auditBuffer];
   auditBuffer.length = 0;
 
-  // In production: write to audit log table or external service
+  // In production: write to audit log file
   if (process.env.NODE_ENV === 'production') {
     try {
-      // TODO: Implement persistent storage
-      // await db.auditLog.createMany({ data: entries });
-      console.log(`[AUDIT] Flushed ${entries.length} entries`);
+      // Dynamic import for Node.js fs module (works in Next.js edge runtime compatible way)
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const logDir = '/var/log/spacebot';
+      const logFile = path.join(logDir, 'audit.log');
+      
+      // Ensure directory exists
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      
+      // Format entries as JSON lines
+      const logLines = entries.map(entry => JSON.stringify({
+        ...entry,
+        timestamp: entry.timestamp.toISOString(),
+      })).join('\n') + '\n';
+      
+      // Append to audit log file
+      fs.appendFileSync(logFile, logLines);
+      
+      console.log(`[AUDIT] Flushed ${entries.length} entries to ${logFile}`);
     } catch (error) {
-      console.error('[AUDIT] Failed to flush:', error);
-      // Re-add entries on failure
+      console.error('[AUDIT] Failed to flush to file:', error);
+      // Re-add entries on failure so they're not lost
       auditBuffer.push(...entries);
     }
+  } else {
+    // Development: just log to console
+    console.log(`[AUDIT] Flushed ${entries.length} entries`);
   }
 }
 

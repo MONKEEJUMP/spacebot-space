@@ -97,15 +97,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // -- LAYER 2.5: CAPTCHA VERIFICATION (optional — skip if frontend not sending token) --
-    if (captchaToken) {
-      const captchaValid = await verifyCaptcha(captchaToken);
-      if (!captchaValid) {
-        return NextResponse.json(
-          { success: false, error: 'Captcha verification failed. Please try again.' },
-          { status: 400 }
-        );
-      }
+    // -- LAYER 2.5: CAPTCHA VERIFICATION (REQUIRED) --
+    if (!captchaToken) {
+      return NextResponse.json(
+        { success: false, error: 'Captcha verification is required' },
+        { status: 400 }
+      );
+    }
+    
+    const captchaValid = await verifyCaptcha(captchaToken);
+    if (!captchaValid) {
+      return NextResponse.json(
+        { success: false, error: 'Captcha verification failed. Please try again.' },
+        { status: 400 }
+      );
     }
 
     // Email format validation

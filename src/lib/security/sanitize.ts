@@ -13,25 +13,180 @@
 // ============================================================
 
 /**
- * Strip ALL HTML tags from input
- * Uses regex-based approach (DOMPurify for browser, this for server)
+ * Decode HTML entities to their character equivalents
+ * This must be done BEFORE stripping tags to prevent entity-based bypasses
  */
-export function stripHtml(input: string): string {
+function decodeHtmlEntities(input: string): string {
   return input
-    // Remove script tags and content
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove style tags and content
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    // Remove all other HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Decode common HTML entities
+    // Decode numeric entities (decimal)
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    // Decode numeric entities (hexadecimal)
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    // Decode common named entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, '/');
+    .replace(/&#x2F;/g, '/')
+    .replace(/&apos;/g, "'")
+    .replace(/&cent;/g, '¢')
+    .replace(/&pound;/g, '£')
+    .replace(/&yen;/g, '¥')
+    .replace(/&euro;/g, '€')
+    .replace(/&copy;/g, '©')
+    .replace(/&reg;/g, '®')
+    .replace(/&trade;/g, '™')
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    .replace(/&lsquo;/g, ''')
+    .replace(/&rsquo;/g, ''')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&hellip;/g, '…')
+    .replace(/&bull;/g, '•')
+    .replace(/&middot;/g, '·')
+    .replace(/&minus;/g, '−')
+    .replace(/&plusmn;/g, '±')
+    .replace(/&times;/g, '×')
+    .replace(/&divide;/g, '÷')
+    .replace(/&frac12;/g, '½')
+    .replace(/&frac14;/g, '¼')
+    .replace(/&frac34;/g, '¾')
+    .replace(/&para;/g, '¶')
+    .replace(/&sect;/g, '§')
+    .replace(/&iexcl;/g, '¡')
+    .replace(/&iquest;/g, '¿')
+    .replace(/&acute;/g, '´')
+    .replace(/&circ;/g, 'ˆ')
+    .replace(/&tilde;/g, '˜')
+    .replace(/&macr;/g, '¯')
+    .replace(/&breve;/g, '˘')
+    .replace(/&dot;/g, '˙')
+    .replace(/&ring;/g, '˚')
+    .replace(/&cedil;/g, '¸')
+    .replace(/&uml;/g, '¨')
+    .replace(/&szlig;/g, 'ß')
+    .replace(/&oslash;/g, 'ø')
+    .replace(/&Oslash;/g, 'Ø')
+    .replace(/&aelig;/g, 'æ')
+    .replace(/&AElig;/g, 'Æ')
+    .replace(/&agrave;/g, 'à')
+    .replace(/&Agrave;/g, 'À')
+    .replace(/&aacute;/g, 'á')
+    .replace(/&Aacute;/g, 'Á')
+    .replace(/&acirc;/g, 'â')
+    .replace(/&Acirc;/g, 'Â')
+    .replace(/&atilde;/g, 'ã')
+    .replace(/&Atilde;/g, 'Ã')
+    .replace(/&auml;/g, 'ä')
+    .replace(/&Auml;/g, 'Ä')
+    .replace(/&aring;/g, 'å')
+    .replace(/&Aring;/g, 'Å')
+    .replace(/&egrave;/g, 'è')
+    .replace(/&Egrave;/g, 'È')
+    .replace(/&eacute;/g, 'é')
+    .replace(/&Eacute;/g, 'É')
+    .replace(/&ecirc;/g, 'ê')
+    .replace(/&Ecirc;/g, 'Ê')
+    .replace(/&euml;/g, 'ë')
+    .replace(/&Euml;/g, 'Ë')
+    .replace(/&igrave;/g, 'ì')
+    .replace(/&Igrave;/g, 'Ì')
+    .replace(/&iacute;/g, 'í')
+    .replace(/&Iacute;/g, 'Í')
+    .replace(/&icirc;/g, 'î')
+    .replace(/&Icirc;/g, 'Î')
+    .replace(/&iuml;/g, 'ï')
+    .replace(/&Iuml;/g, 'Ï')
+    .replace(/&ograve;/g, 'ò')
+    .replace(/&Ograve;/g, 'Ò')
+    .replace(/&oacute;/g, 'ó')
+    .replace(/&Oacute;/g, 'Ó')
+    .replace(/&ocirc;/g, 'ô')
+    .replace(/&Ocirc;/g, 'Ô')
+    .replace(/&otilde;/g, 'õ')
+    .replace(/&Otilde;/g, 'Õ')
+    .replace(/&ouml;/g, 'ö')
+    .replace(/&Ouml;/g, 'Ö')
+    .replace(/&ugrave;/g, 'ù')
+    .replace(/&Ugrave;/g, 'Ù')
+    .replace(/&uacute;/g, 'ú')
+    .replace(/&Uacute;/g, 'Ú')
+    .replace(/&ucirc;/g, 'û')
+    .replace(/&Ucirc;/g, 'Û')
+    .replace(/&uuml;/g, 'ü')
+    .replace(/&Uuml;/g, 'Ü')
+    .replace(/&yacute;/g, 'ý')
+    .replace(/&Yacute;/g, 'Ý')
+    .replace(/&yuml;/g, 'ÿ')
+    .replace(/&thorn;/g, 'þ')
+    .replace(/&THORN;/g, 'Þ')
+    .replace(/&eth;/g, 'ð')
+    .replace(/&ETH;/g, 'Ð')
+    .replace(/&micro;/g, 'µ')
+    // Remove any remaining unrecognized entities
+    .replace(/&[a-zA-Z]+;/g, '')
+    .replace(/&#[0-9]+;/g, '')
+    .replace(/&#x[0-9a-fA-F]+;/g, '');
+}
+
+/**
+ * Strip ALL HTML tags from input
+ * Uses multi-pass approach to handle nested tags, encoded entities, and bypasses
+ * SECURITY: This replaces the vulnerable regex-only approach
+ */
+export function stripHtml(input: string): string {
+  let sanitized = input;
+  
+  // PASS 1: Remove null bytes and control characters that could bypass filters
+  sanitized = sanitized.replace(/[\0\x08\x0B\x0C\x0E-\x1F]/g, '');
+  
+  // PASS 2: Normalize Unicode to prevent homoglyph attacks
+  try {
+    sanitized = sanitized.normalize('NFKC');
+  } catch {
+    // Ignore normalization errors
+  }
+  
+  // PASS 3: Decode HTML entities FIRST (prevents entity-based bypasses)
+  // Attackers use &lt;script&gt; to bypass <script> filters
+  sanitized = decodeHtmlEntities(sanitized);
+  
+  // PASS 4: Remove script tags with content (special handling for dangerous tags)
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  sanitized = sanitized.replace(/<script[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/script>/gi, '');
+  
+  // PASS 5: Remove style tags with content
+  sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  sanitized = sanitized.replace(/<style[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/style>/gi, '');
+  
+  // PASS 6: Remove iframe, object, embed, applet tags (can execute code)
+  sanitized = sanitized.replace(/<(iframe|object|embed|applet)[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/(iframe|object|embed|applet)>/gi, '');
+  
+  // PASS 7: Remove event handlers in any remaining tags (onclick, onerror, etc.)
+  sanitized = sanitized.replace(/\s*on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+  
+  // PASS 8: Remove javascript: and data: URLs
+  sanitized = sanitized.replace(/javascript:/gi, '');
+  sanitized = sanitized.replace(/data:/gi, '');
+  sanitized = sanitized.replace(/vbscript:/gi, '');
+  
+  // PASS 9: Remove all remaining HTML tags
+  sanitized = sanitized.replace(/<[^>]*>/g, '');
+  
+  // PASS 10: Re-check for any angle brackets that might remain
+  // This catches any tags that were reconstructed from decoded entities
+  sanitized = sanitized.replace(/[<>]/g, '');
+  
+  // PASS 11: Final entity cleanup (remove any orphaned ampersands)
+  sanitized = sanitized.replace(/&(?![a-zA-Z]{2,6};)/g, '');
+  
+  return sanitized;
 }
 
 /**
