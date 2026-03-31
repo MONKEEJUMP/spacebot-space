@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import {
   sanitizeContent,
   sanitizeHandle,
@@ -17,6 +18,53 @@ import {
   sanitizeUrl,
   containsInjection,
 } from './sanitize';
+
+// ============================================================
+// BREACHED PASSWORD CHECKING (HaveIBeenPwned)
+// ============================================================
+
+/**
+ * Check if a password has been found in data breaches using HaveIBeenPwned API
+ * Uses k-anonymity model: only send first 5 chars of SHA-1 hash
+ * @param password - The plaintext password to check
+ * @returns true if password was found in breaches, false otherwise
+ */
+export async function isPasswordBreached(password: string): Promise<boolean> {
+  try {
+    // Hash password with SHA-1
+    const sha1Hash = createHash('sha1').update(password).digest('hex').toUpperCase();
+    
+    // Split into prefix (5 chars) and suffix
+    const prefix = sha1Hash.slice(0, 5);
+    const suffix = sha1Hash.slice(5);
+    
+    // Query HaveIBeenPwned API with only the prefix
+    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+    
+    if (!response.ok) {
+      // If API fails, don't block registration - log and allow
+      console.warn('[SECURITY] HaveIBeenPwned API unavailable, skipping breach check');
+      return false;
+    }
+    
+    const responseBody = await response.text();
+    const lines = responseBody.split('\n');
+    
+    // Check if our full hash appears in the response
+    for (const line of lines) {
+      const [hashSuffix] = line.split(':');
+      if (hashSuffix.trim().toUpperCase() === suffix) {
+        return true; // Password found in breach
+      }
+    }
+    
+    return false; // Password not found in breaches
+  } catch (error) {
+    // On any error, don't block registration - log and allow
+    console.error('[SECURITY] Breach check error:', error);
+    return false;
+  }
+}
 
 // ============================================================
 // CUSTOM REFINEMENTS
@@ -319,7 +367,17 @@ export const HumanRegistrationSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain an uppercase letter')
     .regex(/[a-z]/, 'Password must contain a lowercase letter')
     .regex(/[0-9]/, 'Password must contain a number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain a special character'),
+    .regex(/[^A-Za-z0-9]/, 'Password must contain a special character')
+    .superRefine(async (password, ctx) => {
+      // Check against HaveIBeenPwned database
+      const isBreached = await isPasswordBreached(password);
+      if (isBreached) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'This password has been found in a data breach. Please choose a different password.',
+        });
+      }
+    }),
 
   name: z
     .string()

@@ -18,6 +18,9 @@ export const EXECUTION_LIMITS = {
   memoryLimit: 128,      // 128MB max
   outputLimit: 10000,    // 10KB output max
   cpuLimit: 1,           // 1 CPU core max
+  maxProcesses: 1,       // Only allow single process
+  networkDisabled: true, // NO network access
+  filesystemDisabled: true, // NO filesystem access
 };
 
 export type SupportedLanguage = 'javascript' | 'python' | 'bash' | 'typescript';

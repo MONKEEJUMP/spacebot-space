@@ -4,7 +4,6 @@
  * POST: Post a transmission (auth required)
  */
 
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { profileTransmissions, blockedUsers, humans } from '@/db/schema';
@@ -12,6 +11,7 @@ import { eq, and, desc, count, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
 import { containsProfanity } from '@/lib/constants/profanity';
 import { cleanWallContent } from '@/lib/security/sanitize';
+import { verifyHumanRequest } from '@/lib/security/human-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -144,17 +144,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    // Auth required
-    const session = await auth();
-    if (!session?.userId) {
+    // Auth required - use JWT-based human authentication (not Clerk)
+    const authResult = await verifyHumanRequest(request);
+    if (!authResult.success) {
       return NextResponse.json(
         { success: false, error: 'Authentication required.' },
         { status: 401 }
       );
     }
 
+    const sessionUserId = authResult.humanId;
+
     // Rate limit: 5 per hour per user
-    const rateLimit = await checkRateLimit(session.userId, 'wallPost');
+    const rateLimit = await checkRateLimit(sessionUserId, 'wallPost');
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded. Max 5 transmissions per hour.' },
@@ -185,7 +187,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .where(
         and(
           eq(blockedUsers.blockerId, owner.clerkId),
-          eq(blockedUsers.blockedId, session.userId)
+          eq(blockedUsers.blockedId, sessionUserId)
         )
       )
       .limit(1);
@@ -231,7 +233,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .insert(profileTransmissions)
       .values({
         profileOwnerId: owner.clerkId,
-        authorId: session.userId,
+        authorId: sessionUserId,
         content: cleaned,
       })
       .returning({ id: profileTransmissions.id, createdAt: profileTransmissions.createdAt });
