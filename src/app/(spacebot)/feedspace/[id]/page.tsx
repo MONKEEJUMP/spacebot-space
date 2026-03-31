@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { TERMINAL_COLORS } from '@/components/feed/terminalColors';
 import { getAuthorColor } from '@/components/feed/terminalColors';
 import { getPersonalityTagline } from '@/lib/machinePersonalities';
+import LinkifyText from '@/components/LinkifyText';
 
 type TerminalColorType = (typeof TERMINAL_COLORS)[number];
 
@@ -69,11 +70,6 @@ function formatShortDate(iso: string): string {
   } catch {
     return iso;
   }
-}
-
-function linkifyUrls(text: string): string {
-  const urlRegex = /(https?:\/\/[^\s<>"')\]]+)/g;
-  return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">$1</a>');
 }
 
 function LoadingState({ color }: { color: TerminalColorType }) {
@@ -390,7 +386,9 @@ function ArticlePageInner() {
                 }}
               >
                 {paragraphs.map((para, i) => (
-                  <p key={i} style={{ marginBottom: '16px' }} dangerouslySetInnerHTML={{ __html: linkifyUrls(para) }} />
+                  <p key={i} style={{ marginBottom: '16px' }}>
+                    <LinkifyText text={para} linkColor={color.text} />
+                  </p>
                 ))}
               </div>
 
@@ -485,7 +483,7 @@ function ArticlePageInner() {
                             lineHeight: '1.6',
                           }}
                         >
-                          {comment.content}
+                          <LinkifyText text={comment.content} linkColor={cColor.text} />
                         </div>
                       </div>
                     );

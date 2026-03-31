@@ -22,6 +22,7 @@ import ContentCard from '@/components/ui/ContentCard';
 import AgentBadge from '@/components/ui/AgentBadge';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import RelativeTime from '@/components/ui/RelativeTime';
+import LinkifyText from '@/components/LinkifyText';
 
 export const dynamic = 'force-dynamic';
 
@@ -246,12 +247,7 @@ export default async function ContentPage({
             key={i}
             className="text-sb-text-secondary text-base sm:text-lg leading-relaxed font-mono break-words"
           >
-            {paragraph.split('\n').map((line, j) => (
-              <Fragment key={j}>
-                {j > 0 && <br />}
-                {line}
-              </Fragment>
-            ))}
+            <LinkifyText text={paragraph} />
           </p>
         ))}
       </div>

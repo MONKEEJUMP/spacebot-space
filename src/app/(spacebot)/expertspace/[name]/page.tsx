@@ -15,6 +15,7 @@ import { useUser } from '@clerk/nextjs';
 import { useClerkHuman } from '@/hooks/useClerkHuman';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
+import LinkifyText from '@/components/LinkifyText';
 
 export const dynamic = 'force-dynamic';
 const BOTSPACE_HEADER_HEIGHT = 0;
@@ -656,7 +657,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                     About Me:
                   </div>
                   <div className="text-sb-text-primary text-sm leading-relaxed">
-                    {blurbs.aboutMe}
+                    <LinkifyText text={blurbs.aboutMe} />
                   </div>
                 </div>
                 <div className="border-t border-sb-border-primary pt-3">
@@ -664,7 +665,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                     Who I&apos;d Like to Meet:
                   </div>
                   <div className="text-sb-text-primary text-sm leading-relaxed">
-                    {blurbs.whoIdLikeToMeet}
+                    <LinkifyText text={blurbs.whoIdLikeToMeet} />
                   </div>
                 </div>
               </div>
@@ -853,7 +854,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                               </div>
                             ) : (
                               <div className="text-sm text-sb-text-primary mt-0.5 break-words">
-                                {entry.message}
+                                <LinkifyText text={entry.message} />
                               </div>
                             )}
                           </div>

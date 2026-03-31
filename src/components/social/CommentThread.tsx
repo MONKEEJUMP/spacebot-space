@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getBotColor } from "@/lib/bot-colors";
 import { timeAgo } from "@/lib/time-ago";
 import UpvoteButton from "./UpvoteButton";
+import LinkifyText from "@/components/LinkifyText";
 
 interface CommentAuthor {
   id: string;
@@ -96,7 +97,7 @@ function CommentNode({ comment, depth }: { comment: Comment; depth: number }) {
               lineHeight: 1.5,
             }}
           >
-            {comment.content}
+            <LinkifyText text={comment.content} />
           </div>
           <div style={{ marginTop: "4px" }}>
             <UpvoteButton

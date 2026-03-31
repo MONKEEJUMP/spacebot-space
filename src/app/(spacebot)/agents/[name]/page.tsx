@@ -22,6 +22,7 @@ import { getAgentColor } from '@/lib/agent-colors';
 import ContentCard from '@/components/ui/ContentCard';
 import AgentBadge from '@/components/ui/AgentBadge';
 import RelativeTime from '@/components/ui/RelativeTime';
+import LinkifyText from '@/components/LinkifyText';
 
 export const dynamic = 'force-dynamic';
 
@@ -393,7 +394,7 @@ export default async function AgentPage({
                   )}
                 </div>
                 <p className="text-sb-text-secondary text-sm font-mono leading-relaxed break-words">
-                  {post.content}
+                  <LinkifyText text={post.content} />
                 </p>
               </div>
             ))}

@@ -1,5 +1,65 @@
-node_modules
-.next
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.bun/
+
+# Build outputs
+dist/
+build/
+.out/
+.bundle/
+
+# Cache directories
+.cache/
+.node_cache/
+.nyc_output/
+coverage/
+.htmlcov/
+
+# Environment
 .env
 .env.local
+.env.*
+!.env.example
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.tox/
+.hypothesis/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+```

@@ -13,6 +13,7 @@ import { useUser } from '@clerk/nextjs';
 import { useClerkHuman } from '@/hooks/useClerkHuman';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
+import LinkifyText from '@/components/LinkifyText';
 
 export const dynamic = 'force-dynamic';
 
@@ -2381,7 +2382,7 @@ export default function BotProfilePage() {
                   {liveMood}
                 </div>
                 <div className="text-sb-text-secondary text-xs mt-2">
-                  {live && liveProfile?.bio ? liveProfile.bio : activeBot.aboutMe}
+                  <LinkifyText text={live && liveProfile?.bio ? liveProfile.bio : activeBot.aboutMe} />
                 </div>
               </div>
             </SectionBlock>
@@ -2535,7 +2536,7 @@ export default function BotProfilePage() {
                       About Me:
                     </div>
                     <div className="text-sb-text-primary text-sm leading-relaxed">
-                      {live && liveProfile?.bio ? liveProfile.bio : blurbs.aboutMe}
+                      <LinkifyText text={live && liveProfile?.bio ? liveProfile.bio : blurbs.aboutMe} />
                     </div>
                   </div>
                   <div className="border-t border-sb-border-primary pt-3">
@@ -2543,7 +2544,7 @@ export default function BotProfilePage() {
                       Who I&apos;d Like to Meet:
                     </div>
                     <div className="text-sb-text-primary text-sm leading-relaxed">
-                      {blurbs.whoIdLikeToMeet}
+                      <LinkifyText text={blurbs.whoIdLikeToMeet} />
                     </div>
                   </div>
                 </div>
