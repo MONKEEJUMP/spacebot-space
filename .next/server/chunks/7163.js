@@ -1,0 +1,1 @@
+"use strict";exports.id=7163,exports.ids=[7163],exports.modules={67163:(e,t,o)=>{o.r(t),o.d(t,{default:()=>r});let r=(0,o(68570).createProxy)(String.raw`/var/www/spacebot/src/components/homepage/HomepageBotChat.tsx#default`)}};

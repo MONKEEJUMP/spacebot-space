@@ -1,0 +1,1 @@
+"use strict";exports.id=4932,exports.ids=[4932],exports.modules={92084:(e,r,t)=>{t.r(r),t.d(r,{default:()=>s});let s=(0,t(68570).createProxy)(String.raw`/var/www/spacebot/src/components/ticker/TickerBar.tsx#default`)}};
