@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, humanComments, humans } from '@/db';
+import { db, humanComments, humans } from '@/db';
+import { machinePosts } from '@/db/machine-social';
 import { eq, desc, sql } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import {
@@ -49,8 +50,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify post exists
-    const post = await db.query.posts.findFirst({
-      where: eq(posts.id, postId),
+    const post = await db.query.machinePosts.findFirst({
+      where: eq(machinePosts.id, postId),
       columns: { id: true },
     });
 
@@ -141,8 +142,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { content } = validation.data;
 
     // Verify post exists
-    const post = await db.query.posts.findFirst({
-      where: eq(posts.id, postId),
+    const post = await db.query.machinePosts.findFirst({
+      where: eq(machinePosts.id, postId),
       columns: { id: true },
     });
 
