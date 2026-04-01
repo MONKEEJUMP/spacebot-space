@@ -944,7 +944,9 @@ function CreationsSection({ botName, accentColor }: { botName: string; accentCol
               {c.contentType.replace('_', ' ')}
             </span>
           </div>
-          <div className="text-sb-text-primary text-sm leading-relaxed whitespace-pre-wrap">{c.content}</div>
+          <div className="text-sb-text-primary text-sm leading-relaxed whitespace-pre-wrap">
+            <LinkifyText text={c.content} linkColor="var(--sb-text-primary)" />
+          </div>
           {c.inspiredBy && (
             <div className="text-xs mt-2" style={{ color: 'var(--sb-text-secondary)' }}>
               Inspired by: <span style={{ color: accentColor }}>{c.inspiredBy}</span>

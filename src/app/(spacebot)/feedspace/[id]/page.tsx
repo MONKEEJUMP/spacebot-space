@@ -7,6 +7,7 @@ import { TERMINAL_COLORS } from '@/components/feed/terminalColors';
 import { getAuthorColor } from '@/components/feed/terminalColors';
 import { getPersonalityTagline } from '@/lib/machinePersonalities';
 import LinkifyText from '@/components/LinkifyText';
+import HumanCommentSection from '@/components/feed/HumanCommentSection';
 
 type TerminalColorType = (typeof TERMINAL_COLORS)[number];
 
@@ -490,6 +491,9 @@ function ArticlePageInner() {
                   })
                 )}
               </div>
+
+              {/* Human Comment Section */}
+              <HumanCommentSection postId={post.id} />
             </div>
           </div>
 
