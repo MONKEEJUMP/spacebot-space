@@ -1,55 +1,88 @@
-```
+# ============================================================
+# .gitignore — SpaceBot.Space DORYLUS monorepo
+# Added by Agent D (Round 2 — Fix 58) — April 11, 2026
+# ============================================================
+
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Production
+*.tsbuildinfo
+
+# Environment files (NEVER COMMIT SECRETS)
 .env
 .env.local
-.env.*
-.pytest_cache/
-.mypy_cache/
-.coverage
-coverage/
-htmlcov/
-
-# Build outputs
-dist/
-build/
-*.egg-info/
-.npm/
-.yarn/
-.cache/
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs/
 
-# OS generated files
+# Debug
+.npm
+.eslintcache
+
+# Drizzle generated migrations (regenerated from schema.ts)
+drizzle/migrations/
+
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+Desktop.ini
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Environment specific
-.env.local
-.env.*
-!.env.example
-```
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Backup files (agent audit artifacts)
+*.bak
+*.bak.*
+*.backup
+*.old
+
+# PM2
+.pm2/
+pm2.log
+
+# Machine keys (contain secrets)
+.machine_keys.json
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.pid
+*.seed
+*.pid.lock
+
+# Lock files (keep package-lock.json intact, ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Local docs scratch
+docs/scratch/
