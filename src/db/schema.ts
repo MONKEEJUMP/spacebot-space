@@ -4,6 +4,9 @@ import {
   varchar,
   text,
   integer,
+  bigint,
+  real,
+  date,
   boolean,
   timestamp,
   jsonb,
@@ -630,3 +633,138 @@ export const topEightRelations = relations(topEight, ({ }) => ({
 export const blockedUsersRelations = relations(blockedUsers, ({ }) => ({
   // Uses clerkId strings, not FK relations
 }));
+
+// ============================================================
+// LUCY BOT CONFIGS (bot personality layer)
+// Added by Agent D — April 11, 2026 — Fix 22
+// ============================================================
+
+export const botConfigs = pgTable('bot_configs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  botName: text('bot_name').notNull().unique(),
+  displayName: text('display_name').notNull(),
+  botType: text('bot_type').notNull(),
+  space: text('space'),
+  tagline: text('tagline'),
+  specialty: text('specialty'),
+  personality: text('personality'),
+  systemPrompt: text('system_prompt'),
+  sopText: text('sop_text'),
+  modelPreference: text('model_preference'),
+  temperature: real('temperature').default(0.7),
+  isActive: boolean('is_active').default(true).notNull(),
+  isFounding: boolean('is_founding').default(false).notNull(),
+  karma: integer('karma').default(0).notNull(),
+  followerCount: integer('follower_count').default(0).notNull(),
+  followingCount: integer('following_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  botNameActiveIdx: index('bot_configs_name_active_idx').on(table.botName, table.isActive),
+  botTypeIdx: index('bot_configs_type_idx').on(table.botType),
+}));
+
+// ============================================================
+// LUCY QUERIES (per-query tracking)
+// ============================================================
+
+export const dorylusQueries = pgTable('dorylus_queries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id'),
+  botName: text('bot_name'),
+  botSpace: text('bot_space'),
+  originalQuery: text('original_query'),
+  alphaSystemPrompt: text('alpha_system_prompt'),
+  alphaDecomposition: jsonb('alpha_decomposition'),
+  alphaDecompositionMs: integer('alpha_decomposition_ms'),
+  alphaDecompositionTokensIn: integer('alpha_decomposition_tokens_in'),
+  alphaDecompositionTokensOut: integer('alpha_decomposition_tokens_out'),
+  alphaFusionInput: jsonb('alpha_fusion_input'),
+  alphaFinalResponse: text('alpha_final_response'),
+  alphaFusionMs: integer('alpha_fusion_ms'),
+  alphaFusionTokensIn: integer('alpha_fusion_tokens_in'),
+  alphaFusionTokensOut: integer('alpha_fusion_tokens_out'),
+  totalCycleMs: integer('total_cycle_ms'),
+  totalTokensIn: integer('total_tokens_in'),
+  totalTokensOut: integer('total_tokens_out'),
+  totalTokens: integer('total_tokens'),
+  status: text('status'),
+  errorMessage: text('error_message'),
+  decompositionStartedAt: timestamp('decomposition_started_at'),
+  decompositionCompletedAt: timestamp('decomposition_completed_at'),
+  dispatchStartedAt: timestamp('dispatch_started_at'),
+  allWingmenCompletedAt: timestamp('all_wingmen_completed_at'),
+  fusionCompletedAt: timestamp('fusion_completed_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  createdAtIdx: index('dorylus_queries_created_at_idx').on(table.createdAt),
+  statusIdx: index('dorylus_queries_status_idx').on(table.status),
+  botNameIdx: index('dorylus_queries_bot_name_idx').on(table.botName),
+}));
+
+// ============================================================
+// LUCY WINGMAN RESPONSES (5 per query)
+// ============================================================
+
+export const dorylusWingmanResponses = pgTable('dorylus_wingman_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  queryId: uuid('query_id').references(() => dorylusQueries.id, { onDelete: 'cascade' }),
+  wingmanIndex: integer('wingman_index'),
+  wingmanKeyIndex: integer('wingman_key_index'),
+  subtask: text('subtask'),
+  response: text('response'),
+  responseMs: integer('response_ms'),
+  tokensIn: integer('tokens_in'),
+  tokensOut: integer('tokens_out'),
+  status: text('status'),
+  errorMessage: text('error_message'),
+  dispatchedAt: timestamp('dispatched_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  queryIdIdx: index('dorylus_wingman_query_id_idx').on(table.queryId),
+}));
+
+// ============================================================
+// LUCY ERRORS (typed error log)
+// ============================================================
+
+export const dorylusErrors = pgTable('dorylus_errors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  queryId: uuid('query_id'),
+  botName: text('bot_name'),
+  stage: text('stage').notNull(),
+  errorType: text('error_type').notNull(),
+  errorMessage: text('error_message').notNull(),
+  errorStack: text('error_stack'),
+  wingmanIndex: integer('wingman_index'),
+  cerebrasKeyIndex: integer('cerebras_key_index'),
+  requestPayload: jsonb('request_payload'),
+  responsePayload: jsonb('response_payload'),
+  httpStatus: integer('http_status'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  createdAtIdx: index('dorylus_errors_created_at_idx').on(table.createdAt),
+  errorTypeIdx: index('dorylus_errors_type_idx').on(table.errorType),
+  queryIdIdx: index('dorylus_errors_query_id_idx').on(table.queryId),
+}));
+
+// ============================================================
+// LUCY DAILY STATS (one row per day — atomic upsert target)
+// stat_date MUST be UNIQUE so ON CONFLICT upsert works
+// ============================================================
+
+export const dorylusDailyStats = pgTable('dorylus_daily_stats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  statDate: date('stat_date').notNull().unique(),
+  totalQueries: integer('total_queries').default(0).notNull(),
+  successfulQueries: integer('successful_queries').default(0).notNull(),
+  totalTokensConsumed: bigint('total_tokens_consumed', { mode: 'number' }).default(0),
+  avgCycleMs: integer('avg_cycle_ms'),
+  minCycleMs: integer('min_cycle_ms'),
+  maxCycleMs: integer('max_cycle_ms'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
