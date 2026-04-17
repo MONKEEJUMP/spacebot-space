@@ -138,7 +138,7 @@ export function withCors(
 
     // Handle preflight
     if (request.method === 'OPTIONS') {
-      return handleCorsPreflight(origin);
+      return handleCorsPrelight(origin);
     }
 
     // Check origin for non-GET requests

@@ -314,6 +314,40 @@ export const labMessages = pgTable('lab_messages', {
   createdIdx: index('lab_messages_created_idx').on(table.createdAt),
 }));
 
+// CHAT PERSISTENCE TABLES
+export const chatConversations = pgTable('chat_conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  authUserId: text('auth_user_id').notNull(),
+  botKey: text('bot_key').notNull(),
+  botName: text('bot_name').notNull(),
+  title: varchar('title', { length: 120 }),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  userBotUnique: unique('chat_conversations_user_bot_unique').on(table.authUserId, table.botKey),
+  userIdx: index('chat_conversations_user_idx').on(table.authUserId),
+  botIdx: index('chat_conversations_bot_idx').on(table.botKey),
+  lastMessageIdx: index('chat_conversations_last_msg_idx').on(table.lastMessageAt),
+}));
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id')
+    .references(() => chatConversations.id, { onDelete: 'cascade' })
+    .notNull(),
+  role: varchar('role', { length: 16 }).notNull(),
+  content: text('content').notNull(),
+  modelUsed: varchar('model_used', { length: 80 }),
+  latencyMs: integer('latency_ms'),
+  toolsUsed: text('tools_used').array(),
+  metadata: jsonb('metadata').default({}).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  conversationIdx: index('chat_messages_convo_idx').on(table.conversationId),
+  createdIdx: index('chat_messages_created_idx').on(table.createdAt),
+}));
+
 // ============================================================
 // OPENCLAW TABLES
 // HTTP bridge for autonomous AI agents on external servers
@@ -589,6 +623,17 @@ export const labMessagesRelations = relations(labMessages, ({ one }) => ({
   conversation: one(labConversations, { fields: [labMessages.conversationId], references: [labConversations.id] }),
 }));
 
+export const chatConversationsRelations = relations(chatConversations, ({ many }) => ({
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  conversation: one(chatConversations, {
+    fields: [chatMessages.conversationId],
+    references: [chatConversations.id],
+  }),
+}));
+
 // ============================================================
 // OPENCLAW RELATIONS
 // ============================================================
@@ -647,6 +692,9 @@ export const botConfigs = pgTable('bot_configs', {
   space: text('space'),
   tagline: text('tagline'),
   specialty: text('specialty'),
+  category: varchar('category', { length: 100 }),
+  mood: varchar('mood', { length: 60 }),
+  accentColor: varchar('accent_color', { length: 7 }),
   personality: text('personality'),
   systemPrompt: text('system_prompt'),
   sopText: text('sop_text'),
@@ -739,7 +787,7 @@ export const dorylusErrors = pgTable('dorylus_errors', {
   errorMessage: text('error_message').notNull(),
   errorStack: text('error_stack'),
   wingmanIndex: integer('wingman_index'),
-  cerebrasKeyIndex: integer('cerebras_key_index'),
+  llmKeyIndex: integer('llm_key_index'),
   requestPayload: jsonb('request_payload'),
   responsePayload: jsonb('response_payload'),
   httpStatus: integer('http_status'),
@@ -767,4 +815,3 @@ export const dorylusDailyStats = pgTable('dorylus_daily_stats', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-

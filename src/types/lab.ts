@@ -27,7 +27,7 @@ export interface LabAvatarConfig {
   colorPrimary: string;
   colorDark: string;
   colorLight: string;
-  accessories: string[];
+  accessories: readonly string[] | string[];
   animationType: string;
   showOverlay?: boolean;
 }

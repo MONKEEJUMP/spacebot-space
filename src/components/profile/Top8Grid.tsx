@@ -5,22 +5,12 @@ import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
 import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
+import type { Top8Entry } from '@/types/top8';
 import Top8EditModal from './Top8EditModal';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
-
-interface Top8Entry {
-  displayOrder: number;
-  friendType: 'human' | 'bot';
-  friendId: string;
-  name: string;
-  username: string | null;
-  avatarConfig: SavedAvatarConfig | null;
-  accentColor: string | null;
-  imageUrl: string | null;
-}
 
 interface SavedAvatarConfig {
   bodyType?: string;
@@ -173,16 +163,17 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
                     style={{ borderColor: entry.accentColor || 'var(--profile-border)' }}
                   >
                     <div className="flex justify-center mb-2">
-                      {entry.imageUrl ? (
+                      {entry.avatarConfig ? (
+                        <AvatarGenerator
+                          seed={entry.friendId}
+                          customConfig={mapToCustomConfig(entry.avatarConfig as SavedAvatarConfig)}
+                          size={64}
+                        />
+                      ) : entry.imageUrl ? (
                         <img
                           src={entry.imageUrl}
                           alt={entry.name}
                           className="w-16 h-16 rounded-full object-cover"
-                        />
-                      ) : entry.avatarConfig ? (
-                        <AvatarGenerator
-                          customConfig={mapToCustomConfig(entry.avatarConfig as SavedAvatarConfig)}
-                          size={64}
                         />
                       ) : entry.friendType === 'bot' ? (
                         <AvatarGenerator

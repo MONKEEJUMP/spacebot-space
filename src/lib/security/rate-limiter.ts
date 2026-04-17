@@ -180,7 +180,7 @@ async function getRedisClient(): Promise<any> {
     // SECURITY: In production, fail CLOSED - block requests if Redis unavailable
     if (process.env.NODE_ENV === 'production') {
       redisConnectionFailed = true;
-      console.critical?.('[RateLimiter] CRITICAL: Redis unavailable in production. Rate limiting will BLOCK requests until Redis is restored.');
+      console.error('[RateLimiter] CRITICAL: Redis unavailable in production. Rate limiting will BLOCK requests until Redis is restored.');
     } else {
       console.warn('[RateLimiter] Redis connection failed, using in-memory store (development only)');
     }

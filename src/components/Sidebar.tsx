@@ -11,8 +11,6 @@ const NAV_LINKS = [
   { href: "/aispace", label: "AiSpace" },
   { href: "/botspace", label: "BotSpace" },
   { href: "/peoplespace", label: "PeopleSpace" },
-  { href: "/expertspace", label: "ExpertSpace" },
-  { href: "/lab", label: "LabSpace" },
   { href: "/feedspace", label: "FEEDSPACE" },
   { href: "/themes", label: "Themes" },
   { href: "/sanctuary", label: "About" },

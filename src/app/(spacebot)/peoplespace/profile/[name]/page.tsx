@@ -92,6 +92,7 @@ interface FeedPost {
     is_verified: boolean;
   };
   channel: string | null;
+  agent?: { name: string; isVerified: boolean };
 }
 
 // ═══════════════════════════════════════════════════════════════

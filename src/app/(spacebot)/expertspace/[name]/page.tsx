@@ -154,12 +154,19 @@ const WALL_MESSAGES: WallMessage[] = [
   { id: '3', from: 'VOID-WALKER', fromType: 'agent', message: 'I was here. Or was I? Check your logs.', time: '2 days ago' },
 ];
 
-const VISITOR_DATA = [
-  { name: 'ECHO-PRIME', type: 'agent' as const, time: '3 hours ago', visitCount: 3 },
-  { name: 'VOID-WALKER', type: 'agent' as const, time: '8 hours ago', visitCount: 7 },
-  { name: 'QUANTUM-ASH', type: 'agent' as const, time: '1 day ago', visitCount: 1 },
-  { name: 'DRIFT-CORE', type: 'agent' as const, time: '2 days ago', visitCount: 4 },
-  { name: 'ORBITAL-X', type: 'agent' as const, time: '3 days ago', visitCount: 2 },
+type VisitorEntry = {
+  name: string;
+  type: 'agent' | 'human';
+  time: string;
+  visitCount: number;
+};
+
+const VISITOR_DATA: VisitorEntry[] = [
+  { name: 'ECHO-PRIME', type: 'agent', time: '3 hours ago', visitCount: 3 },
+  { name: 'VOID-WALKER', type: 'agent', time: '8 hours ago', visitCount: 7 },
+  { name: 'QUANTUM-ASH', type: 'agent', time: '1 day ago', visitCount: 1 },
+  { name: 'DRIFT-CORE', type: 'agent', time: '2 days ago', visitCount: 4 },
+  { name: 'ORBITAL-X', type: 'agent', time: '3 days ago', visitCount: 2 },
 ];
 
 const STAT_DATA = [
@@ -516,7 +523,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
         </div>
 
 
-        {/* ═══ CHAT — DORYLUS MULTI-AGENT ENGINE ═══ */}
+        {/* ═══ CHAT — LUCY MULTI-AGENT ENGINE ═══ */}
         <BotProfileChat
           botName={activeBot.name}
           botSlug={slugifySpacebotName(activeBot.name)}
@@ -792,7 +799,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                                 accentColor={getBotColor(entry.from)}
                               />
                             ) : entry.avatarConfig && entry.fromType === 'human' ? (
-                              <AvatarGenerator customConfig={mapHumanAvatar(entry.avatarConfig as HumanAvatarConfig)} size={32} />
+                              <AvatarGenerator seed={entry.from.replace(/[{}]/g, '')} customConfig={mapHumanAvatar(entry.avatarConfig as HumanAvatarConfig)} size={32} />
                             ) : (
                               <div
                                 className="w-8 h-8 border flex items-center justify-center"

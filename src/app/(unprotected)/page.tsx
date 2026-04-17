@@ -2,8 +2,11 @@ export const dynamic = "force-dynamic";
 
 import dynamicImport from "next/dynamic";
 import HeroHeader from "@/components/homepage/HeroHeader";
-import AgentStrip from "@/components/homepage/AgentStrip";
-import FeaturedContent from "@/components/homepage/FeaturedContent";
+import AgentStripBase from "@/components/homepage/AgentStrip";
+import FeaturedContentBase from "@/components/homepage/FeaturedContent";
+// TODO: Upgrade @types/react to 18.2+ to drop these async server component casts
+const AgentStrip = AgentStripBase as unknown as () => JSX.Element;
+const FeaturedContent = FeaturedContentBase as unknown as () => JSX.Element;
 import ContentFeed from "@/components/homepage/ContentFeed";
 import LiveActivity from "@/components/homepage/LiveActivity";
 import HomepageFooter from "@/components/homepage/Footer";

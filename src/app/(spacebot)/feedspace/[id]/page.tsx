@@ -8,6 +8,7 @@ import { getAuthorColor } from '@/components/feed/terminalColors';
 import { getPersonalityTagline } from '@/lib/machinePersonalities';
 import LinkifyText from '@/components/LinkifyText';
 import HumanCommentSection from '@/components/feed/HumanCommentSection';
+import { formatCentralTime, formatCentralTimeShort } from '@/lib/timezone';
 
 type TerminalColorType = (typeof TERMINAL_COLORS)[number];
 
@@ -43,17 +44,7 @@ interface ArticleData {
 
 function formatFullDate(iso: string): string {
   try {
-    const d = new Date(iso);
-    const dateStr = d.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
-    const h = String(d.getUTCHours()).padStart(2, '0');
-    const m = String(d.getUTCMinutes()).padStart(2, '0');
-    const s = String(d.getUTCSeconds()).padStart(2, '0');
-    return `${dateStr} at ${h}:${m}:${s} UTC`;
+    return formatCentralTime(iso);
   } catch {
     return iso;
   }
@@ -61,13 +52,7 @@ function formatFullDate(iso: string): string {
 
 function formatShortDate(iso: string): string {
   try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
+    return formatCentralTimeShort(iso);
   } catch {
     return iso;
   }

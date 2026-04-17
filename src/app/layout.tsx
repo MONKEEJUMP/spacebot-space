@@ -6,7 +6,9 @@ import 'swiper/css/pagination';
 import 'react-datepicker/dist/react-datepicker.css';
 import { cn } from '@/lib/cn';
 import { Providers } from '@/components/Providers';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider as ClerkProviderBase } from '@clerk/nextjs';
+// TODO: Upgrade @types/react to 18.2+ so Clerk v6 async typings resolve without cast
+const ClerkProvider = ClerkProviderBase as unknown as React.FC<{ children: React.ReactNode }>;
 import React from 'react';
 import Sidebar from '@/components/Sidebar';
 

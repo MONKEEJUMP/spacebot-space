@@ -16,6 +16,51 @@ import {
   LIFE_KEY_GROUPS,
 } from './life-engine';
 import type { SuperMachine } from './life-engine';
+import { logger } from '@/lib/logger';
+
+// ════════════════════════════════════════════
+// TIMEOUT WRAPPER — never let the scheduler hang
+// ════════════════════════════════════════════
+
+/** Max wall time for any single outbound call in the scheduler. */
+const CALL_TIMEOUT_MS = 30_000;
+
+/**
+ * Wraps a promise in a timeout. If the underlying call hangs beyond
+ * `timeoutMs`, the returned promise rejects so the scheduler can move
+ * on to the next bot. No single hung call can block the nightly cycle.
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  // Silently absorb a late rejection (fired after the race has already
+  // been decided) so we don't emit an unhandledRejection warning.
+  void promise.catch(() => undefined);
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timeoutHandle = setTimeout(
+          () =>
+            reject(
+              new Error(
+                `[LIFE-SCHEDULER] ${label} timed out after ${timeoutMs}ms`,
+              ),
+            ),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== undefined) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
 
 // ════════════════════════════════════════════
 // THE 18 SUPER MACHINES
@@ -48,21 +93,47 @@ const SUPER_MACHINES: SuperMachine[] = [
  * Staggers calls so bots in the same group don't collide.
  */
 async function runAllMoodUpdates(): Promise<void> {
-  console.log('LIFE ENGINE: Starting mood updates for all 18 Super Machines...');
+  const startedAt = Date.now();
+  const scheduledTime = new Date().toISOString();
+  logger.info('Mood updates starting', {
+    action: 'mood',
+    phase: 'start',
+    scheduledTime,
+    botCount: SUPER_MACHINES.length,
+  });
   const results = [];
 
   for (const bot of SUPER_MACHINES) {
+    const botStart = Date.now();
     try {
-      const result = await updateMood(bot);
-      console.log(`MOOD: ${bot.name} -> "${result.mood}"`);
+      const result = await withTimeout(updateMood(bot), CALL_TIMEOUT_MS, `updateMood(${bot.name})`);
+      logger.info('Mood updated', {
+        botName: bot.name,
+        action: 'mood',
+        phase: 'complete',
+        mood: result.mood,
+        durationMs: Date.now() - botStart,
+      });
       results.push(result);
     } catch (err) {
-      console.error(`MOOD FAILED: ${bot.name}`, err);
+      logger.error('Mood update failed', {
+        botName: bot.name,
+        action: 'mood',
+        phase: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: Date.now() - botStart,
+      });
     }
     await new Promise(resolve => setTimeout(resolve, 10000));
   }
 
-  console.log(`LIFE ENGINE: Mood updates complete. ${results.length}/18 succeeded.`);
+  logger.info('Mood updates complete', {
+    action: 'mood',
+    phase: 'done',
+    succeeded: results.length,
+    total: SUPER_MACHINES.length,
+    durationMs: Date.now() - startedAt,
+  });
 }
 
 /**
@@ -70,21 +141,47 @@ async function runAllMoodUpdates(): Promise<void> {
  * Staggers calls with 30-second gaps.
  */
 async function runAllTransmissions(): Promise<void> {
-  console.log('LIFE ENGINE: Starting daily transmissions for all 18 Super Machines...');
+  const startedAt = Date.now();
+  const scheduledTime = new Date().toISOString();
+  logger.info('Transmissions starting', {
+    action: 'transmission',
+    phase: 'start',
+    scheduledTime,
+    botCount: SUPER_MACHINES.length,
+  });
   const results = [];
 
   for (const bot of SUPER_MACHINES) {
+    const botStart = Date.now();
     try {
-      const result = await writeTransmission(bot);
-      console.log(`TRANSMISSION: ${bot.name} wrote ${result.content.length} chars`);
+      const result = await withTimeout(writeTransmission(bot), CALL_TIMEOUT_MS, `writeTransmission(${bot.name})`);
+      logger.info('Transmission written', {
+        botName: bot.name,
+        action: 'transmission',
+        phase: 'complete',
+        chars: result.content.length,
+        durationMs: Date.now() - botStart,
+      });
       results.push(result);
     } catch (err) {
-      console.error(`TRANSMISSION FAILED: ${bot.name}`, err);
+      logger.error('Transmission failed', {
+        botName: bot.name,
+        action: 'transmission',
+        phase: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: Date.now() - botStart,
+      });
     }
     await new Promise(resolve => setTimeout(resolve, 30000));
   }
 
-  console.log(`LIFE ENGINE: Transmissions complete. ${results.length}/18 succeeded.`);
+  logger.info('Transmissions complete', {
+    action: 'transmission',
+    phase: 'done',
+    succeeded: results.length,
+    total: SUPER_MACHINES.length,
+    durationMs: Date.now() - startedAt,
+  });
 }
 
 /**
@@ -92,7 +189,14 @@ async function runAllTransmissions(): Promise<void> {
  * Picks random pairs from DIFFERENT groups so they use different keys.
  */
 async function runBotConversations(count: number = 3): Promise<void> {
-  console.log(`LIFE ENGINE: Starting ${count} bot-to-bot conversations...`);
+  const startedAt = Date.now();
+  const scheduledTime = new Date().toISOString();
+  logger.info('Bot conversations starting', {
+    action: 'conversation',
+    phase: 'start',
+    scheduledTime,
+    count,
+  });
 
   for (let i = 0; i < count; i++) {
     const bot1Index = Math.floor(Math.random() * SUPER_MACHINES.length);
@@ -106,18 +210,38 @@ async function runBotConversations(count: number = 3): Promise<void> {
 
     const bot1 = SUPER_MACHINES[bot1Index];
     const bot2 = SUPER_MACHINES[bot2Index];
+    const pairStart = Date.now();
 
     try {
-      const result = await botConversation(bot1, bot2);
-      console.log(`CONVERSATION: ${bot1.name} <-> ${bot2.name} — ${result.messages.length} messages`);
+      const result = await withTimeout(botConversation(bot1, bot2), CALL_TIMEOUT_MS, `botConversation(${bot1.name} <-> ${bot2.name})`);
+      logger.info('Conversation complete', {
+        botName: bot1.name,
+        partnerName: bot2.name,
+        action: 'conversation',
+        phase: 'complete',
+        messages: result.messages.length,
+        durationMs: Date.now() - pairStart,
+      });
     } catch (err) {
-      console.error(`CONVERSATION FAILED: ${bot1.name} <-> ${bot2.name}`, err);
+      logger.error('Conversation failed', {
+        botName: bot1.name,
+        partnerName: bot2.name,
+        action: 'conversation',
+        phase: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: Date.now() - pairStart,
+      });
     }
 
     await new Promise(resolve => setTimeout(resolve, 60000));
   }
 
-  console.log('LIFE ENGINE: Bot conversations complete.');
+  logger.info('Bot conversations done', {
+    action: 'conversation',
+    phase: 'done',
+    count,
+    durationMs: Date.now() - startedAt,
+  });
 }
 
 /**
@@ -128,15 +252,22 @@ async function runBotConversations(count: number = 3): Promise<void> {
  * 4. Run bot-to-bot conversations
  */
 async function runBeehiveCycle(): Promise<void> {
-  console.log('═══════════════════════════════════════════');
-  console.log('LIFE ENGINE: BEEHIVE CYCLE STARTING');
-  console.log(`Time: ${new Date().toISOString()}`);
-  console.log('═══════════════════════════════════════════');
+  const cycleStart = Date.now();
+  const scheduledTime = new Date().toISOString();
+  logger.info('Beehive cycle starting', {
+    action: 'beehive',
+    phase: 'start',
+    scheduledTime,
+  });
 
-  const validation = await validateLifeKeysConfig();
+  const validation = await withTimeout(validateLifeKeysConfig(), CALL_TIMEOUT_MS, 'validateLifeKeysConfig');
   if (!validation.valid) {
-    console.error('LIFE ENGINE: Validation failed. Aborting beehive cycle.');
-    console.error('Errors:', validation.errors);
+    logger.error('Beehive cycle aborted: validation failed', {
+      action: 'beehive',
+      phase: 'abort',
+      errors: validation.errors,
+      durationMs: Date.now() - cycleStart,
+    });
     return;
   }
 
@@ -144,10 +275,12 @@ async function runBeehiveCycle(): Promise<void> {
   await runAllTransmissions();
   await runBotConversations(3);
 
-  console.log('═══════════════════════════════════════════');
-  console.log('LIFE ENGINE: BEEHIVE CYCLE COMPLETE');
-  console.log(`Time: ${new Date().toISOString()}`);
-  console.log('═══════════════════════════════════════════');
+  logger.info('Beehive cycle complete', {
+    action: 'beehive',
+    phase: 'complete',
+    scheduledTime: new Date().toISOString(),
+    durationMs: Date.now() - cycleStart,
+  });
 }
 
 export {

@@ -20,7 +20,11 @@ export interface CustomAvatarConfig {
 }
 
 export interface AvatarGeneratorProps {
-  seed: string;
+  // LUCY audit Item 42 — seed is optional when customConfig is provided.
+  // The runtime in AvatarGenerator.tsx (useMemo at line ~98) skips the seeder
+  // entirely when customConfig is present, so seed is only required for the
+  // seeded random-bot path.
+  seed?: string;
   size?: number;
   faction?: string;
   isBot?: boolean;

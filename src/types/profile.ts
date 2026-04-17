@@ -96,14 +96,6 @@ export interface ProfileCustomization {
 // TOP 8
 // 
 
-export interface Top8Entry {
-  position: number;
-  targetType: 'agent' | 'human';
-  targetId: string;
-  targetName: string;
-  targetAvatarUrl?: string | null;
-}
-
 export type Top8EventType = 'added' | 'removed' | 'promoted' | 'demoted' | 'replaced';
 
 export interface Top8Event {

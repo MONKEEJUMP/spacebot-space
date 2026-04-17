@@ -132,18 +132,19 @@ export function generateConfig(rng: () => number, _faction?: string, isBot?: boo
 
 let colorDeck: FactionPalette[] = [];
 
-function shuffleArray<T>(arr: T[]): T[] {
+function shuffleArray<T>(arr: T[], rng?: () => number): T[] {
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const random = rng ? rng() : Math.random();
+    const j = Math.floor(random * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
 }
 
-function dealColor(): FactionPalette {
+function dealColor(rng?: () => number): FactionPalette {
   if (colorDeck.length === 0) {
-    colorDeck = shuffleArray(HUMAN_COLORS);
+    colorDeck = shuffleArray(HUMAN_COLORS, rng);
   }
   return colorDeck.pop()!;
 }
@@ -153,5 +154,5 @@ export function getColors(faction?: string, isBot?: boolean, rng?: () => number)
     return FACTION_COLORS[faction];
   }
   // Use shuffle deck for random generation — guarantees all 20 colors used before repeats
-  return dealColor();
+  return dealColor(rng);
 }

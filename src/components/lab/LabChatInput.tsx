@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 interface LabChatInputProps {
-  onSend: (message: string) => Promise<void>;
+  onSend: (message: string) => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
 }

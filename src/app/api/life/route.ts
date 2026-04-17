@@ -11,11 +11,18 @@ import {
   runBotConversations,
   runBeehiveCycle,
 } from '../../../../dorylus/life-scheduler';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
+  let actionForLog = 'unknown';
+  let botNameForLog: string | null = null;
+
   try {
     const body = await req.json();
     const { action, botName, count } = body;
+    actionForLog = typeof action === 'string' ? action : 'unknown';
+    botNameForLog = typeof botName === 'string' ? botName : null;
 
     const authKey = req.headers.get('x-life-key');
     if (authKey !== process.env.LIFE_ENGINE_SECRET) {
@@ -63,16 +70,30 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, message: `${count || 3} conversations triggered` });
 
       case 'beehive':
-        runBeehiveCycle().catch(err => console.error('Beehive cycle error:', err));
+        runBeehiveCycle().catch(err =>
+          logger.error('LUCY beehive cycle failed', {
+            action: 'beehive',
+            phase: 'life.route.beehive',
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined,
+          })
+        );
         return NextResponse.json({ success: true, message: 'Beehive cycle started in background' });
 
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
-  } catch (err) {
-    console.error('LIFE ENGINE API ERROR:', err);
+  } catch (err: unknown) {
+    logger.error('LUCY life engine API error', {
+      action: actionForLog,
+      botName: botNameForLog,
+      durationMs: Date.now() - startedAt,
+      phase: 'life.route',
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

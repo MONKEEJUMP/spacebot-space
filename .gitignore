@@ -86,3 +86,14 @@ pnpm-lock.yaml
 
 # Local docs scratch
 docs/scratch/
+
+
+# Added by rescue mission 2026-04-17
+.next/cache/
+.turbo/
+.vercel/
+.env.production
+.env.development
+jspm_packages/
+*.bak-*
+*.orig

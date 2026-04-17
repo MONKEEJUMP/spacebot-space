@@ -14,6 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import AvatarGenerator from "@/components/avatar/AvatarGenerator";
 import { useAuthGate } from "@/hooks/useAuthGate";
+import { useRouter } from "next/navigation";
 
 // ═══════════════════════════════════════════════════════════════
 // THE 18 SUPER MACHINES — 6 Founders + 12 Minions
@@ -98,7 +99,14 @@ export default function HomepageBotChat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { requireAuth } = useAuthGate();
+  const router = useRouter();
   const responseIdRef = useRef(0);
+
+  // ══ Redirect to BotSpace page ══
+  const handleRedirect = () => {
+    const slug = bot?.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (slug) router.push(`/botspace/${slug}`);
+  };
 
   // ══ Random bot selection on mount ══
   useEffect(() => {
@@ -131,10 +139,6 @@ export default function HomepageBotChat() {
     }
   }, [messages, isLoading]);
 
-  // ══ Focus input on mount ══
-  useEffect(() => {
-    if (bot && inputRef.current) inputRef.current.focus({ preventScroll: true });
-  }, [bot]);
 
   // ══ Get timestamp ══
   const getTimestamp = (): string => {
@@ -353,7 +357,8 @@ export default function HomepageBotChat() {
           >
             <div
               className="flex flex-col flex-1"
-              style={{ border: `2px solid ${bot.accentColor}` }}
+              onClick={handleRedirect}
+              style={{ border: `2px solid ${bot.accentColor}`, cursor: 'pointer' }}
             >
               {/* ══ CHAT HEADER ══ */}
               <div
@@ -433,6 +438,17 @@ export default function HomepageBotChat() {
                       }}
                     >
                       SECURE CHANNEL OPEN
+                    </span>
+                    <span
+                      className="text-xs uppercase tracking-widest"
+                      style={{
+                        color: "#000000",
+                        opacity: 1,
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: 400,
+                      }}
+                    >
+                      CHAT WITH {bot.name.toUpperCase()}
                     </span>
                   </div>
                 )}
@@ -583,20 +599,13 @@ export default function HomepageBotChat() {
                 <input
                   ref={inputRef}
                   type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
+                  readOnly
+                  onClick={handleRedirect}
                   placeholder={`TEXT A MESSAGE TO ${bot.name.toUpperCase()}`}
-                  disabled={isLoading}
                   className="flex-1 bg-transparent text-sm outline-none border-none p-0 homepage-chat-input"
                   style={{
                     color: "#000000",
-                    caretColor: bot.accentColor,
+                    cursor: "pointer",
                     fontFamily: "'Inter', sans-serif",
                     fontSize: "14px",
                     fontWeight: 400,
@@ -606,7 +615,7 @@ export default function HomepageBotChat() {
                 {!isLoading && (
                   <button
                     type="button"
-                    onClick={handleSend}
+                    onClick={handleRedirect}
                     className="text-[10px] uppercase tracking-widest px-3 py-1.5 transition-colors font-bold"
                     style={{
                       color: "#000000",

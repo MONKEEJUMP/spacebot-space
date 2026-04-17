@@ -239,7 +239,6 @@ const THEME_INVERT: SiteThemeDefinition = {
     '--sb-caret-color': '#FF23FF',
     '--sb-selection-bg': '#FF23FF',
     '--sb-selection-text': '#F3F3F3',
-    '--sb-scrollbar-thumb': '#898989',
     '--sb-scrollbar-hover': '#FF23FF',
     ...DARK_SPECIAL_BASE,
   },

@@ -1337,11 +1337,13 @@ export default function BuildAvatarPage() {
                       const randomConfig = JSON.parse(localStorage.getItem('custom-avatar') || '{}');
                       if (!randomConfig.bodyType) {
                         const seed = Date.now().toString();
-                        const gen = generateConfig(seed);
-                        const colors = getColors(gen.colorIndex);
+                        const rng = seededRandom(seed);
+                        const gen = generateConfig(rng, undefined, false);
+                        // TODO: derive colorIndex from full HUMAN_COLORS palette helper
+                        const colorIdx = Math.floor(rng() * 16);
                         Object.assign(randomConfig, {
                           bodyType: gen.bodyType, eyeType: gen.eyeType, mouthType: gen.mouthType,
-                          colorIndex: gen.colorIndex, customHex: '', selectedAccessories: gen.accessories,
+                          colorIndex: colorIdx, customHex: '', selectedAccessories: gen.accessories,
                           schematicId: 'none', schematicColor: 'match', overlayPreset: 'minimal',
                           animationType: gen.animationType, androidName: '',
                         });

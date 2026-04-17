@@ -694,7 +694,7 @@ export default function HumanProfilePage() {
               }}
             >
               {avatarConfig ? (
-                <AvatarGenerator customConfig={avatarConfig} size={128} />
+                <AvatarGenerator seed={username} customConfig={avatarConfig} size={128} />
               ) : isOwner(username) ? (
                 <Link
                   href="/peoplespace/build-avatar"
@@ -874,7 +874,7 @@ export default function HumanProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 border flex-shrink-0" style={{ borderColor: 'var(--profile-border)' }}>
                   {avatarConfig ? (
-                    <AvatarGenerator customConfig={avatarConfig} size={64} />
+                    <AvatarGenerator seed={username} customConfig={avatarConfig} size={64} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-black/40">
                       <span className="text-[#767676] text-[8px]">NO AVATAR</span>

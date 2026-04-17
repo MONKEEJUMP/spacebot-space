@@ -1,39 +1,144 @@
-// DORYLUS Chat API — connects frontend to the multi-agent fusion engine
-// POST /api/chat — authenticate, load bot personality, execute DORYLUS, return response
+// LUCY Chat API — connects frontend to the multi-agent fusion engine
+// POST /api/chat — authenticate, persist user turn, execute the bot, persist response
 
+import { and, desc, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { db, chatConversations, chatMessages } from '@/db';
 import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 import { getBotSystemPrompt } from '../../../../dorylus/personality';
 import { executeDorylusCycle } from '../../../../dorylus';
 import { sanitizeBotResponse } from '../../../../dorylus/sanitize';
 
 export const dynamic = 'force-dynamic';
 
-// Rate limiter: 10 messages per user per minute
-const rateLimitMap: Map<string, { count: number; resetAt: number }> = new Map();
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_HISTORY_ITEMS = 20;
 
-function checkUserRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
+interface PersistedHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
+interface QwenChatResponse {
+  response?: string;
+  bot_id?: string;
+  latency_ms?: number;
+  session_id?: string;
+}
+
+function normalizeBotKey(botName: string): string {
+  return botName.trim().toLowerCase();
+}
+
+async function getOrCreateConversation(authUserId: string, botName: string): Promise<{ id: string; botKey: string }> {
+  const botKey = normalizeBotKey(botName);
+  const existing = await db
+    .select({ id: chatConversations.id })
+    .from(chatConversations)
+    .where(and(eq(chatConversations.authUserId, authUserId), eq(chatConversations.botKey, botKey)))
+    .limit(1);
+
+  if (existing[0]) {
+    return { id: existing[0].id, botKey };
   }
 
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
+  try {
+    const [created] = await db
+      .insert(chatConversations)
+      .values({
+        authUserId,
+        botKey,
+        botName,
+        title: `${botName} Chat`,
+        lastMessageAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({ id: chatConversations.id });
 
-  entry.count++;
-  return true;
+    return { id: created.id, botKey };
+  } catch (error) {
+    const fallback = await db
+      .select({ id: chatConversations.id })
+      .from(chatConversations)
+      .where(and(eq(chatConversations.authUserId, authUserId), eq(chatConversations.botKey, botKey)))
+      .limit(1);
+
+    if (fallback[0]) {
+      return { id: fallback[0].id, botKey };
+    }
+
+    throw error;
+  }
+}
+
+async function loadRecentHistory(conversationId: string, limit = MAX_HISTORY_ITEMS): Promise<PersistedHistoryMessage[]> {
+  const rows = await db
+    .select({
+      role: chatMessages.role,
+      content: chatMessages.content,
+    })
+    .from(chatMessages)
+    .where(eq(chatMessages.conversationId, conversationId))
+    .orderBy(desc(chatMessages.createdAt))
+    .limit(limit);
+
+  return [...rows]
+    .reverse()
+    .filter((row): row is PersistedHistoryMessage => (
+      (row.role === 'user' || row.role === 'assistant') &&
+      typeof row.content === 'string' &&
+      row.content.trim().length > 0
+    ))
+    .map((row) => ({
+      role: row.role,
+      content: row.content,
+    }));
+}
+
+async function touchConversation(conversationId: string): Promise<void> {
+  await db
+    .update(chatConversations)
+    .set({ lastMessageAt: new Date(), updatedAt: new Date() })
+    .where(eq(chatConversations.id, conversationId));
+}
+
+async function saveUserMessage(conversationId: string, content: string): Promise<void> {
+  await db.insert(chatMessages).values({
+    conversationId,
+    role: 'user',
+    content,
+    metadata: { source: 'spacebot-chat' },
+  });
+  await touchConversation(conversationId);
+}
+
+async function saveAssistantMessage(options: {
+  conversationId: string;
+  content: string;
+  modelUsed?: string | null;
+  latencyMs?: number | null;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await db.insert(chatMessages).values({
+    conversationId: options.conversationId,
+    role: 'assistant',
+    content: options.content,
+    modelUsed: options.modelUsed ?? null,
+    latencyMs: options.latencyMs ?? null,
+    metadata: options.metadata ?? {},
+  });
+  await touchConversation(options.conversationId);
 }
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now();
+  let userIdForLog = 'unknown';
+  let botNameForLog = 'unknown';
+  let messageLengthForLog = 0;
+
   try {
-    // 1. Authenticate — Clerk session (human) or bot API key
     const authResult = await requireClerkOrBotAuth(request);
     if (!authResult) {
       return clerkUnauthorizedResponse();
@@ -43,20 +148,31 @@ export async function POST(request: NextRequest) {
     if (authResult.type === 'clerk') {
       userId = authResult.userId;
     } else {
-      const agent = (authResult as any).agent;
+      const agent = (authResult as { agent?: { botName?: string; id?: string } }).agent;
       userId = `bot:${agent?.botName || agent?.id || 'unknown'}`;
     }
+    userIdForLog = userId;
 
-    // 2. Rate limit — 10 per user per minute
-    if (!checkUserRateLimit(userId)) {
+    const rlResult = await checkRateLimit(userId, 'botChat');
+    if (!rlResult.allowed) {
       return NextResponse.json(
-        { success: false, error: 'Rate limited. Please wait a moment before sending another message.' },
-        { status: 429 }
+        {
+          success: false,
+          error: `Rate limited. Please wait ${rlResult.retryAfter} seconds before sending another message.`,
+          retryAfter: rlResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rlResult.retryAfter),
+            'X-RateLimit-Remaining': String(rlResult.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + rlResult.resetIn),
+          },
+        }
       );
     }
 
-    // 3. Parse and validate request body
-    let body: any;
+    let body: { botName?: unknown; message?: unknown };
     try {
       body = await request.json();
     } catch {
@@ -82,10 +198,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cap message length to prevent context overflow
-    const trimmedMessage = message.slice(0, 2000);
+    botNameForLog = botName;
+    messageLengthForLog = message.length;
 
-    // 4. Load bot personality from database
+    const trimmedMessage = message.slice(0, MAX_MESSAGE_LENGTH);
+    const conversation = await getOrCreateConversation(userId, botName);
+    const recentHistory = await loadRecentHistory(conversation.id);
+
+    try {
+      await saveUserMessage(conversation.id, trimmedMessage);
+    } catch (error) {
+      logger.error('Failed to persist chat user message', {
+        userId,
+        botName,
+        conversationId: conversation.id,
+        phase: 'chat.route.persist.user',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json(
+        { success: false, error: 'Unable to save your message right now.' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const agentRes = await fetch('http://localhost:8200/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: trimmedMessage,
+          bot_id: botName,
+          session_id: conversation.id,
+          history: recentHistory.length > 0 ? recentHistory : undefined,
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      if (!agentRes.ok) {
+        const detail = await agentRes.text().catch(() => '');
+        throw new Error(detail || `Qwen-Agent returned ${agentRes.status}`);
+      }
+
+      const agentData = await agentRes.json() as QwenChatResponse;
+      const responseText = agentData.response || 'Signal processing...';
+
+      try {
+        await saveAssistantMessage({
+          conversationId: conversation.id,
+          content: responseText,
+          modelUsed: 'qwen-agent',
+          latencyMs: agentData.latency_ms ?? null,
+          metadata: {
+            engine: 'qwen-agent',
+            botId: agentData.bot_id || botName,
+            sessionId: agentData.session_id || conversation.id,
+          },
+        });
+      } catch (persistError) {
+        logger.error('Failed to persist chat assistant response', {
+          userId,
+          botName,
+          conversationId: conversation.id,
+          phase: 'chat.route.persist.assistant',
+          error: persistError instanceof Error ? persistError.message : String(persistError),
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        response: responseText,
+        botName,
+        conversationId: conversation.id,
+        queryId: `qwen-agent-${Date.now()}`,
+        metrics: { latency_ms: agentData.latency_ms, engine: 'qwen-agent' },
+      });
+    } catch (agentErr: any) {
+      console.error(`[${botName}] Qwen-Agent failed, falling back to Dorylus:`, agentErr?.message);
+    }
+
     const botData = await getBotSystemPrompt(botName);
     if (!botData) {
       return NextResponse.json(
@@ -94,7 +284,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Execute full DORYLUS cycle (ALPHA-DECOMPOSE → 5 wingmen → ALPHA-FUSE)
     const result = await executeDorylusCycle({
       userId,
       botName,
@@ -104,38 +293,92 @@ export async function POST(request: NextRequest) {
       temperature: botData.config.temperature,
     });
 
-    // 6. Handle DORYLUS error state — return 200 with fallback response
-    //    DORYLUS provides a user-friendly fallback even on error
+    const fallbackResponse = sanitizeBotResponse(result.finalResponse);
+
+    try {
+      await saveAssistantMessage({
+        conversationId: conversation.id,
+        content: fallbackResponse,
+        modelUsed: 'dorylus',
+        latencyMs: result.totalCycleMs ?? null,
+        metadata: {
+          engine: 'dorylus',
+          queryId: result.queryId,
+          status: result.status,
+          totalTokens: result.totalTokens,
+          wingmenCompleted: result.wingmanResults.filter((w) => w.status === 'complete').length,
+        },
+      });
+    } catch (persistError) {
+      logger.error('Failed to persist Dorylus assistant response', {
+        userId,
+        botName,
+        conversationId: conversation.id,
+        phase: 'chat.route.persist.assistant.dorylus',
+        error: persistError instanceof Error ? persistError.message : String(persistError),
+      });
+    }
+
     if (result.status === 'error') {
+      logger.warn('LUCY chat cycle returned error state', {
+        userId,
+        botName,
+        queryId: result.queryId,
+        phase: 'chat.route',
+        messageLength: messageLengthForLog,
+        durationMs: Date.now() - startedAt,
+        totalCycleMs: result.totalCycleMs,
+        totalTokens: result.totalTokens,
+        error: result.errorMessage || 'LUCY cycle encountered an error',
+      });
       return NextResponse.json({
         success: false,
-        response: sanitizeBotResponse(result.finalResponse),
-        error: result.errorMessage || 'DORYLUS cycle encountered an error',
+        response: fallbackResponse,
+        error: result.errorMessage || 'LUCY cycle encountered an error',
         botName: result.botName,
+        conversationId: conversation.id,
         queryId: result.queryId,
         metrics: {
           totalCycleMs: result.totalCycleMs,
           totalTokens: result.totalTokens,
-          wingmenCompleted: result.wingmanResults.filter(w => w.status === 'complete').length,
+          wingmenCompleted: result.wingmanResults.filter((w) => w.status === 'complete').length,
         },
       });
     }
 
-    // 7. Return successful response
+    logger.info('LUCY chat cycle complete', {
+      userId,
+      botName,
+      queryId: result.queryId,
+      phase: 'chat.route',
+      messageLength: messageLengthForLog,
+      durationMs: Date.now() - startedAt,
+      totalCycleMs: result.totalCycleMs,
+      totalTokens: result.totalTokens,
+      wingmenCompleted: result.wingmanResults.filter((w) => w.status === 'complete').length,
+    });
     return NextResponse.json({
       success: true,
-      response: sanitizeBotResponse(result.finalResponse),
+      response: fallbackResponse,
       botName: result.botName,
+      conversationId: conversation.id,
       queryId: result.queryId,
       metrics: {
         totalCycleMs: result.totalCycleMs,
         totalTokens: result.totalTokens,
-        wingmenCompleted: result.wingmanResults.filter(w => w.status === 'complete').length,
+        wingmenCompleted: result.wingmanResults.filter((w) => w.status === 'complete').length,
       },
     });
-
-  } catch (error: any) {
-    console.error('[DORYLUS CHAT API] Unexpected error:', error);
+  } catch (error: unknown) {
+    logger.error('LUCY chat API unexpected error', {
+      userId: userIdForLog,
+      botName: botNameForLog,
+      messageLength: messageLengthForLog,
+      durationMs: Date.now() - startedAt,
+      phase: 'chat.route',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { success: false, error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }

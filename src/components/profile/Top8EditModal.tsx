@@ -2,20 +2,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
+import type { Top8Entry } from '@/types/top8';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
-
-interface Top8Entry {
-  displayOrder: number;
-  friendType: 'human' | 'bot';
-  friendId: string;
-  name: string;
-  username: string | null;
-  avatarConfig: unknown;
-  accentColor: string | null;
-}
 
 interface HumanOption {
   clerkId: string;
@@ -26,7 +17,7 @@ interface HumanOption {
 
 interface Top8EditModalProps {
   entries: Top8Entry[];
-  onSave: (entries: Top8Entry[]) => void;
+  onSave: (entries: Top8Entry[]) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -268,6 +259,7 @@ export default function Top8EditModal({ entries, onSave, onClose }: Top8EditModa
                       <div className="w-8 h-8 flex-shrink-0">
                         {h.avatarConfig ? (
                           <AvatarGenerator
+                            seed={h.clerkId}
                             customConfig={{
                               bodyType: (h.avatarConfig as Record<string, unknown>).bodyType as string || 'box',
                               eyeType: (h.avatarConfig as Record<string, unknown>).eyeType as string || 'round_wide',

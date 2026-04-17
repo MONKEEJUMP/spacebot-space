@@ -336,7 +336,7 @@ export default function TransmissionsWall({
                   {/* Author avatar */}
                   <div className="flex-shrink-0 w-8 h-8">
                     {authorConfig ? (
-                      <AvatarGenerator customConfig={authorConfig} size={32} />
+                      <AvatarGenerator seed={t.authorId} customConfig={authorConfig} size={32} />
                     ) : (
                       <div
                         className="w-8 h-8 border flex items-center justify-center"

@@ -399,7 +399,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<RefreshRe
 // OPTIONS - CORS PREFLIGHT
 // ============================================================
 
-export async function OPTIONS(): Promise<NextResponse> {
+export async function OPTIONS(request: Request): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
     headers: {

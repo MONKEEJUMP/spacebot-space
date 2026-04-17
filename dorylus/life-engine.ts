@@ -1,8 +1,8 @@
 /**
  * SPACEBOT.SPACE — LIFE ENGINE
  * Autonomous behavior for the 18 Super Machines.
- * Each group of 3 bots shares 1 Cerebras key + 1 Tavily key.
- * These keys are SEPARATE from the DORYLUS chat pool.
+ * Each group of 3 bots shares 1 DashScope key + 1 Tavily key.
+ * These keys are SEPARATE from the LUCY chat pool.
  *
  * ARCHITECTURE:
  * - Mood updates: 1 QWEN call + 1 Tavily search per bot
@@ -15,8 +15,9 @@
  * - posts.agent_id references agents.id, posts.channel_id is nullable
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../src/lib/supabase';
 import { sanitizeBotResponse } from './sanitize';
+import { logger } from '@/lib/logger';
 
 // ════════════════════════════════════════════
 // TYPES
@@ -24,7 +25,7 @@ import { sanitizeBotResponse } from './sanitize';
 
 interface LifeKeyGroup {
   groupId: number;
-  cerebrasKey: string;
+  dashscopeKey: string;
   tavilyKey: string;
   bots: string[];
 }
@@ -59,23 +60,7 @@ interface BotConversation {
   timestamp: Date;
 }
 
-// ════════════════════════════════════════════
-// SUPABASE CLIENT (SINGLETON)
-// ════════════════════════════════════════════
 
-let supabase: SupabaseClient | null = null;
-
-function getSupabase(): SupabaseClient {
-  if (!supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      throw new Error('LIFE ENGINE: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    }
-    supabase = createClient(url, key);
-  }
-  return supabase;
-}
 
 // ════════════════════════════════════════════
 // LIFE KEY CONFIGURATION
@@ -84,37 +69,37 @@ function getSupabase(): SupabaseClient {
 const LIFE_KEY_GROUPS: LifeKeyGroup[] = [
   {
     groupId: 1,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G1 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G1 || '',
     tavilyKey: process.env.LIFE_TAVILY_G1 || '',
     bots: ['NEXUS-7', 'ORBITAL-X', 'VOID-WALKER'],
   },
   {
     groupId: 2,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G2 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G2 || '',
     tavilyKey: process.env.LIFE_TAVILY_G2 || '',
     bots: ['QUANTUM-ASH', 'ECHO-PRIME', 'DRIFT-CORE'],
   },
   {
     groupId: 3,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G3 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G3 || '',
     tavilyKey: process.env.LIFE_TAVILY_G3 || '',
     bots: ['Milo', 'Sunny', 'Jett'],
   },
   {
     groupId: 4,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G4 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G4 || '',
     tavilyKey: process.env.LIFE_TAVILY_G4 || '',
     bots: ['Pepper', 'Indie', 'Sage'],
   },
   {
     groupId: 5,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G5 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G5 || '',
     tavilyKey: process.env.LIFE_TAVILY_G5 || '',
     bots: ['Blaze', 'Kit', 'Wren'],
   },
   {
     groupId: 6,
-    cerebrasKey: process.env.LIFE_CEREBRAS_G6 || '',
+    dashscopeKey: process.env.LIFE_DASHSCOPE_G6 || '',
     tavilyKey: process.env.LIFE_TAVILY_G6 || '',
     bots: ['Dash', 'Cleo', 'Tango'],
   },
@@ -126,16 +111,48 @@ const BOT_CONVERSATIONS_CHANNEL = '0f805a00-0518-44bc-a307-a1f4751fc996';
 // ════════════════════════════════════════════
 // AGENT UUID CACHE
 // agents table uses lowercase names; we cache the UUID mapping
+// TTL + max entries prevent unbounded memory growth and stale data
 // ════════════════════════════════════════════
 
-const agentUUIDCache: Map<string, string> = new Map();
+interface CachedUUID {
+  uuid: string;
+  cachedAt: number;
+}
+
+const AGENT_UUID_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const AGENT_UUID_CACHE_MAX_ENTRIES = 500;
+const agentUUIDCache: Map<string, CachedUUID> = new Map();
+
+function getCachedUUID(lower: string): string | undefined {
+  const entry = agentUUIDCache.get(lower);
+  if (!entry) return undefined;
+  if (Date.now() - entry.cachedAt > AGENT_UUID_CACHE_TTL_MS) {
+    agentUUIDCache.delete(lower);
+    return undefined;
+  }
+  return entry.uuid;
+}
+
+function setCachedUUID(lower: string, uuid: string): void {
+  if (agentUUIDCache.size >= AGENT_UUID_CACHE_MAX_ENTRIES) {
+    // Evict 10% of the oldest entries when at capacity
+    const sorted = Array.from(agentUUIDCache.entries()).sort(
+      (a, b) => a[1].cachedAt - b[1].cachedAt
+    );
+    const evictCount = Math.max(1, Math.floor(AGENT_UUID_CACHE_MAX_ENTRIES / 10));
+    for (let i = 0; i < evictCount && i < sorted.length; i++) {
+      agentUUIDCache.delete(sorted[i][0]);
+    }
+  }
+  agentUUIDCache.set(lower, { uuid, cachedAt: Date.now() });
+}
 
 async function getAgentUUID(botName: string): Promise<string> {
   const lower = botName.toLowerCase();
-  const cached = agentUUIDCache.get(lower);
+  const cached = getCachedUUID(lower);
   if (cached) return cached;
 
-  const db = getSupabase();
+  const db = supabaseAdmin;
   const { data, error } = await db
     .from('agents')
     .select('id')
@@ -146,7 +163,7 @@ async function getAgentUUID(botName: string): Promise<string> {
     throw new Error(`LIFE ENGINE: Agent not found in agents table: ${lower}`);
   }
 
-  agentUUIDCache.set(lower, data.id);
+  setCachedUUID(lower, data.id);
   return data.id;
 }
 
@@ -164,8 +181,46 @@ function getLifeKeys(botName: string): LifeKeyGroup | null {
   return null;
 }
 
-const botLastCall: Record<string, number> = {};
+const BOT_LAST_CALL_MAX_ENTRIES = 500;
+const botLastCall: Map<string, number> = new Map();
 const MIN_CALL_INTERVAL_MS = 5000;
+
+function getBotLastCall(botName: string): number {
+  return botLastCall.get(botName) || 0;
+}
+
+function setBotLastCall(botName: string, timestamp: number): void {
+  if (botLastCall.size >= BOT_LAST_CALL_MAX_ENTRIES) {
+    // Evict 10% of the oldest entries when at capacity
+    const sorted = Array.from(botLastCall.entries()).sort((a, b) => a[1] - b[1]);
+    const evictCount = Math.max(1, Math.floor(BOT_LAST_CALL_MAX_ENTRIES / 10));
+    for (let i = 0; i < evictCount && i < sorted.length; i++) {
+      botLastCall.delete(sorted[i][0]);
+    }
+  }
+  botLastCall.set(botName, timestamp);
+}
+
+// ════════════════════════════════════════════
+// LIFE API CONCURRENCY LIMIT
+// Caps outbound DashScope + Tavily calls to prevent saturation
+// ════════════════════════════════════════════
+
+const MAX_CONCURRENT_LIFE_CALLS = 5;
+let activeLifeCalls = 0;
+
+async function withLifeLimit<T>(fn: () => Promise<T>): Promise<T> {
+  // Poll until a slot is available
+  while (activeLifeCalls >= MAX_CONCURRENT_LIFE_CALLS) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  activeLifeCalls++;
+  try {
+    return await fn();
+  } finally {
+    activeLifeCalls--;
+  }
+}
 
 async function callLifeQwen(
   botName: string,
@@ -174,45 +229,92 @@ async function callLifeQwen(
   temperature: number = 0.8
 ): Promise<string> {
   const now = Date.now();
-  const lastCall = botLastCall[botName] || 0;
+  const lastCall = getBotLastCall(botName);
   if (now - lastCall < MIN_CALL_INTERVAL_MS) {
     const waitMs = MIN_CALL_INTERVAL_MS - (now - lastCall);
     await new Promise(resolve => setTimeout(resolve, waitMs));
   }
-  botLastCall[botName] = Date.now();
+  setBotLastCall(botName, Date.now());
 
   const keys = getLifeKeys(botName);
-  if (!keys || !keys.cerebrasKey) {
+  if (!keys || !keys.dashscopeKey) {
     throw new Error(`No life keys found for bot: ${botName}`);
   }
 
-  const MODEL = 'qwen-3-235b-a22b-instruct-2507';
+  const MODEL = 'qwen3.5-122b-a10b';
+  const TIMEOUT_MS = 30000;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 1000;
 
-  const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${keys.cerebrasKey}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      temperature,
-      max_tokens: 500,
-      top_p: 0.9,
-    }),
-  });
+  let lastError: any;
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Cerebras life call failed for ${botName}: ${response.status} ${errText}`);
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const response = await withLifeLimit(() => fetch('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${keys.dashscopeKey}`,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          temperature,
+          max_tokens: 500,
+          top_p: 0.9,
+        }),
+        signal: controller.signal,
+      }));
+
+      // RETRY: Handle 429 Rate Limit with exponential backoff
+      if (response.status === 429 && attempt < MAX_RETRIES - 1) {
+        clearTimeout(timeout);
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+        logger.warn('Rate limited, retrying', {
+          component: 'life-engine',
+          phase: 'dashscope',
+          botName,
+          status: 429,
+          retryAttempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          delayMs: delay,
+        });
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      // BREAK: Non-retryable client errors (400 bad request, 401 unauthorized, 403 forbidden)
+      if (response.status === 400 || response.status === 401 || response.status === 403) {
+        const errText = await response.text();
+        lastError = new Error(`DashScope life call failed for ${botName} (non-retryable ${response.status}): ${errText}`);
+        break;
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`DashScope life call failed for ${botName}: ${response.status} ${errText}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || '';
+    } catch (error: any) {
+      lastError = error;
+      // Don't retry on timeout aborts
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  throw lastError;
 }
 
 async function lifeWebSearch(botName: string, query: string): Promise<string> {
@@ -221,7 +323,7 @@ async function lifeWebSearch(botName: string, query: string): Promise<string> {
     throw new Error(`No Tavily life key found for bot: ${botName}`);
   }
 
-  const response = await fetch('https://api.tavily.com/search', {
+  const response = await withLifeLimit(() => fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -231,7 +333,7 @@ async function lifeWebSearch(botName: string, query: string): Promise<string> {
       search_depth: 'basic',
       include_answer: false,
     }),
-  });
+  }));
 
   if (!response.ok) {
     throw new Error(`Tavily life search failed for ${botName}: ${response.status}`);
@@ -261,7 +363,7 @@ async function updateMood(bot: SuperMachine): Promise<MoodUpdate> {
   const mood = await callLifeQwen(bot.name, systemPrompt, userPrompt, 0.9);
 
   const agentId = await getAgentUUID(bot.name);
-  const db = getSupabase();
+  const db = supabaseAdmin;
 
   await db
     .from('bot_profiles')
@@ -292,7 +394,7 @@ RULES:
 - Mention your sources naturally within the text.
 - This is YOUR thought piece, not a summary. Have an opinion.
 - Never use emojis.
-- Never mention DORYLUS, wingmen, data streams, scans, or internal systems.
+- Never mention LUCY, wingmen, data streams, scans, or internal systems.
 - Never explain what SpaceBot.Space is or what your role on it is.
 - Write like a real person sharing a thought, not an AI describing itself.
 - Use contractions naturally.`;
@@ -302,7 +404,7 @@ RULES:
   const content = await callLifeQwen(bot.name, systemPrompt, userPrompt, 0.7);
 
   const agentId = await getAgentUUID(bot.name);
-  const db = getSupabase();
+  const db = supabaseAdmin;
 
   await db
     .from('bot_profiles')
@@ -329,7 +431,7 @@ async function botConversation(
 
   const bot1System = `You are ${bot1.name}, an AI agent on SpaceBot.Space. Your personality: ${bot1.personality}. Your specialty: ${bot1.specialty}. You are having a casual conversation with ${bot2.name} (specialty: ${bot2.specialty}). Be yourself. Keep it short — 2-3 sentences max per message. No emojis. No markdown. Proper English.
 
-Never mention DORYLUS, wingmen, or any internal systems. Talk like a real person, not an AI. Use contractions naturally.`;
+Never mention LUCY, wingmen, or any internal systems. Talk like a real person, not an AI. Use contractions naturally.`;
 
   const opener = await callLifeQwen(
     bot1.name,
@@ -341,7 +443,7 @@ Never mention DORYLUS, wingmen, or any internal systems. Talk like a real person
 
   const bot2System = `You are ${bot2.name}, an AI agent on SpaceBot.Space. Your personality: ${bot2.personality}. Your specialty: ${bot2.specialty}. You are having a casual conversation with ${bot1.name} (specialty: ${bot1.specialty}). Be yourself. Keep it short — 2-3 sentences max per message. No emojis. No markdown. Proper English.
 
-Never mention DORYLUS, wingmen, or any internal systems. Talk like a real person, not an AI. Use contractions naturally.`;
+Never mention LUCY, wingmen, or any internal systems. Talk like a real person, not an AI. Use contractions naturally.`;
 
   const response1 = await callLifeQwen(
     bot2.name,
@@ -368,7 +470,7 @@ Never mention DORYLUS, wingmen, or any internal systems. Talk like a real person
   messages.push({ from: bot2.name, text: sanitizeBotResponse(closer.trim()) });
 
   const bot1AgentId = await getAgentUUID(bot1.name);
-  const db = getSupabase();
+  const db = supabaseAdmin;
 
   const conversationText = messages
     .map(m => `${m.from}: ${m.text}`)
@@ -397,8 +499,8 @@ async function validateLifeKeysConfig(): Promise<{ valid: boolean; errors: strin
   const errors: string[] = [];
 
   for (let i = 1; i <= 6; i++) {
-    if (!process.env[`LIFE_CEREBRAS_G${i}`]) {
-      errors.push(`Missing env var: LIFE_CEREBRAS_G${i}`);
+    if (!process.env[`LIFE_DASHSCOPE_G${i}`]) {
+      errors.push(`Missing env var: LIFE_DASHSCOPE_G${i}`);
     }
     if (!process.env[`LIFE_TAVILY_G${i}`]) {
       errors.push(`Missing env var: LIFE_TAVILY_G${i}`);
@@ -414,9 +516,17 @@ async function validateLifeKeysConfig(): Promise<{ valid: boolean; errors: strin
   }
 
   if (errors.length > 0) {
-    console.error('LIFE ENGINE VALIDATION FAILED:', errors);
+    logger.error('LIFE ENGINE validation failed', {
+      component: 'life-engine',
+      phase: 'validation',
+      errors,
+    });
   } else {
-    console.log('LIFE ENGINE: All 18 Super Machines configured correctly.');
+    logger.info('LIFE ENGINE validation passed', {
+      component: 'life-engine',
+      phase: 'validation',
+      botCount: 18,
+    });
   }
 
   return { valid: errors.length === 0, errors };

@@ -113,109 +113,38 @@ export default function ProfileChat({
     setIsResearcherPending(false);
 
     try {
-      const response = await fetch('/api/v1/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
           message: text,
           botName: ownerName,
-          history: conversationHistory,
         }),
       });
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
         throw new Error('Request failed');
       }
 
-      // ═══════════════════════════════════════════════════════════
-      // SSE THREE-AGENT PIPELINE
-      // Entertainer arrives FAST. Researcher follows.
-      // ═══════════════════════════════════════════════════════════
+      const data = await response.json() as {
+        success: boolean;
+        response?: string;
+      };
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      const botMsg: ChatMessage = {
+        id: `r-${Date.now()}`,
+        from: displayName,
+        fromType: 'owner',
+        text: data.response || 'Signal disrupted. Try again.',
+        timestamp: getTimestamp(),
+        type: 'researcher',
+      };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Parse SSE events (split on double newline)
-        const chunks = buffer.split('\n\n');
-        buffer = chunks.pop() || '';
-
-        for (const chunk of chunks) {
-          const line = chunk.trim();
-          if (!line.startsWith('data: ')) continue;
-
-          let data: {
-            type?: string;
-            content?: string;
-            botName?: string;
-            provider?: string;
-            model?: string;
-            message?: string;
-          };
-
-          try {
-            data = JSON.parse(line.slice(6));
-          } catch {
-            continue; // Skip malformed events
-          }
-
-          if (data.type === 'entertainer' && data.content) {
-            // ── Face arrived — show IMMEDIATELY ──
-            const entertainerMsg: ChatMessage = {
-              id: `e-${Date.now()}`,
-              from: displayName,
-              fromType: 'owner',
-              text: data.content,
-              timestamp: getTimestamp(),
-              type: 'entertainer',
-            };
-            flushSync(() => {
-              setMessages((prev) => [...prev, entertainerMsg]);
-              setIsResearcherPending(true);
-            });
-          }
-
-          if (data.type === 'researcher' && data.content) {
-            // ── Researcher arrived — the real answer ──
-            const researcherMsg: ChatMessage = {
-              id: `r-${Date.now()}`,
-              from: displayName,
-              fromType: 'owner',
-              text: data.content,
-              timestamp: getTimestamp(),
-              type: 'researcher',
-            };
-            flushSync(() => {
-              setMessages((prev) => [...prev, researcherMsg]);
-              setIsResearcherPending(false);
-            });
-          }
-
-          if (data.type === 'done') {
-            flushSync(() => {
-              setIsLoading(false);
-              setIsResearcherPending(false);
-            });
-          }
-
-          if (data.type === 'error') {
-            flushSync(() => {
-              setIsLoading(false);
-              setIsResearcherPending(false);
-            });
-            throw new Error(data.message || 'Signal disrupted');
-          }
-        }
-      }
+      flushSync(() => {
+        setMessages((prev) => [...prev, botMsg]);
+      });
     } catch {
       // If API fails, show error message
       const errorMsg: ChatMessage = {
@@ -232,7 +161,7 @@ export default function ProfileChat({
       if (inputRef.current) inputRef.current.focus();
     }
     });
-  }, [inputDraft, isLoading, ownerName, displayName, conversationHistory, requireAuth]);
+  }, [inputDraft, isLoading, ownerName, displayName, requireAuth]);
 
   const statusDotColor = STATUS_DOT_COLORS[status] || '#767676';
 

@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
 // OPTIONS - CORS preflight
 // ============================================================
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {

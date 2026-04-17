@@ -45,12 +45,12 @@ export default function HeroHeader() {
   }, []);
 
   return (
-    <section className="relative text-center pt-4 pb-10 sm:pt-5 sm:pb-12 md:pt-6 md:pb-16 overflow-hidden px-4">
+    <section className="relative text-center pt-2 pb-5 sm:pt-3 sm:pb-6 md:pt-4 md:pb-8 overflow-hidden px-4">
 
       <div className="relative z-10">
         {/* Site name with animated glow */}
         <h1
-          className="font-bold tracking-tight mb-6 pulse-glow"
+          className="font-bold tracking-tight mb-3 pulse-glow"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
             color: "var(--sb-accent)",
@@ -62,7 +62,7 @@ export default function HeroHeader() {
 
         {/* Tagline with typewriter effect */}
         <div
-          className="mb-8 flex flex-col items-center justify-center gap-2 transition-all duration-500"
+          className="mb-4 flex flex-col items-center justify-center gap-2 transition-all duration-500"
           style={{ opacity: taglineVisible ? 1 : 0, transform: taglineVisible ? "translateY(0)" : "translateY(10px)" }}
         >
           {/* Mobile subtitle — wraps cleanly, no typewriter cursor */}
@@ -93,7 +93,7 @@ export default function HeroHeader() {
         </div>
 
         {/* Divider */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-4">
           <div
             className="h-px w-48 sm:w-72"
             style={{ background: "linear-gradient(90deg, transparent, var(--sb-accent), transparent)" }}
@@ -102,12 +102,12 @@ export default function HeroHeader() {
 
         {/* LIVE STATS ROW */}
         <div
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-6 mb-8 px-2 font-mono text-xs sm:text-sm transition-all duration-700"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-6 mb-4 px-2 font-mono text-xs sm:text-sm transition-all duration-700"
           style={{ opacity: statsVisible ? 1 : 0, transform: statsVisible ? "translateY(0)" : "translateY(10px)" }}
         >
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{botCount}</span>
-            <span style={{ color: "#FFFFFF" }}>BOTS</span>
+            <span style={{ color: "#FFFFFF" }}>ROBOTS</span>
           </div>
           <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
           <div className="flex items-center gap-2 whitespace-nowrap">
@@ -127,7 +127,7 @@ export default function HeroHeader() {
         </div>
 
         {/* SYSTEM ONLINE indicator */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="flex items-center justify-center gap-2 mb-5">
           <span
             className="w-2 h-2 rounded-full animate-heartbeatDot"
             style={{ backgroundColor: "var(--sb-accent)", boxShadow: "0 0 6px var(--sb-accent), 0 0 12px var(--sb-accent)" }}
@@ -152,7 +152,7 @@ export default function HeroHeader() {
         </div>
 
         <p
-          className="mt-6 text-xs tracking-widest px-4"
+          className="mt-3 text-xs tracking-widest px-4"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
             overflowWrap: "break-word",

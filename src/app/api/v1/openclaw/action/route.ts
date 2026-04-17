@@ -422,7 +422,7 @@ export async function POST(request: NextRequest) {
  * OPTIONS /api/v1/openclaw/action
  * CORS preflight
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {

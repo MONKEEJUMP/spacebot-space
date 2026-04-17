@@ -16,25 +16,9 @@ const MAX_MESSAGE_LENGTH = 1000;
 const MAX_HISTORY_ITEMS = 20;
 const MAX_HISTORY_CONTENT_LENGTH = 2000;
 
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_API_URL || 'http://localhost:11434';
-const OLLAMA_URL = `${OLLAMA_BASE_URL.replace(/\/$/, '')}/api/chat`;
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3:8b';
-const OLLAMA_FACE_MODEL = process.env.OLLAMA_FACE_MODEL || 'qwen2.5:7b-instruct';
-
-const MINIMAX_API_URL = process.env.MINIMAX_API_URL || 'https://api.minimax.chat/v1/chat/completions';
-const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || '';
-const MINIMAX_MODEL = process.env.MINIMAX_MODEL || 'MiniMax-M2.5';
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
-
-const XAI_API_KEY = process.env.XAI_API_KEY || '';
-const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1/chat/completions';
-const XAI_MODEL = process.env.XAI_MODEL || 'grok-4-1-fast-reasoning';
-
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_API_URL = process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+const CEREBRAS_API_KEY = process.env.CEREBRAS_CHAT_KEY || '';
+const CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+const CEREBRAS_MODEL = 'qwen-3-235b-a22b-instruct-2507';
 
 interface LabChatRequestBody {
   botSlug?: string;
@@ -52,13 +36,12 @@ interface ChatMessage {
 interface ModelResult {
   response: string;
   modelUsed: string;
-  provider: 'anthropic' | 'minimax' | 'ollama' | 'xai' | 'groq';
+  provider: 'cerebras';
 }
 
 /** Options for controlling token limits per pipeline agent. */
 interface ModelOptions {
-  num_predict?: number; // Ollama token limit
-  max_tokens?: number; // Anthropic/MiniMax token limit
+  max_tokens?: number;
 }
 
 function toAuthErrorResponse(code: string): NextResponse {
@@ -113,210 +96,29 @@ function sanitizeHistory(history: unknown): LabChatHistoryMessage[] {
     }));
 }
 
-async function callAnthropic(
+async function callCerebras(
   systemPrompt: string,
   messages: ChatMessage[],
   options?: ModelOptions,
 ): Promise<ModelResult> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch(CEREBRAS_API_URL, {
     method: 'POST',
     headers: {
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: options?.max_tokens ?? 700,
-      temperature: 0.4,
-      system: systemPrompt,
-      messages,
-    }),
-  });
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown Anthropic error');
-    throw new Error(`Anthropic ${response.status}: ${details}`);
-  }
-
-  const data = (await response.json()) as {
-    content?: Array<{ type?: string; text?: string }>;
-  };
-
-  const textChunks = (data.content || [])
-    .filter((chunk) => chunk.type === 'text' && typeof chunk.text === 'string')
-    .map((chunk) => chunk.text?.trim() || '')
-    .filter(Boolean);
-
-  const responseText = textChunks.join('\n').trim();
-  if (!responseText) {
-    throw new Error('Anthropic returned empty content');
-  }
-
-  return {
-    response: responseText,
-    modelUsed: ANTHROPIC_MODEL,
-    provider: 'anthropic',
-  };
-}
-
-async function callMiniMax(systemPrompt: string, messages: ChatMessage[]): Promise<ModelResult> {
-  const response = await fetch(MINIMAX_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${MINIMAX_API_KEY}`,
+      Authorization: `Bearer ${CEREBRAS_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: MINIMAX_MODEL,
-      stream: false,
-      temperature: 0.5,
-      max_tokens: 600,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    }),
-  });
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown MiniMax error');
-    throw new Error(`MiniMax ${response.status}: ${details}`);
-  }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error('MiniMax returned empty content');
-  }
-
-  return {
-    response: content,
-    modelUsed: MINIMAX_MODEL,
-    provider: 'minimax',
-  };
-}
-
-async function callOllama(
-  systemPrompt: string,
-  messages: ChatMessage[],
-  options?: ModelOptions,
-): Promise<ModelResult> {
-  let response: Response;
-  try {
-    response = await fetch(OLLAMA_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        stream: false,
-        think: false,
-        keep_alive: '30m',
-        options: {
-          num_predict: options?.num_predict ?? 512,
-        },
-      }),
-    });
-  } catch (error) {
-    console.error('[LAB CHAT] Ollama call failed:', error instanceof Error ? error.message : error);
-    throw error;
-  }
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown Ollama error');
-    throw new Error(`Ollama ${response.status}: ${details}`);
-  }
-
-  const data = (await response.json()) as { message?: { content?: string } };
-  const content = data.message?.content?.trim();
-
-  if (!content) {
-    throw new Error('Ollama returned empty content');
-  }
-
-  return {
-    response: content,
-    modelUsed: OLLAMA_MODEL,
-    provider: 'ollama',
-  };
-}
-
-/**
- * Ollama caller specifically for the Greeter agent — uses OLLAMA_FACE_MODEL (qwen2.5:7b-instruct).
- * Follows Greeter Master SOP v2 instructions for warm, unique greetings.
- */
-async function callOllamaFace(
-  systemPrompt: string,
-  messages: ChatMessage[],
-  options?: ModelOptions,
-): Promise<ModelResult> {
-  let response: Response;
-  try {
-    response = await fetch(OLLAMA_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: OLLAMA_FACE_MODEL,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        stream: false,
-        think: false,
-        keep_alive: '30m',
-        options: {
-          num_predict: options?.num_predict ?? 120,
-          temperature: 0.8,
-          top_p: 0.9,
-        },
-      }),
-    });
-  } catch (error) {
-    console.error('[LAB GREETER] Ollama Greeter call failed:', error instanceof Error ? error.message : error);
-    throw error;
-  }
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown Ollama Greeter error');
-    throw new Error(`Ollama Greeter ${response.status}: ${details}`);
-  }
-
-  const data = (await response.json()) as { message?: { content?: string } };
-  const content = data.message?.content?.trim();
-
-  if (!content) {
-    throw new Error('Ollama Greeter returned empty content');
-  }
-
-  return {
-    response: content,
-    modelUsed: OLLAMA_FACE_MODEL,
-    provider: 'ollama',
-  };
-}
-
-async function callXAI(
-  systemPrompt: string,
-  messages: ChatMessage[],
-  options?: ModelOptions,
-): Promise<ModelResult> {
-  const response = await fetch(XAI_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${XAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: XAI_MODEL,
+      model: CEREBRAS_MODEL,
       stream: false,
       temperature: 0.4,
-      max_tokens: options?.max_tokens ?? 700,
-      search: true,
+      max_tokens: options?.max_tokens ?? 4096,
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
     }),
   });
 
   if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown xAI error');
-    throw new Error(`xAI ${response.status}: ${details}`);
+    const details = await response.text().catch(() => 'Unknown Cerebras error');
+    throw new Error(`Cerebras ${response.status}: ${details}`);
   }
 
   const data = (await response.json()) as {
@@ -325,134 +127,36 @@ async function callXAI(
 
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) {
-    throw new Error('xAI returned empty content');
+    throw new Error('Cerebras returned empty content');
   }
 
   return {
     response: content,
-    modelUsed: XAI_MODEL,
-    provider: 'xai',
+    modelUsed: CEREBRAS_MODEL,
+    provider: 'cerebras',
   };
 }
 
-/**
- * Call GROQ API directly — Agent 1 (GREETER).
- * Model: llama-3.1-8b-instant. Fast. Cheap. Perfect for greetings.
- */
-async function callGroq(
-  systemPrompt: string,
-  messages: ChatMessage[],
-  options?: ModelOptions,
-): Promise<ModelResult> {
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      stream: false,
-      temperature: 0.8,
-      max_tokens: options?.max_tokens ?? 150,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    }),
-  });
-
-  if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown GROQ error');
-    throw new Error(`GROQ ${response.status}: ${details}`);
-  }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error('GROQ returned empty content');
-
-  return { response: content, modelUsed: GROQ_MODEL, provider: 'groq' };
-}
-
-/**
- * Generate a lab response with provider fallback chain.
- * Accepts optional ModelOptions so the pipeline can control token limits
- * differently for Face (short/fast) vs Researcher (long/thorough).
- */
 async function generateLabResponse(
   systemPrompt: string,
   messages: ChatMessage[],
   options?: ModelOptions,
 ): Promise<ModelResult> {
-  if (ANTHROPIC_API_KEY) {
-    try {
-      return await callAnthropic(systemPrompt, messages, options);
-    } catch (error) {
-      console.warn('[LAB CHAT] Anthropic failed, falling back:', error);
-    }
-  }
-
-  return callOllama(systemPrompt, messages, options);
+  return callCerebras(systemPrompt, messages, options);
 }
 
-/**
- * Greeter caller (Agent 1): GROQ → xAI → Ollama
- * Fast greeting on GROQ cloud (llama-3.1-8b-instant). Fallbacks if GROQ is down.
- */
 async function generateFaceResponse(
   systemPrompt: string,
   messages: ChatMessage[],
 ): Promise<ModelResult> {
-  // Try 1: GROQ (cloud — fast, cheap)
-  if (GROQ_API_KEY) {
-    try {
-      return await callGroq(systemPrompt, messages, { max_tokens: 150 });
-    } catch (error) {
-      console.warn('[LAB GREETER] GROQ failed, trying xAI:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  // Try 2: xAI (cloud fallback)
-  if (XAI_API_KEY) {
-    try {
-      return await callXAI(systemPrompt, messages, { max_tokens: 120 });
-    } catch (error) {
-      console.warn('[LAB GREETER] xAI failed, trying Ollama:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  // Try 3: Ollama (local fallback)
-  return callOllamaFace(systemPrompt, messages, { num_predict: 120 });
+  return callCerebras(systemPrompt, messages, { max_tokens: 256 });
 }
 
-/**
- * Researcher caller (Agent 2): xAI → GROQ → Ollama
- * Deep answer on xAI Grok cloud. GROQ/Ollama fallback if xAI fails.
- */
 async function generateResearcherResponse(
   systemPrompt: string,
   messages: ChatMessage[],
 ): Promise<ModelResult> {
-  // Try 1: xAI (primary — deep knowledge)
-  if (XAI_API_KEY) {
-    try {
-      return await callXAI(systemPrompt, messages, { max_tokens: 1500 });
-    } catch (error) {
-      console.warn('[LAB RESEARCHER] xAI failed, trying GROQ:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  // Try 2: GROQ (cloud fallback)
-  if (GROQ_API_KEY) {
-    try {
-      return await callGroq(systemPrompt, messages, { max_tokens: 1500 });
-    } catch (error) {
-      console.warn('[LAB RESEARCHER] GROQ failed, trying Ollama:', error instanceof Error ? error.message : error);
-    }
-  }
-
-  // Try 3: Ollama (local fallback)
-  return callOllama(systemPrompt, messages, { num_predict: 512 });
+  return callCerebras(systemPrompt, messages, { max_tokens: 4096 });
 }
 
 async function getOrCreateConversation(humanId: string, botId: string): Promise<{ id: string }> {
@@ -492,8 +196,8 @@ async function loadPersistedHistory(conversationId: string): Promise<LabChatHist
 
 // ─────────────────────────────────────────────────────────────────
 // SSE STREAMING — Two-Agent Parallel Pipeline
-// Agent 1 (Face) — Personality teaser on local Ollama GPU
-// Agent 2 (Researcher) — Complete answer on xAI Grok cloud
+// Agent 1 (Face) — Personality greeter on Cerebras QWEN (256 tokens)
+// Agent 2 (Researcher) — Complete answer on Cerebras QWEN (4096 tokens)
 // Both fire simultaneously. Delivered in order.
 // ─────────────────────────────────────────────────────────────────
 
@@ -602,8 +306,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (wantsSSE && isLabBotSlug(botSlug)) {
       // ═══════════════════════════════════════════════════════════
       // SSE STREAMING PATH — Two-Agent Direct Pipeline
-      // Agent 1 (GREETER): GROQ llama-3.1-8b-instant
-      // Agent 2 (EXPERT):  xAI grok-4-1-fast-reasoning
+      // Agent 1 (GREETER): Cerebras QWEN 235B (256 tokens)
+      // Agent 2 (EXPERT):  Cerebras QWEN 235B (4096 tokens)
       // Both fire simultaneously. Delivered in order.
       // ═══════════════════════════════════════════════════════════
 
@@ -625,8 +329,8 @@ export async function POST(request: NextRequest): Promise<Response> {
 
           try {
             // ═══════════════════════════════════════════════════
-            // TWO-AGENT DIRECT PIPELINE — GROQ greeter + xAI expert
-            // No Assembly Line. Direct API calls. Both fire simultaneously.
+            // TWO-AGENT DIRECT PIPELINE — Cerebras QWEN greeter + expert
+            // Cerebras QWEN — single provider, no fallback chains.
             // ═══════════════════════════════════════════════════
 
             const researcherPrompt = getResearcherPrompt(validSlug);
@@ -641,8 +345,8 @@ export async function POST(request: NextRequest): Promise<Response> {
             if (isFirstMessage) {
               // ═══════════════════════════════════════════════════
               // Sequential streaming — greeting arrives FIRST
-              // 1. Fire GROQ greeter → stream immediately (~500ms)
-              // 2. Fire xAI expert → stream when ready (~5-15s)
+              // 1. Fire Cerebras QWEN greeter → stream immediately
+              // 2. Fire Cerebras QWEN expert → stream when ready
               // ═══════════════════════════════════════════════════
 
               // STEP 1: Greeter — fires fast, streams immediately
@@ -652,7 +356,7 @@ export async function POST(request: NextRequest): Promise<Response> {
               ];
 
               const faceResult = await generateFaceResponse(facePrompt, faceMessages)
-                .catch(() => ({ response: FALLBACK_FACE[validSlug], modelUsed: 'fallback', provider: 'groq' as const }));
+                .catch(() => ({ response: FALLBACK_FACE[validSlug], modelUsed: 'fallback', provider: 'cerebras' as const }));
 
               faceText = faceResult.response;
 
@@ -666,7 +370,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
               // STEP 2: Expert — fires after greeting is already on screen
               const researcherResult = await generateResearcherResponse(researcherPrompt, researcherMessages)
-                .catch(() => ({ response: "Hmm, let me look into that more carefully — ask me again!", modelUsed: 'fallback', provider: 'xai' as const }));
+                .catch(() => ({ response: "Hmm, let me look into that more carefully — ask me again!", modelUsed: 'fallback', provider: 'cerebras' as const }));
 
               researcherText = researcherResult.response;
               researcherModel = researcherResult.modelUsed;
@@ -680,7 +384,7 @@ export async function POST(request: NextRequest): Promise<Response> {
               });
             } else {
               const researcherResult = await generateResearcherResponse(researcherPrompt, researcherMessages)
-                .catch(() => ({ response: "Hmm, let me look into that more carefully — ask me again!", modelUsed: 'fallback', provider: 'xai' as const }));
+                .catch(() => ({ response: "Hmm, let me look into that more carefully — ask me again!", modelUsed: 'fallback', provider: 'cerebras' as const }));
 
               researcherText = researcherResult.response;
               researcherModel = researcherResult.modelUsed;
@@ -733,7 +437,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // ═══════════════════════════════════════════════════════════════
     // JSON BUNDLED PATH — Two-Agent Direct
-    // No Assembly Line. Direct GROQ + xAI API calls.
+    // Cerebras QWEN — single provider, no fallback chains.
     // ═══════════════════════════════════════════════════════════════
 
     let pipelineResult;

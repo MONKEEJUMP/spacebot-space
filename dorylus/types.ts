@@ -1,4 +1,5 @@
-// DORYLUS Type Definitions
+// LUCY Type Definitions
+// Note: DorylusQuery / DorylusCycleResult type names preserved for backwards-compat.
 
 export interface DorylusQuery {
   userId: string;

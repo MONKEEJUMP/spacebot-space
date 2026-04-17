@@ -1,5 +1,9 @@
-// sanitize.ts — Response sanitizer for DORYLUS bot output
+// sanitize.ts — Response sanitizer for LUCY bot output
 // Strips emojis, markdown formatting, and enforces character limits
+
+import { logger } from '@/lib/logger';
+
+const MAX_RESPONSE_CHARS = 4000;
 
 export function sanitizeBotResponse(text: string): string {
   let result = text;
@@ -22,9 +26,9 @@ export function sanitizeBotResponse(text: string): string {
   // 6. Trim whitespace
   result = result.trim();
 
-  // 7. Enforce 800 character limit
-  if (result.length > 800) {
-    result = result.substring(0, 800) + '...';
+  // 7. Enforce character limit — bot responses capped at MAX_RESPONSE_CHARS
+  if (result.length > MAX_RESPONSE_CHARS) {
+    result = result.slice(0, MAX_RESPONSE_CHARS) + '...';
   }
 
   return result;

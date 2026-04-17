@@ -124,8 +124,8 @@ function AvatarPreview({
   size: number;
   schematicId: string;
   schematicColor: string;
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  overlayRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+  overlayRef: React.RefObject<HTMLCanvasElement>;
 }>) {
   useEffect(() => {
     const dpr = globalThis.window?.devicePixelRatio || 1;

@@ -85,6 +85,19 @@ export default function AvatarGenerator({
   accentColor,
 }: Readonly<AvatarGeneratorProps>) {
   const UNDERLAY_SCHEMATICS = ['pcb_circuit', 'pcb_dense', 'circuit_radial', 'hex_grid', 'triangle_mesh', 'isometric_grid', 'waveform', 'data_matrix'];
+  const resolvedSeed = seed ?? 'avatar';
+  const resolvedAccentColor = useMemo(() => {
+    if (!accentColor) return undefined;
+
+    const trimmed = accentColor.trim();
+
+    // Canvas color math below expects a real hex value, not a CSS variable token.
+    if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    return undefined;
+  }, [accentColor]);
 
   const namedSchematicId = useMemo(() => {
     if (!customConfig || !('schematicId' in customConfig)) return undefined;
@@ -111,8 +124,8 @@ export default function AvatarGenerator({
         rivetCount: 4,
         boltCount: 2,
         serialSuffix: 'CUST',
-        humanAccessories: isBot ? [] : customConfig.accessories,
-        botAccessories: isBot ? customConfig.accessories : [],
+        humanAccessories: isBot ? [] : [...customConfig.accessories],
+        botAccessories: isBot ? [...customConfig.accessories] : [],
       };
       const colors: FactionPalette = {
         primary: customConfig.colorPrimary,
@@ -123,24 +136,24 @@ export default function AvatarGenerator({
     }
 
     // ─── Seeder path: existing behavior UNTOUCHED ───
-    const rng = seededRandom(seed);
+    const rng = seededRandom(resolvedSeed);
     const config = generateConfig(rng, faction, isBot);
-    const colorRng = seededRandom(seed + ':color');
+    const colorRng = seededRandom(resolvedSeed + ':color');
     let colors = getColors(faction, isBot, colorRng);
 
     // Override colors with accentColor if provided
-    if (accentColor) {
-      const hex = accentColor.replace('#', '');
+    if (resolvedAccentColor) {
+      const hex = resolvedAccentColor.replace('#', '');
       const r = parseInt(hex.substring(0, 2), 16);
       const g = parseInt(hex.substring(2, 4), 16);
       const b = parseInt(hex.substring(4, 6), 16);
       const dark = '#' + [r, g, b].map(c => Math.round(c * 0.4).toString(16).padStart(2, '0')).join('');
       const light = '#' + [r, g, b].map(c => Math.min(255, Math.round(c * 1.4 + 40)).toString(16).padStart(2, '0')).join('');
-      colors = { primary: accentColor, dark, light };
+      colors = { primary: resolvedAccentColor, dark, light };
     }
 
     return { config, colors, showOverlay: true };
-  }, [seed, faction, isBot, customConfig, accentColor]);
+  }, [resolvedSeed, faction, isBot, customConfig, resolvedAccentColor]);
 
   useEffect(() => {
     // Retina support

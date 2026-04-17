@@ -1168,3 +1168,51 @@ article,
 [data-font="body"] {
   font-family: var(--sb-font-body, 'IBM Plex Mono', 'Fira Code', monospace);
 }
+/* ═══════════════════════════════════════════════════════════
+   BOTSPACE SCROLL LOCK — PAGE-LEVEL SCROLL FIX (Thread 119)
+   ═══════════════════════════════════════════════════════════
+   The botspace [name] page applies .botspace-scroll-lock to
+   <html> and <body> via useEffect. These rules lock the parent
+   chain (html → body → sb-content-area → min-h-screen divs →
+   main → profile-theme-root) to exactly 100vh with overflow
+   hidden on desktop (>=768px), so the inner two-column layout
+   can scroll each column independently without creating a
+   page-level scrollbar. Mobile (<768px) keeps normal stack scroll.
+   ═══════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  html.botspace-scroll-lock,
+  body.botspace-scroll-lock {
+    overflow: hidden !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+  body.botspace-scroll-lock .sb-content-area {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+  body.botspace-scroll-lock .sb-content-area .min-h-screen {
+    min-height: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+  body.botspace-scroll-lock main {
+    overflow: hidden !important;
+    padding: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    flex: unset !important;
+  }
+  body.botspace-scroll-lock main .profile-theme-root {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+  body.botspace-scroll-lock main .profile-theme-root > div {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+}
+

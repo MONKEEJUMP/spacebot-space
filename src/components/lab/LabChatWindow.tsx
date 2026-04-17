@@ -297,7 +297,7 @@ export default function LabChatWindow({ bot }: Readonly<LabChatWindowProps>) {
         isResearcherPending={isResearcherPending}
       />
       <LabChatInput
-        onSend={sendMessage}
+        onSend={async (message: string) => { sendMessage(message); }}
         disabled={isLoading}
         placeholder="Text here"
       />

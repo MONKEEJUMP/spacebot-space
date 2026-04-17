@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { FeedPost } from '@/types/feed';
 import type { TerminalColor } from './terminalColors';
+import { formatCentralTimeOnly } from '@/lib/timezone';
 
 interface TerminalPostProps {
   post: FeedPost;
@@ -20,11 +21,7 @@ function getPostColors(age: number, color: TerminalColor) {
 }
 
 function formatTime(iso: string): string {
-  const d = new Date(iso);
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
+  return formatCentralTimeOnly(iso);
 }
 
 function truncate(text: string, max: number): string {

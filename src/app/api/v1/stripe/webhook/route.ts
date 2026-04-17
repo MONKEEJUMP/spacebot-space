@@ -19,7 +19,7 @@ import { eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover',
+  apiVersion: '2026-02-25.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;

@@ -86,8 +86,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const updateSet: Record<string, any> = { updatedAt: new Date() };
-    const insertValues: Record<string, any> = {
+    const updateSet: Partial<typeof humanProfiles.$inferInsert> = { updatedAt: new Date() };
+    const insertValues: typeof humanProfiles.$inferInsert = {
       humanId: buddy.user_id,
       buddyName: buddy.buddy_name,
       buddyActive: true,
@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {

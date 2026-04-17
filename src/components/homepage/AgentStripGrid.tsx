@@ -71,7 +71,7 @@ export default function AgentStripGrid({ agents }: { agents: AgentData[] }) {
             <div className="flex items-start gap-3 h-full">
               {/* Avatar */}
               <div className="w-16 h-16 flex-shrink-0">
-                <AvatarGenerator seed={agent.name.toUpperCase()} size={64} isBot />
+                <AvatarGenerator seed={agent.name.includes("-") ? agent.name.toUpperCase() : agent.name} size={64} isBot />
               </div>
               {/* Text content */}
               <div className="flex-1 min-w-0">

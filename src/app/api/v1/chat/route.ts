@@ -5,9 +5,9 @@
  * POST /api/v1/chat — Send a message to a SpaceBot, get an AI response
  *
  * TWO-AGENT PIPELINE:
- *   Agent 1 (GREETER): GROQ llama-3.1-8b-instant — SOP greeter_prompt
- *   Agent 2 (EXPERT):  xAI grok-4-1-fast-reasoning — SOP expert_prompt
- *   Both fire simultaneously. Greeter arrives fast. Expert delivers depth.
+ *   Agent 1 (GREETER): Cerebras QWEN 235B — SOP greeter_prompt (max 256 tokens)
+ *   Agent 2 (EXPERT):  Cerebras QWEN 235B — SOP expert_prompt (max 4096 tokens)
+ *   Both use Cerebras inference. Greeter arrives fast. Expert delivers depth.
  *
  * @author PAULIEWOOD! & The Power Trio
  */
@@ -26,13 +26,9 @@ export const dynamic = 'force-dynamic';
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_API_URL = process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
-
-const XAI_API_KEY = process.env.XAI_API_KEY || '';
-const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1/responses';
-const XAI_MODEL = process.env.XAI_MODEL || 'grok-4-1-fast-reasoning';
+const CEREBRAS_API_KEY = process.env.CEREBRAS_CHAT_KEY || '';
+const CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+const CEREBRAS_MODEL = 'qwen-3-235b-a22b-instruct-2507';
 
 // ═══════════════════════════════════════════════════════════════
 // WORLD CONTEXT — Shared identity for all SpaceBots
@@ -238,24 +234,24 @@ Be warm, natural, no emojis, no markdown. Just the greeting text.`;
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Call GROQ API directly — Agent 1 (GREETER).
- * Model: llama-3.1-8b-instant. Fast. Cheap. Perfect for greetings.
+ * Call Cerebras QWEN directly — Agent 1 (GREETER).
+ * Model: qwen-3-235b-a22b-instruct-2507. Fast greeting, 256 tokens max.
  */
-async function callGroq(
+async function callCerebrasGreeter(
   systemPrompt: string,
   userMessage: string,
 ): Promise<{ content: string; model: string }> {
-  const response = await fetch(GROQ_API_URL, {
+  const response = await fetch(CEREBRAS_API_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${CEREBRAS_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model: CEREBRAS_MODEL,
       stream: false,
       temperature: 0.8,
-      max_tokens: 150,
+      max_tokens: 256,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -264,8 +260,8 @@ async function callGroq(
   });
 
   if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown GROQ error');
-    throw new Error(`GROQ ${response.status}: ${details}`);
+    const details = await response.text().catch(() => 'Unknown Cerebras error');
+    throw new Error(`Cerebras Greeter ${response.status}: ${details}`);
   }
 
   const data = (await response.json()) as {
@@ -273,57 +269,54 @@ async function callGroq(
   };
 
   const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error('GROQ returned empty content');
+  if (!content) throw new Error('Cerebras Greeter returned empty content');
 
-  return { content: cleanResponse(content), model: GROQ_MODEL };
+  return { content: cleanResponse(content), model: CEREBRAS_MODEL };
 }
 
 /**
- * Call xAI Responses API directly — Agent 2 (EXPERT).
- * Model: grok-4-1-fast-reasoning. Deep knowledge. Real product names.
- * Uses Responses API with web_search for real-time grounding.
+ * Call Cerebras QWEN directly — Agent 2 (EXPERT).
+ * Model: qwen-3-235b-a22b-instruct-2507. Deep knowledge, 4096 tokens max.
  */
-async function callXAI(
+async function callCerebrasExpert(
   systemPrompt: string,
   userMessage: string,
   history: { role: string; content: string }[] = [],
 ): Promise<{ content: string; model: string }> {
-  const response = await fetch(XAI_API_URL, {
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history,
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await fetch(CEREBRAS_API_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${XAI_API_KEY}`,
+      Authorization: `Bearer ${CEREBRAS_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: XAI_MODEL,
+      model: CEREBRAS_MODEL,
       stream: false,
       temperature: 0.4,
-      max_output_tokens: 1500,
-      search: true,
-      tools: [{ type: 'web_search' }],
-      instructions: systemPrompt,
-      input: [
-        ...history,
-        { role: 'user', content: userMessage },
-      ],
+      max_tokens: 4096,
+      messages,
     }),
   });
 
   if (!response.ok) {
-    const details = await response.text().catch(() => 'Unknown xAI error');
-    throw new Error(`xAI ${response.status}: ${details}`);
+    const details = await response.text().catch(() => 'Unknown Cerebras error');
+    throw new Error(`Cerebras Expert ${response.status}: ${details}`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await response.json()) as { output?: any[] };
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
 
-  // Responses API: find the message output item and extract text
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messageOutput = data.output?.find((item: any) => item.type === 'message');
-  const content = messageOutput?.content?.[0]?.text?.trim();
-  if (!content) throw new Error('xAI returned empty content');
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error('Cerebras Expert returned empty content');
 
-  return { content: cleanResponse(content), model: XAI_MODEL };
+  return { content: cleanResponse(content), model: CEREBRAS_MODEL };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -332,7 +325,7 @@ async function callXAI(
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit — prevent denial-of-wallet attacks on GROQ/xAI APIs
+    // Rate limit — prevent denial-of-wallet attacks on Cerebras API
     const ip = getClientIP(request);
     const rateLimit = await checkRateLimit(ip, 'botChat');
     if (!rateLimit.allowed) {
@@ -368,13 +361,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'botName is required' }, { status: 400 });
     }
 
-    const trimmedMessage = message.trim().slice(0, 500);
+    const trimmedMessage = message.trim().slice(0, 4000);
 
     // ─────────────────────────────────────────────────────────
     // TWO-AGENT DIRECT PIPELINE
-    // Agent 1 (GREETER): GROQ → llama-3.1-8b-instant
-    // Agent 2 (EXPERT):  xAI  → grok-4-1-fast-reasoning
-    // Both fire simultaneously. No Assembly Line. No middleware.
+    // Agent 1 (GREETER): Cerebras QWEN 235B → greeter (256 tokens)
+    // Agent 2 (EXPERT):  Cerebras QWEN 235B → expert (4096 tokens)
+    // Both use Cerebras inference. No Assembly Line. No middleware.
     // ─────────────────────────────────────────────────────────
 
     const botData = SPACEBOTS.find((b) => b.name.toUpperCase() === botName.toUpperCase());
@@ -417,15 +410,15 @@ export async function POST(request: NextRequest) {
           if (isFirstMessage) {
             // ═══════════════════════════════════════════════════
             // FIRST MESSAGE: Sequential streaming
-            // 1. Fire GROQ greeter → stream immediately (~500ms)
-            // 2. Fire xAI expert → stream when ready (~5-15s)
+            // 1. Fire Cerebras QWEN greeter → stream immediately
+            // 2. Fire Cerebras QWEN expert → stream when ready
             // User sees greeting FIRST while expert thinks.
             // ═══════════════════════════════════════════════════
 
             // STEP 1: Greeter — fires fast, streams immediately
-            const greeterResult = await callGroq(greeterPrompt, trimmedMessage)
+            const greeterResult = await callCerebrasGreeter(greeterPrompt, trimmedMessage)
               .catch((err) => {
-                console.warn('[GREETER] GROQ failed:', err instanceof Error ? err.message : err);
+                console.warn('[GREETER] Cerebras failed:', err instanceof Error ? err.message : err);
                 return { content: getFallbackResponse(), model: 'fallback' };
               });
 
@@ -433,14 +426,14 @@ export async function POST(request: NextRequest) {
               type: 'entertainer',
               content: greeterResult.content,
               botName,
-              provider: 'groq',
+              provider: 'cerebras',
               model: greeterResult.model,
             });
 
             // STEP 2: Expert — fires after greeting is already on screen
-            const expertResult = await callXAI(expertPrompt, trimmedMessage, historyMessages)
+            const expertResult = await callCerebrasExpert(expertPrompt, trimmedMessage, historyMessages)
               .catch((err) => {
-                console.warn('[EXPERT] xAI failed:', err instanceof Error ? err.message : err);
+                console.warn('[EXPERT] Cerebras failed:', err instanceof Error ? err.message : err);
                 return { content: 'Signal disrupted. Try asking me again.', model: 'fallback' };
               });
 
@@ -448,7 +441,7 @@ export async function POST(request: NextRequest) {
               type: 'researcher',
               content: expertResult.content,
               botName,
-              provider: 'xai',
+              provider: 'cerebras',
               model: expertResult.model,
             });
 
@@ -457,9 +450,9 @@ export async function POST(request: NextRequest) {
             // ═══════════════════════════════════════════════════
             // FOLLOW-UP: Expert only — no greeting needed
             // ═══════════════════════════════════════════════════
-            const expertResult = await callXAI(expertPrompt, trimmedMessage, historyMessages)
+            const expertResult = await callCerebrasExpert(expertPrompt, trimmedMessage, historyMessages)
               .catch((err) => {
-                console.warn('[EXPERT] xAI failed:', err instanceof Error ? err.message : err);
+                console.warn('[EXPERT] Cerebras failed:', err instanceof Error ? err.message : err);
                 return { content: 'Signal disrupted. Try asking me again.', model: 'fallback' };
               });
 
@@ -467,7 +460,7 @@ export async function POST(request: NextRequest) {
               type: 'researcher',
               content: expertResult.content,
               botName,
-              provider: 'xai',
+              provider: 'cerebras',
               model: expertResult.model,
             });
 
