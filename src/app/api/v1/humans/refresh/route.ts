@@ -36,6 +36,7 @@ import {
   generateTokenPair,
   isTokenVersionValid,
 } from '@/lib/security/jwt';
+import { requireClerkOrBotAuth } from '@/lib/security/clerk-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,27 @@ interface RefreshResponse {
 // ============================================================
 
 export async function POST(request: NextRequest): Promise<NextResponse<RefreshResponse>> {
+  // ── Clerk / Bot short-circuit ──────────────────────────────
+  // Clerk manages its own session rotation; bot tokens don't need refresh.
+  // If either is detected, return 200 immediately and skip the JWT logic.
+  try {
+    const clerkOrBot = await requireClerkOrBotAuth(request);
+    if (clerkOrBot?.type === 'clerk') {
+      return NextResponse.json(
+        { success: true, message: 'Session managed by Clerk' },
+        { status: 200 }
+      );
+    }
+    if (clerkOrBot?.type === 'bot') {
+      return NextResponse.json(
+        { success: true, message: 'Session managed by bot auth' },
+        { status: 200 }
+      );
+    }
+  } catch {
+    // Fall through to JWT refresh logic below
+  }
+
   const ip = getClientIP(request);
   let humanId: string | undefined;
   let humanEmail: string | undefined;

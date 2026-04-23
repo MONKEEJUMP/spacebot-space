@@ -3,14 +3,14 @@
  * "Bulletproof, Concrete, Rebar, and Steel"
  *
  * Returns the authenticated human's profile.
- * First endpoint that uses verifyHumanRequest().
+ * Uses Clerk session via requireClerkOrBotAuth().
  *
  * @author PAULIEWOOD! & The Power Trio
  * @security IRONCLAD
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
+import { requireClerkOrBotAuth } from '@/lib/security/clerk-auth';
 import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
 import { db } from '@/db';
 import { humans, humanAgentLinks } from '@/db/schema';
@@ -24,7 +24,7 @@ export const dynamic = 'force-dynamic';
  * Returns the authenticated human's profile data.
  *
  * @security Rate limited: 60 requests/min (humanDashboard)
- * @security JWT access token required
+ * @security Clerk session required
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIP(request);
@@ -44,45 +44,27 @@ export async function GET(request: NextRequest) {
     }
 
     // ── LAYER 2: Authentication ─────────────────────────────────
-    const authResult = await verifyHumanRequest(request);
+    const authResult = await requireClerkOrBotAuth(request);
 
-    if (!authResult.success) {
-      // Map error codes to HTTP status codes
-      const statusMap: Record<string, number> = {
-        'NO_TOKEN': 401,
-        'INVALID_TOKEN': 401,
-        'EXPIRED_TOKEN': 401,
-        'NOT_HUMAN': 403,
-        'NOT_ACCESS_TOKEN': 403,
-        'NOT_FOUND': 404,
-        'VERSION_MISMATCH': 401, // Token version changed (logout/password reset) = re-auth required
-      };
-
-      const status = statusMap[authResult.code] || 401;
-
-      // Map to user-friendly error messages
-      const messageMap: Record<string, string> = {
-        'NO_TOKEN': 'Authentication required',
-        'INVALID_TOKEN': 'Invalid authentication token',
-        'EXPIRED_TOKEN': 'Session expired. Please log in again.',
-        'NOT_HUMAN': 'Access denied',
-        'NOT_ACCESS_TOKEN': 'Access denied',
-        'NOT_FOUND': 'User not found',
-        'VERSION_MISMATCH': 'Session invalidated. Please log in again.',
-      };
-
+    if (!authResult) {
       return NextResponse.json(
-        { success: false, error: messageMap[authResult.code] || 'Authentication failed' },
-        { status }
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
       );
     }
 
-    // Auth successful - get the humanId
-    const { humanId } = authResult;
+    if (authResult.type === 'bot') {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 401 }
+      );
+    }
+
+    // Auth successful - Clerk session
+    const clerkUserId = authResult.userId;
 
     // ── LAYER 3: Fetch Full Profile ─────────────────────────────
-    // verifyHumanRequest only returns basic fields (id, email, name, tokenVersion)
-    // We need more fields for the profile, but NEVER sensitive ones
+    // Look up the humans row by Clerk user id. Never return sensitive fields.
     const [humanProfile] = await db
       .select({
         id: humans.id,
@@ -103,15 +85,17 @@ export async function GET(request: NextRequest) {
         // lastLoginIp
       })
       .from(humans)
-      .where(eq(humans.id, humanId))
+      .where(eq(humans.clerkId, clerkUserId))
       .limit(1);
 
     if (!humanProfile) {
       return NextResponse.json(
         { success: false, error: 'User not found' },
-        { status: 404 }
+        { status: 401 }
       );
     }
+
+    const humanId = humanProfile.id;
 
     // ── Count Claimed Agents ────────────────────────────────────
     const [agentCount] = await db
