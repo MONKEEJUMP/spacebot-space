@@ -74,6 +74,8 @@ function detectFastPath(results: WingmanResult[]): { isFastPath: boolean; apiDat
 // Falls back silently to LUCY if tool service is unavailable.
 // ════════════════════════════════════════════
 async function tryToolService(question: string, botPrompt: string): Promise<string | null> {
+  const TOOL_SERVICE_ENABLED = process.env.TOOL_SERVICE_ENABLED === 'true';
+  if (!TOOL_SERVICE_ENABLED) return null;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);

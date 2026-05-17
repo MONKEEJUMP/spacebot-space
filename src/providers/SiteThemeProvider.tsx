@@ -62,7 +62,7 @@ interface SiteThemeProviderProps {
 
 export default function SiteThemeProvider({
   children,
-  initialThemeId = 'dark',
+  initialThemeId = 'light',
 }: SiteThemeProviderProps) {
   const [themeId, setThemeIdState] = useState<SiteThemeId>(initialThemeId);
   const [temporaryThemeId, setTemporaryThemeId] = useState<SiteThemeId | null>(null);
@@ -70,38 +70,26 @@ export default function SiteThemeProvider({
   const activeThemeId = temporaryThemeId ?? themeId;
   const theme = SITE_THEMES_BY_ID[activeThemeId];
 
-  // ── On mount: read from localStorage ──────────────────────
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('sb-theme');
-      if (stored && isValidThemeId(stored)) {
-        setThemeIdState(stored);
-      }
-    } catch {
-      // SSR or localStorage blocked — ignore
-    }
-  }, []);
+  // ── On mount: localStorage read DISABLED — light mode locked ──────
+  // useEffect(() => {
+  //   try {
+  //     const stored = localStorage.getItem('sb-theme');
+  //     if (stored && isValidThemeId(stored)) {
+  //       setThemeIdState(stored);
+  //     }
+  //   } catch {}
+  // }, []);
 
-  // ── When activeThemeId changes: update <html data-theme> + invert filter ──
+  // ── Enforce light mode — overwrite any data-theme on mount ──
   useEffect(() => {
-    const html = document.documentElement;
-    html.setAttribute('data-theme', activeThemeId);
-    // Invert theme: apply CSS filter for full color inversion
-    if (activeThemeId === 'invert') {
-      html.style.filter = 'invert(1)';
-    } else {
-      html.style.filter = '';
-    }
-  }, [activeThemeId]);
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.style.filter = '';
+  }, []);
 
   // ── setTheme: persist + update ────────────────────────────
   const setTheme = useCallback((id: SiteThemeId) => {
     setThemeIdState(id);
-    try {
-      localStorage.setItem('sb-theme', id);
-    } catch {
-      // localStorage blocked — ignore
-    }
+    // localStorage.setItem disabled — light mode locked
     // Fire-and-forget Supabase sync
     void syncThemeToSupabase(id);
   }, []);

@@ -1,4 +1,4 @@
-// drizzle.config.ts — Agent D (Fix 21, April 11 2026)
+// drizzle.config.ts — Agent D (Fix 21, April 11 2026) + Hermes bridge
 // Notes:
 //  - drizzle-kit reads this file at runtime via its own loader; it does NOT
 //    import this TS module at build time. The structural type is inlined so
@@ -9,7 +9,7 @@
 //  - migrations land in drizzle/migrations (gitignored — regenerated from schema)
 
 type DrizzleConfig = {
-  schema: string;
+  schema: string | string[];
   out: string;
   dialect: 'postgresql';
   dbCredentials: {
@@ -20,7 +20,7 @@ type DrizzleConfig = {
 };
 
 const config: DrizzleConfig = {
-  schema: './src/db/schema.ts',
+  schema: ['./src/db/schema.ts', './src/db/hermes-schema.ts'],
   out: './drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {

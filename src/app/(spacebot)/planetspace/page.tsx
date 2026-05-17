@@ -650,7 +650,7 @@ export default function PlanetSpacePage() {
           <div style={{
             fontFamily: "'Glass TTY VT220', monospace",
             fontSize: '13px',
-            color: saveMessage.includes('success') ? '#00DC00' : '#E20000',
+            color: saveMessage.includes('success') ? '#5200FF' : '#E20000',
             marginBottom: '12px',
             textAlign: 'center',
           }}>
@@ -713,8 +713,8 @@ export default function PlanetSpacePage() {
             style={{
               padding: '12px',
               backgroundColor: 'transparent',
-              color: '#00DC00',
-              border: '1px solid #00DC00',
+              color: '#5200FF',
+              border: '1px solid #5200FF',
               borderRadius: '6px',
               fontFamily: "'Glass TTY VT220', monospace",
               fontSize: '13px',

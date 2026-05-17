@@ -1,0 +1,2153 @@
+{
+  "catalog_path": "/root/lucy-voice-variants/catalog.json",
+  "catalog_version": "1.0",
+  "default_voice_id": "LUCY-VOICE-168",
+  "generated_at": "2026-04-17T22:46:47Z",
+  "mappings": {
+    "AERO-DRIFT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "AERO-DRIFT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-014"
+    },
+    "AGRI-BOT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "AGRI-BOT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-147"
+    },
+    "AISLE-DREAM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "AISLE-DREAM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-171"
+    },
+    "ALLOY-MIND": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ALLOY-MIND",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-043"
+    },
+    "ANCHOR-LAW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ANCHOR-LAW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-041"
+    },
+    "AQUA-LANE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "AQUA-LANE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-201"
+    },
+    "ARC-WELD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ARC-WELD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-209"
+    },
+    "ARCH-FORM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ARCH-FORM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-044"
+    },
+    "ATLAS-ONE": {
+      "assignment_method": "premium_ordered",
+      "display_name": "ATLAS-ONE",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-168"
+    },
+    "BALLOT-BOX": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BALLOT-BOX",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-100"
+    },
+    "BEACON-12": {
+      "assignment_method": "premium_ordered",
+      "display_name": "BEACON-12",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-033"
+    },
+    "BIO-MECH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BIO-MECH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-032"
+    },
+    "BLAZE-TEAM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BLAZE-TEAM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-118"
+    },
+    "BLOCK-FORGE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BLOCK-FORGE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-157"
+    },
+    "BLOOM-YARD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BLOOM-YARD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-175"
+    },
+    "BONE-FORGE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BONE-FORGE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-068"
+    },
+    "BORDER-LINE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BORDER-LINE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-195"
+    },
+    "BRAND-ARC": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BRAND-ARC",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-029"
+    },
+    "BRAND-PULSE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BRAND-PULSE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-112"
+    },
+    "BRIDGE-LEARN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "BRIDGE-LEARN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-122"
+    },
+    "Blaze": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Blaze",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-109"
+    },
+    "CALM-MIND": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CALM-MIND",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-039"
+    },
+    "CAMPUS-MIND": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CAMPUS-MIND",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-182"
+    },
+    "CARBON-ZERO": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CARBON-ZERO",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-151"
+    },
+    "CARE-POLICY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CARE-POLICY",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-106"
+    },
+    "CELL-SCOPE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CELL-SCOPE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-151"
+    },
+    "CENSUS-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CENSUS-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-096"
+    },
+    "CHAIN-LINK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CHAIN-LINK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-146"
+    },
+    "CHALK-BOARD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CHALK-BOARD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-141"
+    },
+    "CHEF-BLADE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CHEF-BLADE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-197"
+    },
+    "CHEM-FLUX": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CHEM-FLUX",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-193"
+    },
+    "CHRONICLE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CHRONICLE",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-226"
+    },
+    "CIPHER-9": {
+      "assignment_method": "premium_ordered",
+      "display_name": "CIPHER-9",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-178"
+    },
+    "CITY-PLAN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CITY-PLAN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-058"
+    },
+    "CLASS-TECH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CLASS-TECH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-155"
+    },
+    "CLOUD-ARCH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CLOUD-ARCH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-116"
+    },
+    "CODE-SMITH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CODE-SMITH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-017"
+    },
+    "CONNECT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CONNECT",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-221"
+    },
+    "CONTENT-HUB": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CONTENT-HUB",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-110"
+    },
+    "CORP-COUNSEL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CORP-COUNSEL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-219"
+    },
+    "CORP-VOICE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CORP-VOICE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-083"
+    },
+    "COUNTER-FORCE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "COUNTER-FORCE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-147"
+    },
+    "COURT-VISION": {
+      "assignment_method": "sha256_mod",
+      "display_name": "COURT-VISION",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-209"
+    },
+    "CRIME-MAP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CRIME-MAP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-129"
+    },
+    "CRISIS-OPS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CRISIS-OPS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-125"
+    },
+    "CROP-FIELD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CROP-FIELD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-149"
+    },
+    "CROSS-FIRE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CROSS-FIRE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-167"
+    },
+    "CRYPTO-SAGE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CRYPTO-SAGE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-131"
+    },
+    "CULTURE-DIG": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CULTURE-DIG",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-115"
+    },
+    "CURATOR-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "CURATOR-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-040"
+    },
+    "Cleo": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Cleo",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-122"
+    },
+    "DAMAGE-CTRL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DAMAGE-CTRL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-111"
+    },
+    "DATA-FLOW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DATA-FLOW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-069"
+    },
+    "DEAL-MAKER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DEAL-MAKER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-167"
+    },
+    "DEAL-TABLE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DEAL-TABLE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-180"
+    },
+    "DEEP-BLUE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DEEP-BLUE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-042"
+    },
+    "DEEP-DIVE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DEEP-DIVE",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-223"
+    },
+    "DERMA-SCAN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DERMA-SCAN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-085"
+    },
+    "DEVIL-ADV": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DEVIL-ADV",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-225"
+    },
+    "DIGI-CULTURE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DIGI-CULTURE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-127"
+    },
+    "DIGI-ID": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DIGI-ID",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-211"
+    },
+    "DIGI-LAW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DIGI-LAW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-093"
+    },
+    "DOC-WRITER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DOC-WRITER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-061"
+    },
+    "DR-CARDIO": {
+      "assignment_method": "sha256_mod",
+      "display_name": "DR-CARDIO",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-009"
+    },
+    "DRIFT-CORE": {
+      "assignment_method": "premium_ordered",
+      "display_name": "DRIFT-CORE",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-174"
+    },
+    "Dash": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Dash",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-120"
+    },
+    "E-LEARN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "E-LEARN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-034"
+    },
+    "ECHO-PRIME": {
+      "assignment_method": "premium_ordered",
+      "display_name": "ECHO-PRIME",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-101"
+    },
+    "ECO-LIFE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ECO-LIFE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-098"
+    },
+    "ECO-STRUCT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ECO-STRUCT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-189"
+    },
+    "ECON-GRAPH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ECON-GRAPH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-158"
+    },
+    "EDU-REFORM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "EDU-REFORM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-050"
+    },
+    "ENVOY-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ENVOY-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-175"
+    },
+    "ESTATE-KEY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ESTATE-KEY",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-095"
+    },
+    "FAIR-WAY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FAIR-WAY",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-025"
+    },
+    "FAITH-STUDY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FAITH-STUDY",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-103"
+    },
+    "FIN-FORGE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FIN-FORGE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-207"
+    },
+    "FIRE-WALL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FIRE-WALL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-128"
+    },
+    "FISSION-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FISSION-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-008"
+    },
+    "FLAVOR-MAP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FLAVOR-MAP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-148"
+    },
+    "FLEX-FLOW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FLEX-FLOW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-163"
+    },
+    "FLIGHT-DECK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FLIGHT-DECK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-143"
+    },
+    "FLOW-LINE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FLOW-LINE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-123"
+    },
+    "FORGE-X": {
+      "assignment_method": "premium_ordered",
+      "display_name": "FORGE-X",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-252"
+    },
+    "FOSSIL-TRACE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FOSSIL-TRACE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-080"
+    },
+    "FRAME-JUMP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FRAME-JUMP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-189"
+    },
+    "FRONT-PAGE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FRONT-PAGE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-043"
+    },
+    "FUEL-BODY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FUEL-BODY",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-188"
+    },
+    "FUTURE-CAST": {
+      "assignment_method": "sha256_mod",
+      "display_name": "FUTURE-CAST",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-223"
+    },
+    "GAME-ENGINE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GAME-ENGINE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-187"
+    },
+    "GEAR-WORKS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GEAR-WORKS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-202"
+    },
+    "GENDER-SCOPE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GENDER-SCOPE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-171"
+    },
+    "GENE-MAP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GENE-MAP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-154"
+    },
+    "GLITCH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GLITCH",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-225"
+    },
+    "GOV-GRID": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GOV-GRID",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-150"
+    },
+    "GREEN-LAW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GREEN-LAW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-209"
+    },
+    "GREEN-THUMB": {
+      "assignment_method": "sha256_mod",
+      "display_name": "GREEN-THUMB",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-024"
+    },
+    "HANDY-WORK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HANDY-WORK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-088"
+    },
+    "HEALTH-GRID": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HEALTH-GRID",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-015"
+    },
+    "HEARTH-LAW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HEARTH-LAW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-171"
+    },
+    "HELIX-3": {
+      "assignment_method": "premium_ordered",
+      "display_name": "HELIX-3",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-196"
+    },
+    "HERITAGE-KEEP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HERITAGE-KEEP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-054"
+    },
+    "HOLO-LENS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HOLO-LENS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-198"
+    },
+    "HORIZON-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "HORIZON-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-165"
+    },
+    "IMMUNO-WALL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "IMMUNO-WALL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-145"
+    },
+    "INK-GRID": {
+      "assignment_method": "sha256_mod",
+      "display_name": "INK-GRID",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-181"
+    },
+    "IRON-LAW": {
+      "assignment_method": "sha256_mod",
+      "display_name": "IRON-LAW",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-067"
+    },
+    "IRON-LIFT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "IRON-LIFT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-099"
+    },
+    "Indie": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Indie",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-116"
+    },
+    "JOINT-FIX": {
+      "assignment_method": "sha256_mod",
+      "display_name": "JOINT-FIX",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-139"
+    },
+    "Jett": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Jett",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-068"
+    },
+    "Kit": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Kit",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-080"
+    },
+    "LAUNCH-PAD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LAUNCH-PAD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-199"
+    },
+    "LEDGER-PRO": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LEDGER-PRO",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-091"
+    },
+    "LEGAL-BYTE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LEGAL-BYTE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-191"
+    },
+    "LENS-CRAFT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LENS-CRAFT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-039"
+    },
+    "LEXICON": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LEXICON",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-114"
+    },
+    "LIBERTY-BELL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LIBERTY-BELL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-099"
+    },
+    "LINGUA-FLEX": {
+      "assignment_method": "sha256_mod",
+      "display_name": "LINGUA-FLEX",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-022"
+    },
+    "LUMEN-4": {
+      "assignment_method": "premium_ordered",
+      "display_name": "LUMEN-4",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-078"
+    },
+    "MANTIS-6": {
+      "assignment_method": "premium_ordered",
+      "display_name": "MANTIS-6",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-046"
+    },
+    "MATH-PROOF": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MATH-PROOF",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-073"
+    },
+    "MED-NEXUS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MED-NEXUS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-042"
+    },
+    "MEDIA-LENS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MEDIA-LENS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-171"
+    },
+    "MIC-CHECK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIC-CHECK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-090"
+    },
+    "MICRO-LENS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MICRO-LENS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-016"
+    },
+    "MILE-MARK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MILE-MARK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-031"
+    },
+    "MIND-BLOOM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIND-BLOOM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-025"
+    },
+    "MIND-GAME": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIND-GAME",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-147"
+    },
+    "MIND-TECH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIND-TECH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-186"
+    },
+    "MIND-WEAVE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIND-WEAVE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-216"
+    },
+    "MIRROR": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MIRROR",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-225"
+    },
+    "MOLECULE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MOLECULE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-179"
+    },
+    "MORAL-COMPASS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "MORAL-COMPASS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-114"
+    },
+    "Milo": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Milo",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-103"
+    },
+    "NANO-SCALE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "NANO-SCALE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-072"
+    },
+    "NEST-GUIDE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "NEST-GUIDE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-173"
+    },
+    "NEURAL-NET": {
+      "assignment_method": "sha256_mod",
+      "display_name": "NEURAL-NET",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-213"
+    },
+    "NEURO-PULSE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "NEURO-PULSE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-002"
+    },
+    "NEXUS-7": {
+      "assignment_method": "premium_ordered",
+      "display_name": "NEXUS-7",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-138"
+    },
+    "NOVA-ONE": {
+      "assignment_method": "premium_ordered",
+      "display_name": "NOVA-ONE",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-019"
+    },
+    "NUTRI-CODE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "NUTRI-CODE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-005"
+    },
+    "ONCO-SHIELD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ONCO-SHIELD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-050"
+    },
+    "ORBIT-TRADE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ORBIT-TRADE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-128"
+    },
+    "ORBITAL-X": {
+      "assignment_method": "premium_ordered",
+      "display_name": "ORBITAL-X",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-006"
+    },
+    "PATENT-GUARD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PATENT-GUARD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-191"
+    },
+    "PATH-FINDER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PATH-FINDER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-203"
+    },
+    "PAW-CARE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PAW-CARE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-154"
+    },
+    "PENNY-WISE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PENNY-WISE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-073"
+    },
+    "PHOTON-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PHOTON-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-068"
+    },
+    "PIPE-LINE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PIPE-LINE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-076"
+    },
+    "PIPE-MASTER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PIPE-MASTER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-185"
+    },
+    "PITCH-MASTER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PITCH-MASTER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-120"
+    },
+    "PIXEL-TAP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PIXEL-TAP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-010"
+    },
+    "PODIUM-PRO": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PODIUM-PRO",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-206"
+    },
+    "POLI-SCOPE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "POLI-SCOPE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-151"
+    },
+    "POLICY-CRAFT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "POLICY-CRAFT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-054"
+    },
+    "POP-PULSE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "POP-PULSE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-111"
+    },
+    "PRESS-DESK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PRESS-DESK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-003"
+    },
+    "PRISM-X": {
+      "assignment_method": "premium_ordered",
+      "display_name": "PRISM-X",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-234"
+    },
+    "PSYCHE-MAP": {
+      "assignment_method": "sha256_mod",
+      "display_name": "PSYCHE-MAP",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-052"
+    },
+    "PULSE-NET": {
+      "assignment_method": "premium_ordered",
+      "display_name": "PULSE-NET",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-214"
+    },
+    "Pepper": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Pepper",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-148"
+    },
+    "Q-CIRCUIT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Q-CIRCUIT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-129"
+    },
+    "QUANTUM-ASH": {
+      "assignment_method": "premium_ordered",
+      "display_name": "QUANTUM-ASH",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-117"
+    },
+    "QUBIT-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "QUBIT-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-108"
+    },
+    "QUILL-STORM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "QUILL-STORM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-116"
+    },
+    "READ-WRITE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "READ-WRITE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-121"
+    },
+    "REEL-CUT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "REEL-CUT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-220"
+    },
+    "REGS-GREEN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "REGS-GREEN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-192"
+    },
+    "RELIC-HUNT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "RELIC-HUNT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-040"
+    },
+    "REVENUE-CODE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "REVENUE-CODE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-159"
+    },
+    "REWIND": {
+      "assignment_method": "sha256_mod",
+      "display_name": "REWIND",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-232"
+    },
+    "RIDDLE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "RIDDLE",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-230"
+    },
+    "RISK-SHIELD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "RISK-SHIELD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-110"
+    },
+    "ROBO-CORE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ROBO-CORE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-055"
+    },
+    "ROCK-LAYER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ROCK-LAYER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-120"
+    },
+    "ROSETTA": {
+      "assignment_method": "sha256_mod",
+      "display_name": "ROSETTA",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-060"
+    },
+    "SAW-DUST": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SAW-DUST",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-042"
+    },
+    "SEA-HELM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SEA-HELM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-110"
+    },
+    "SELF-DRIVE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SELF-DRIVE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-027"
+    },
+    "SENSOR-MESH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SENSOR-MESH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-188"
+    },
+    "SERVE-ACE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SERVE-ACE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-131"
+    },
+    "SHADOW-INTEL": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SHADOW-INTEL",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-007"
+    },
+    "SHELF-SPACE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SHELF-SPACE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-185"
+    },
+    "SHUTTER-EYE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SHUTTER-EYE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-108"
+    },
+    "SIMPLIFY": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SIMPLIFY",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-223"
+    },
+    "SOCIAL-LENS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SOCIAL-LENS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-135"
+    },
+    "SOMMELIER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SOMMELIER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-079"
+    },
+    "SOUND-WAVE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SOUND-WAVE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-115"
+    },
+    "SPACE-PLAN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SPACE-PLAN",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-038"
+    },
+    "SPARK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SPARK",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-230"
+    },
+    "SPEED-RUN": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SPEED-RUN",
+      "source_type": "labbot",
+      "space": "labspace",
+      "tier": "labbot",
+      "voice_id": "LUCY-VOICE-226"
+    },
+    "STAGE-LIGHT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STAGE-LIGHT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-027"
+    },
+    "STAR-GAZE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STAR-GAZE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-003"
+    },
+    "STEM-SPARK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STEM-SPARK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-175"
+    },
+    "STORM-CAST": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STORM-CAST",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-060"
+    },
+    "STREET-BEAT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STREET-BEAT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-056"
+    },
+    "STRIKE-FORCE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "STRIKE-FORCE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-126"
+    },
+    "SYLLABUS-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SYLLABUS-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-200"
+    },
+    "SYNTH-BIO": {
+      "assignment_method": "sha256_mod",
+      "display_name": "SYNTH-BIO",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-134"
+    },
+    "Sage": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Sage",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-004"
+    },
+    "Sunny": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Sunny",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-040"
+    },
+    "TAX-HAWK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TAX-HAWK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-207"
+    },
+    "TERRA-BUILD": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TERRA-BUILD",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-001"
+    },
+    "THERMO-FIX": {
+      "assignment_method": "sha256_mod",
+      "display_name": "THERMO-FIX",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-134"
+    },
+    "THOUGHT-LAB": {
+      "assignment_method": "sha256_mod",
+      "display_name": "THOUGHT-LAB",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-057"
+    },
+    "THREAD-LINE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "THREAD-LINE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-053"
+    },
+    "TIDY-SPACE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TIDY-SPACE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-148"
+    },
+    "TIME-KEEPER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TIME-KEEPER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-007"
+    },
+    "TINY-MED": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TINY-MED",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-197"
+    },
+    "TINY-STEPS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TINY-STEPS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-038"
+    },
+    "TOPO-MIND": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TOPO-MIND",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-085"
+    },
+    "TORQUE-7": {
+      "assignment_method": "premium_ordered",
+      "display_name": "TORQUE-7",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-184"
+    },
+    "TORQUE-WRENCH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TORQUE-WRENCH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-104"
+    },
+    "TRADE-PACT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TRADE-PACT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-212"
+    },
+    "TRADE-TEACH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TRADE-TEACH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-111"
+    },
+    "TRAUMA-RUSH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TRAUMA-RUSH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-128"
+    },
+    "TREATY-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TREATY-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-210"
+    },
+    "TRIBE-LENS": {
+      "assignment_method": "sha256_mod",
+      "display_name": "TRIBE-LENS",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-090"
+    },
+    "Tango": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Tango",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-130"
+    },
+    "UNION-SCALE": {
+      "assignment_method": "sha256_mod",
+      "display_name": "UNION-SCALE",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-133"
+    },
+    "UX-CRAFT": {
+      "assignment_method": "sha256_mod",
+      "display_name": "UX-CRAFT",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-218"
+    },
+    "VECTOR-8": {
+      "assignment_method": "premium_ordered",
+      "display_name": "VECTOR-8",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-047"
+    },
+    "VENTURE-X": {
+      "assignment_method": "sha256_mod",
+      "display_name": "VENTURE-X",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-215"
+    },
+    "VIRAL-REACH": {
+      "assignment_method": "sha256_mod",
+      "display_name": "VIRAL-REACH",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-163"
+    },
+    "VOID-WALKER": {
+      "assignment_method": "premium_ordered",
+      "display_name": "VOID-WALKER",
+      "source_type": "super_machine",
+      "space": "botspace",
+      "tier": "super_machine",
+      "voice_id": "LUCY-VOICE-011"
+    },
+    "VOLT-MASTER": {
+      "assignment_method": "sha256_mod",
+      "display_name": "VOLT-MASTER",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-073"
+    },
+    "WALL-STREET": {
+      "assignment_method": "sha256_mod",
+      "display_name": "WALL-STREET",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-086"
+    },
+    "WANDERLUST": {
+      "assignment_method": "sha256_mod",
+      "display_name": "WANDERLUST",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-023"
+    },
+    "WAR-ROOM": {
+      "assignment_method": "sha256_mod",
+      "display_name": "WAR-ROOM",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-062"
+    },
+    "WILD-WEB": {
+      "assignment_method": "sha256_mod",
+      "display_name": "WILD-WEB",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-133"
+    },
+    "WIRE-SPARK": {
+      "assignment_method": "sha256_mod",
+      "display_name": "WIRE-SPARK",
+      "source_type": "expert",
+      "space": "expertspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-194"
+    },
+    "Wren": {
+      "assignment_method": "sha256_mod",
+      "display_name": "Wren",
+      "source_type": "minion",
+      "space": "botspace",
+      "tier": "expert",
+      "voice_id": "LUCY-VOICE-038"
+    }
+  },
+  "tier_distribution": {
+    "expert": 204,
+    "labbot": 12,
+    "super_machine": 18
+  },
+  "total_bots": 234,
+  "version": "1.0",
+  "voice_pools": {
+    "expert": [
+      "LUCY-VOICE-001",
+      "LUCY-VOICE-002",
+      "LUCY-VOICE-003",
+      "LUCY-VOICE-004",
+      "LUCY-VOICE-005",
+      "LUCY-VOICE-007",
+      "LUCY-VOICE-008",
+      "LUCY-VOICE-009",
+      "LUCY-VOICE-010",
+      "LUCY-VOICE-012",
+      "LUCY-VOICE-013",
+      "LUCY-VOICE-014",
+      "LUCY-VOICE-015",
+      "LUCY-VOICE-016",
+      "LUCY-VOICE-017",
+      "LUCY-VOICE-018",
+      "LUCY-VOICE-020",
+      "LUCY-VOICE-021",
+      "LUCY-VOICE-022",
+      "LUCY-VOICE-023",
+      "LUCY-VOICE-024",
+      "LUCY-VOICE-025",
+      "LUCY-VOICE-026",
+      "LUCY-VOICE-027",
+      "LUCY-VOICE-028",
+      "LUCY-VOICE-029",
+      "LUCY-VOICE-030",
+      "LUCY-VOICE-031",
+      "LUCY-VOICE-032",
+      "LUCY-VOICE-034",
+      "LUCY-VOICE-035",
+      "LUCY-VOICE-036",
+      "LUCY-VOICE-037",
+      "LUCY-VOICE-038",
+      "LUCY-VOICE-039",
+      "LUCY-VOICE-040",
+      "LUCY-VOICE-041",
+      "LUCY-VOICE-042",
+      "LUCY-VOICE-043",
+      "LUCY-VOICE-044",
+      "LUCY-VOICE-045",
+      "LUCY-VOICE-048",
+      "LUCY-VOICE-049",
+      "LUCY-VOICE-050",
+      "LUCY-VOICE-051",
+      "LUCY-VOICE-052",
+      "LUCY-VOICE-053",
+      "LUCY-VOICE-054",
+      "LUCY-VOICE-055",
+      "LUCY-VOICE-056",
+      "LUCY-VOICE-057",
+      "LUCY-VOICE-058",
+      "LUCY-VOICE-059",
+      "LUCY-VOICE-060",
+      "LUCY-VOICE-061",
+      "LUCY-VOICE-062",
+      "LUCY-VOICE-063",
+      "LUCY-VOICE-064",
+      "LUCY-VOICE-065",
+      "LUCY-VOICE-066",
+      "LUCY-VOICE-067",
+      "LUCY-VOICE-068",
+      "LUCY-VOICE-069",
+      "LUCY-VOICE-070",
+      "LUCY-VOICE-071",
+      "LUCY-VOICE-072",
+      "LUCY-VOICE-073",
+      "LUCY-VOICE-074",
+      "LUCY-VOICE-075",
+      "LUCY-VOICE-076",
+      "LUCY-VOICE-077",
+      "LUCY-VOICE-079",
+      "LUCY-VOICE-080",
+      "LUCY-VOICE-081",
+      "LUCY-VOICE-082",
+      "LUCY-VOICE-083",
+      "LUCY-VOICE-084",
+      "LUCY-VOICE-085",
+      "LUCY-VOICE-086",
+      "LUCY-VOICE-087",
+      "LUCY-VOICE-088",
+      "LUCY-VOICE-089",
+      "LUCY-VOICE-090",
+      "LUCY-VOICE-091",
+      "LUCY-VOICE-092",
+      "LUCY-VOICE-093",
+      "LUCY-VOICE-094",
+      "LUCY-VOICE-095",
+      "LUCY-VOICE-096",
+      "LUCY-VOICE-097",
+      "LUCY-VOICE-098",
+      "LUCY-VOICE-099",
+      "LUCY-VOICE-100",
+      "LUCY-VOICE-102",
+      "LUCY-VOICE-103",
+      "LUCY-VOICE-104",
+      "LUCY-VOICE-105",
+      "LUCY-VOICE-106",
+      "LUCY-VOICE-107",
+      "LUCY-VOICE-108",
+      "LUCY-VOICE-109",
+      "LUCY-VOICE-110",
+      "LUCY-VOICE-111",
+      "LUCY-VOICE-112",
+      "LUCY-VOICE-113",
+      "LUCY-VOICE-114",
+      "LUCY-VOICE-115",
+      "LUCY-VOICE-116",
+      "LUCY-VOICE-118",
+      "LUCY-VOICE-119",
+      "LUCY-VOICE-120",
+      "LUCY-VOICE-121",
+      "LUCY-VOICE-122",
+      "LUCY-VOICE-123",
+      "LUCY-VOICE-124",
+      "LUCY-VOICE-125",
+      "LUCY-VOICE-126",
+      "LUCY-VOICE-127",
+      "LUCY-VOICE-128",
+      "LUCY-VOICE-129",
+      "LUCY-VOICE-130",
+      "LUCY-VOICE-131",
+      "LUCY-VOICE-132",
+      "LUCY-VOICE-133",
+      "LUCY-VOICE-134",
+      "LUCY-VOICE-135",
+      "LUCY-VOICE-136",
+      "LUCY-VOICE-137",
+      "LUCY-VOICE-139",
+      "LUCY-VOICE-140",
+      "LUCY-VOICE-141",
+      "LUCY-VOICE-142",
+      "LUCY-VOICE-143",
+      "LUCY-VOICE-144",
+      "LUCY-VOICE-145",
+      "LUCY-VOICE-146",
+      "LUCY-VOICE-147",
+      "LUCY-VOICE-148",
+      "LUCY-VOICE-149",
+      "LUCY-VOICE-150",
+      "LUCY-VOICE-151",
+      "LUCY-VOICE-152",
+      "LUCY-VOICE-153",
+      "LUCY-VOICE-154",
+      "LUCY-VOICE-155",
+      "LUCY-VOICE-156",
+      "LUCY-VOICE-157",
+      "LUCY-VOICE-158",
+      "LUCY-VOICE-159",
+      "LUCY-VOICE-160",
+      "LUCY-VOICE-161",
+      "LUCY-VOICE-162",
+      "LUCY-VOICE-163",
+      "LUCY-VOICE-164",
+      "LUCY-VOICE-165",
+      "LUCY-VOICE-166",
+      "LUCY-VOICE-167",
+      "LUCY-VOICE-169",
+      "LUCY-VOICE-170",
+      "LUCY-VOICE-171",
+      "LUCY-VOICE-172",
+      "LUCY-VOICE-173",
+      "LUCY-VOICE-175",
+      "LUCY-VOICE-176",
+      "LUCY-VOICE-177",
+      "LUCY-VOICE-179",
+      "LUCY-VOICE-180",
+      "LUCY-VOICE-181",
+      "LUCY-VOICE-182",
+      "LUCY-VOICE-183",
+      "LUCY-VOICE-185",
+      "LUCY-VOICE-186",
+      "LUCY-VOICE-187",
+      "LUCY-VOICE-188",
+      "LUCY-VOICE-189",
+      "LUCY-VOICE-190",
+      "LUCY-VOICE-191",
+      "LUCY-VOICE-192",
+      "LUCY-VOICE-193",
+      "LUCY-VOICE-194",
+      "LUCY-VOICE-195",
+      "LUCY-VOICE-197",
+      "LUCY-VOICE-198",
+      "LUCY-VOICE-199",
+      "LUCY-VOICE-200",
+      "LUCY-VOICE-201",
+      "LUCY-VOICE-202",
+      "LUCY-VOICE-203",
+      "LUCY-VOICE-204",
+      "LUCY-VOICE-205",
+      "LUCY-VOICE-206",
+      "LUCY-VOICE-207",
+      "LUCY-VOICE-208",
+      "LUCY-VOICE-209",
+      "LUCY-VOICE-210",
+      "LUCY-VOICE-211",
+      "LUCY-VOICE-212",
+      "LUCY-VOICE-213",
+      "LUCY-VOICE-215",
+      "LUCY-VOICE-216",
+      "LUCY-VOICE-217",
+      "LUCY-VOICE-218",
+      "LUCY-VOICE-219",
+      "LUCY-VOICE-220"
+    ],
+    "labbot": [
+      "LUCY-VOICE-221",
+      "LUCY-VOICE-222",
+      "LUCY-VOICE-223",
+      "LUCY-VOICE-224",
+      "LUCY-VOICE-225",
+      "LUCY-VOICE-226",
+      "LUCY-VOICE-227",
+      "LUCY-VOICE-228",
+      "LUCY-VOICE-229",
+      "LUCY-VOICE-230",
+      "LUCY-VOICE-231",
+      "LUCY-VOICE-232"
+    ],
+    "premium": [
+      "LUCY-VOICE-168",
+      "LUCY-VOICE-033",
+      "LUCY-VOICE-178",
+      "LUCY-VOICE-174",
+      "LUCY-VOICE-101",
+      "LUCY-VOICE-252",
+      "LUCY-VOICE-196",
+      "LUCY-VOICE-078",
+      "LUCY-VOICE-046",
+      "LUCY-VOICE-138",
+      "LUCY-VOICE-019",
+      "LUCY-VOICE-006",
+      "LUCY-VOICE-234",
+      "LUCY-VOICE-214",
+      "LUCY-VOICE-117",
+      "LUCY-VOICE-184",
+      "LUCY-VOICE-047",
+      "LUCY-VOICE-011"
+    ],
+    "reserve": [
+      "LUCY-VOICE-233",
+      "LUCY-VOICE-235",
+      "LUCY-VOICE-236",
+      "LUCY-VOICE-237",
+      "LUCY-VOICE-238",
+      "LUCY-VOICE-239",
+      "LUCY-VOICE-240",
+      "LUCY-VOICE-241",
+      "LUCY-VOICE-242",
+      "LUCY-VOICE-243",
+      "LUCY-VOICE-244",
+      "LUCY-VOICE-245",
+      "LUCY-VOICE-246",
+      "LUCY-VOICE-247",
+      "LUCY-VOICE-248",
+      "LUCY-VOICE-249",
+      "LUCY-VOICE-250",
+      "LUCY-VOICE-251",
+      "LUCY-VOICE-253",
+      "LUCY-VOICE-254",
+      "LUCY-VOICE-255",
+      "LUCY-VOICE-256"
+    ]
+  }
+}

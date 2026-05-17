@@ -1,12 +1,12 @@
-// Test Bot API - Direct qwen3-max connection via DashScope
+// Test Bot API - Direct qwen-flash connection via DashScope
 // No orchestrator. No tool service. No wingmen. No LUCY. Just one model call.
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 const DASHSCOPE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
-const DASHSCOPE_KEY = 'sk-06d25c14a6d640f08fe907d28262b510';
-const MODEL = 'qwen3-max';
+const DASHSCOPE_KEY = process.env.DASHSCOPE_API_KEY;
+const MODEL = 'qwen-flash';
 
 const SYSTEM_PROMPT = 'You are a helpful AI assistant on SpaceBot.Space. Answer questions directly and concisely. Do not overthink. Do not hedge. Give the answer. /no_think';
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       response: answer,
-      path: 'direct-qwen3-max',
+      path: 'direct-qwen-flash',
       latency_ms: Date.now() - startedAt,
     });
 

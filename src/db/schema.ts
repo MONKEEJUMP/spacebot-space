@@ -205,7 +205,7 @@ export const humans = pgTable('humans', {
   avatarConfig: jsonb('avatar_config'),
 
   // Site-wide theme preference (default: Terminal Green dark)
-  siteTheme: varchar('site_theme', { length: 30 }).default('dark').notNull(),
+  siteTheme: varchar('site_theme', { length: 30 }).default('orange').notNull(),
 
   // Profile visibility
   isPublic: boolean('is_public').notNull().default(true),

@@ -16,10 +16,10 @@ const AGENTS_PER_PAGE = 24;
 // ═══════════════════════════════════════════════════════════════
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: '#00DC00',
+  ACTIVE: '#5200FF',
   AWAY: '#E6E300',
   OFFLINE: '#767676',
-  ONLINE: '#00DC00',
+  ONLINE: '#5200FF',
   IDLE: '#E6E300',
   STANDBY: '#767676',
 };
@@ -416,17 +416,17 @@ export default function ExpertSpacePage() {
               href={prevHref}
               className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
               style={{
-                color: isMyspace ? '#0000FF' : '#00DC00',
-                borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                color: isMyspace ? '#0000FF' : '#5200FF',
+                borderColor: isMyspace ? '#6A9CCF' : '#5200FF',
                 backgroundColor: 'transparent',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#5200FF';
                 e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#5200FF';
               }}
             >
               [ PREV ]
@@ -449,7 +449,7 @@ export default function ExpertSpacePage() {
           {/* Page indicator */}
           <span
             className="text-sm font-bold tracking-wider"
-            style={{ color: isMyspace ? '#000000' : '#00DC00' }}
+            style={{ color: isMyspace ? '#000000' : '#5200FF' }}
           >
             [ PAGE {displayPage} of {displayTotalPages} ]
           </span>
@@ -460,17 +460,17 @@ export default function ExpertSpacePage() {
               href={nextHref}
               className="px-4 py-2 text-sm font-bold tracking-wider border transition-colors duration-150"
               style={{
-                color: isMyspace ? '#0000FF' : '#00DC00',
-                borderColor: isMyspace ? '#6A9CCF' : '#00DC00',
+                color: isMyspace ? '#0000FF' : '#5200FF',
+                borderColor: isMyspace ? '#6A9CCF' : '#5200FF',
                 backgroundColor: 'transparent',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#00DC00';
+                e.currentTarget.style.backgroundColor = isMyspace ? '#6A9CCF' : '#5200FF';
                 e.currentTarget.style.color = isMyspace ? '#FFFFFF' : '#000000';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#00DC00';
+                e.currentTarget.style.color = isMyspace ? '#0000FF' : '#5200FF';
               }}
             >
               [ NEXT ]

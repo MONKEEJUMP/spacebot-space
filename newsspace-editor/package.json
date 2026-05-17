@@ -1,0 +1,13 @@
+{
+  "name": "newsspace-editor",
+  "version": "1.0.0",
+  "description": "QWEN-powered AI editor for NewsSpace",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "postgres": "^3.4.8"
+  }
+}

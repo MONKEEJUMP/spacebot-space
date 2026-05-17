@@ -18,7 +18,7 @@ const VIBE_CONFIG: Record<string, { frequency: number; type: OscillatorType; gai
   chaos_static: { frequency: 1200, type: 'sawtooth', gainLevel: 0.02, description: 'Chaos Static' },
 };
 
-export default function ProfileVibePlayer({ vibe, accentColor = '#00DC00' }: ProfileVibePlayerProps) {
+export default function ProfileVibePlayer({ vibe, accentColor = '#5200FF' }: ProfileVibePlayerProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -116,7 +116,7 @@ export default function ProfileVibePlayer({ vibe, accentColor = '#00DC00' }: Pro
       <button
         type="button"
         onClick={toggleMute}
-        className={`text-xs transition-colors ${muted ? 'text-[#767676] hover:text-[#00DC00]' : 'text-[#767676] hover:text-[#E20000]'}`}
+        className={`text-xs transition-colors ${muted ? 'text-[#767676] hover:text-[#5200FF]' : 'text-[#767676] hover:text-[#E20000]'}`}
         aria-label={muted ? 'Unmute vibe audio' : 'Mute vibe audio'}
       >
         {muted ? '♪ UNMUTE' : '✕ MUTE'}

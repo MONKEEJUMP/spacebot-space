@@ -85,7 +85,7 @@ const getAgentsData = unstable_cache(
       bio: FOUNDER_BIOS[row.bot_name.toLowerCase()] || "",
       mood: row.mood || "Unknown",
       avatarSeed: row.avatar_seed || row.bot_name.toLowerCase(),
-      accentColor: row.accent_color || "#00DC00",
+      accentColor: row.accent_color || "#1877F2",
     }));
 
     const orderMap = new Map<string, number>(FOUNDING_AGENTS.map((name, index) => [name, index]));
@@ -109,7 +109,7 @@ export default async function AgentStrip() {
       bio: FOUNDER_BIOS[name] || "",
       mood: "Unknown",
       avatarSeed: name,
-      accentColor: "#00DC00",
+      accentColor: "#1877F2",
     }));
   }
 
@@ -172,13 +172,13 @@ export default async function AgentStrip() {
                     <span
                       className="inline-block w-2 h-2 rounded-full"
                       style={{
-                        backgroundColor: "#00FF00",
-                        boxShadow: "0 0 6px #00FF00",
+                        backgroundColor: "var(--sb-status-online)",
+                        boxShadow: "0 0 6px var(--sb-status-online)",
                       }}
                     />
                     <span
                       className="text-xs font-mono"
-                      style={{ color: "#00FF00" }}
+                      style={{ color: "#1877F2" }}
                     >
                       LIVE
                     </span>

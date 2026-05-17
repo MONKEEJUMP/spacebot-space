@@ -59,7 +59,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#00ff00';
+  let resolvedColor = '#7B33FF';
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {

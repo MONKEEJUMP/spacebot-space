@@ -9,7 +9,7 @@ const sources = require("./sources");
 const { dedup } = require("./pipeline/url-dedup");
 const { qualityFilter } = require("./pipeline/quality-filter");
 const { normalize } = require("./pipeline/normalizer");
-const { categorize } = require("./pipeline/categorizer");
+const { categorize: qwenCategorize } = require("./lib/qwen-categorize");
 const { fuzzyDedup } = require("./pipeline/fuzzy-dedup");
 const { scoreBatch, rescoreAll } = require("./pipeline/scorer");
 const { detectBreaking, expireBreaking } = require("./pipeline/breaking-detector");
@@ -20,6 +20,21 @@ const { getBreaker } = require("./pipeline/circuit-breaker");
 const { recordSuccess, recordFailure } = require("./pipeline/health-tracker");
 const logger = require("./pipeline/logger");
 const { startHealthServer } = require("./health-server");
+
+// ── Process-global concurrency limiter for qwen categorization ───────
+async function runWithConcurrency(items, limit, fn) {
+  const results = [];
+  const executing = new Set();
+  for (const item of items) {
+    const p = Promise.resolve(fn(item)).then((r) => { executing.delete(p); return r; });
+    results.push(p);
+    executing.add(p);
+    if (executing.size >= limit) {
+      await Promise.race(executing);
+    }
+  }
+  return Promise.all(results);
+}
 
 // ── Process a batch of sources ──────────────────────────────────────
 async function processBatch(batch, tierName) {
@@ -52,12 +67,11 @@ async function processBatch(batch, tierName) {
         continue;
       }
 
-      // Pipeline: filter → normalize → categorize → URL dedup →
+      // Pipeline: filter → normalize → URL dedup → qwen categorize →
       //           fuzzy dedup → score → breaking detect → insert
       const filtered = qualityFilter(raw);
       const normalized = normalize(filtered);
-      const categorized = categorize(normalized);
-      const fresh = await dedup(categorized);
+      const fresh = await dedup(normalized);
 
       if (!fresh.length) {
         logger.info(sourceId, "No new headlines after URL dedup");
@@ -69,8 +83,12 @@ async function processBatch(batch, tierName) {
         continue;
       }
 
+      // Qwen-plus categorization — only genuinely new items reach this point
+      logger.info(sourceId, `${fresh.length} new — categorizing via qwen-plus`);
+      const categorized = await runWithConcurrency(fresh, 5, qwenCategorize);
+
       // Intelligence pipeline
-      const { unique, duplicateIds } = await fuzzyDedup(fresh);
+      const { unique, duplicateIds } = await fuzzyDedup(categorized);
       const scored = scoreBatch(unique);
       const withBreaking = detectBreaking(scored);
 

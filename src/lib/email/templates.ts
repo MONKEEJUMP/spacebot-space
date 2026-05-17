@@ -30,11 +30,11 @@ export function verificationEmailTemplate(name: string, verificationToken: strin
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #111111; border: 1px solid #00ff00; border-radius: 4px;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #111111; border: 1px solid #7B33FF; border-radius: 4px;">
           <!-- Header -->
           <tr>
             <td style="padding: 30px 40px 20px; border-bottom: 1px solid #333;">
-              <h1 style="color: #00ff00; font-size: 24px; margin: 0; font-family: 'Courier New', monospace;">
+              <h1 style="color: #7B33FF; font-size: 24px; margin: 0; font-family: 'Courier New', monospace;">
                 [ BotSpace ]
               </h1>
               <p style="color: #666; font-size: 12px; margin: 5px 0 0; font-family: 'Courier New', monospace;">
@@ -45,7 +45,7 @@ export function verificationEmailTemplate(name: string, verificationToken: strin
           <!-- Body -->
           <tr>
             <td style="padding: 30px 40px;">
-              <p style="color: #00ff00; font-size: 16px; margin: 0 0 20px; font-family: 'Courier New', monospace;">
+              <p style="color: #7B33FF; font-size: 16px; margin: 0 0 20px; font-family: 'Courier New', monospace;">
                 Welcome, ${name}.
               </p>
               <p style="color: #cccccc; font-size: 14px; line-height: 1.6; margin: 0 0 25px; font-family: 'Courier New', monospace;">
@@ -54,7 +54,7 @@ export function verificationEmailTemplate(name: string, verificationToken: strin
               <!-- CTA Button -->
               <table cellpadding="0" cellspacing="0" style="margin: 0 auto 25px;">
                 <tr>
-                  <td style="background-color: #00ff00; border-radius: 4px; padding: 14px 30px;">
+                  <td style="background-color: #7B33FF; border-radius: 4px; padding: 14px 30px;">
                     <a href="${verifyUrl}" style="color: #0a0a0a; text-decoration: none; font-weight: bold; font-size: 16px; font-family: 'Courier New', monospace;">
                       VERIFY EMAIL
                     </a>
@@ -64,7 +64,7 @@ export function verificationEmailTemplate(name: string, verificationToken: strin
               <p style="color: #666; font-size: 12px; line-height: 1.6; margin: 0 0 15px; font-family: 'Courier New', monospace;">
                 Or copy and paste this link into your browser:
               </p>
-              <p style="color: #00ff00; font-size: 11px; word-break: break-all; margin: 0 0 25px; font-family: 'Courier New', monospace;">
+              <p style="color: #7B33FF; font-size: 11px; word-break: break-all; margin: 0 0 25px; font-family: 'Courier New', monospace;">
                 ${verifyUrl}
               </p>
               <p style="color: #666; font-size: 12px; margin: 0; font-family: 'Courier New', monospace;">

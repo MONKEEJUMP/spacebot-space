@@ -19,7 +19,7 @@ export default function LabChatPage({ params }: Readonly<LabChatPageProps>) {
             [ LAB BOT NOT FOUND ]
           </h1>
           <p className="text-[#CCCCCC] mt-3">No science specialist matches that route.</p>
-          <Link href="/lab" className="inline-block mt-4 text-[#FF6600] hover:text-[#00DC00] transition-colors font-bold">
+          <Link href="/lab" className="inline-block mt-4 text-[#FF6600] hover:text-[#5200FF] transition-colors font-bold">
             &larr; Back to Lab
           </Link>
         </div>

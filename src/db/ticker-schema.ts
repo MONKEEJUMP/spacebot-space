@@ -35,6 +35,15 @@ export const tickerHeadlines = pgTable(
     clusterId: uuid("cluster_id"),
     thumbnailUrl: text("thumbnail_url"),
     isActive: boolean("is_active").notNull().default(true),
+    // NewsSpace AI Editor columns
+    editorStatus: text("editor_status").default("pending"),
+    editorApproved: boolean("editor_approved").default(false),
+    tileSize: text("tile_size"),
+    editorNote: text("editor_note"),
+    editorModel: text("editor_model"),
+    editorAttempts: smallint("editor_attempts").default(0),
+    editorReviewedAt: timestamp("editor_reviewed_at", { withTimezone: true }),
+    editorError: text("editor_error"),
   },
   (table) => ({
     activeScoreIdx: index("idx_ticker_active_score").on(

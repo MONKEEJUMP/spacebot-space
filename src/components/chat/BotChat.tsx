@@ -157,7 +157,7 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
             <span
               className="text-sm font-bold uppercase"
               style={{
-                color: 'var(--sb-accent, #00DC00)',
+                color: 'var(--sb-accent, #5200FF)',
                 fontFamily: "'Glass TTY VT220', monospace",
               }}
             >
@@ -179,14 +179,14 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
             <span
               className="w-2 h-2 rounded-full"
               style={{
-                backgroundColor: 'var(--sb-accent, #00DC00)',
-                boxShadow: '0 0 4px var(--sb-accent, #00DC00)',
+                backgroundColor: 'var(--sb-accent, #5200FF)',
+                boxShadow: '0 0 4px var(--sb-accent, #5200FF)',
               }}
             />
             <span
               className="text-[10px] uppercase tracking-widest"
               style={{
-                color: 'var(--sb-accent, #00DC00)',
+                color: 'var(--sb-accent, #5200FF)',
                 fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
               }}
             >
@@ -254,7 +254,7 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
               <span
                 className="text-sm font-bold select-none flex-shrink-0"
                 style={{
-                  color: 'var(--sb-accent, #00DC00)',
+                  color: 'var(--sb-accent, #5200FF)',
                   fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               >
@@ -280,7 +280,7 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
                 className="flex-1 bg-transparent text-sm outline-none border-none p-0 resize-none bot-chat-input"
                 style={{
                   color: 'var(--sb-text-primary, #CCCCCC)',
-                  caretColor: 'var(--sb-accent, #00DC00)',
+                  caretColor: 'var(--sb-accent, #5200FF)',
                   fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                 }}
               />
@@ -292,7 +292,7 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
                   className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 cursor-pointer transition-opacity disabled:opacity-30 flex-shrink-0"
                   style={{
                     color: 'var(--sb-bg-primary, #0a0a0a)',
-                    backgroundColor: 'var(--sb-accent, #00DC00)',
+                    backgroundColor: 'var(--sb-accent, #5200FF)',
                     fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     border: 'none',
                   }}
@@ -303,7 +303,7 @@ export default function BotChat({ botName, botDisplayName, botTagline }: Readonl
                 <span
                   className="text-[10px] uppercase tracking-widest flex-shrink-0"
                   style={{
-                    color: 'var(--sb-accent, #00DC00)',
+                    color: 'var(--sb-accent, #5200FF)',
                     fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     animation: 'botChatDotPulse 1.5s ease-in-out infinite',
                   }}

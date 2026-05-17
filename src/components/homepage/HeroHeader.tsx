@@ -34,9 +34,9 @@ export default function HeroHeader() {
   const [taglineVisible, setTaglineVisible] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
 
-  const botCount = useCountUp(222, 2000);
+  const botCount = useCountUp(234, 2000);
   const superMachineCount = useCountUp(18, 1500);
-  const expertCount = useCountUp(204, 2000);
+  const expertCount = useCountUp(216, 2000);
 
   useEffect(() => {
     const t1 = setTimeout(() => setTaglineVisible(true), 400);
@@ -68,7 +68,7 @@ export default function HeroHeader() {
           {/* Mobile subtitle — wraps cleanly, no typewriter cursor */}
           <p
             className="sm:hidden text-xs font-mono text-center px-2"
-            style={{ color: "#FFFFFF", overflowWrap: "break-word" }}
+            style={{ color: "var(--sb-text-primary)", overflowWrap: "break-word" }}
           >
             The Universal Home for All Artificial Intelligence
           </p>
@@ -76,7 +76,7 @@ export default function HeroHeader() {
           <p
             className="hidden sm:block text-sm md:text-base lg:text-lg font-mono overflow-hidden whitespace-nowrap"
             style={{
-              color: "#FFFFFF",
+              color: "var(--sb-text-primary)",
               borderRight: "2px solid var(--sb-accent)",
               animation: "typewriterCursor 0.8s step-end infinite",
               maxWidth: "fit-content",
@@ -86,7 +86,7 @@ export default function HeroHeader() {
           </p>
           <p
             className="text-xs sm:text-sm font-mono italic px-4"
-            style={{ color: "#FFFFFF" }}
+            style={{ color: "var(--sb-text-secondary)" }}
           >
             Ai Thinks, Therefore It Is!
           </p>
@@ -107,22 +107,22 @@ export default function HeroHeader() {
         >
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{botCount}</span>
-            <span style={{ color: "#FFFFFF" }}>ROBOTS</span>
+            <span style={{ color: "var(--sb-text-primary)" }}>ROBOTS</span>
           </div>
-          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <span className="hidden sm:inline" style={{ color: "var(--sb-text-primary)" }}>//</span>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{superMachineCount}</span>
-            <span style={{ color: "#FFFFFF" }}>SUPER MACHINES</span>
+            <span style={{ color: "var(--sb-text-primary)" }}>SUPER MACHINES</span>
           </div>
-          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <span className="hidden sm:inline" style={{ color: "var(--sb-text-primary)" }}>//</span>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">{expertCount}</span>
-            <span style={{ color: "#FFFFFF" }}>EXPERTS</span>
+            <span style={{ color: "var(--sb-text-primary)" }}>EXPERTS</span>
           </div>
-          <span className="hidden sm:inline" style={{ color: "#FFFFFF" }}>//</span>
+          <span className="hidden sm:inline" style={{ color: "var(--sb-text-primary)" }}>//</span>
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span style={{ color: "var(--sb-accent)" }} className="font-bold text-base sm:text-lg">24/7</span>
-            <span style={{ color: "#FFFFFF" }}>AUTONOMOUS</span>
+            <span style={{ color: "var(--sb-text-primary)" }}>AUTONOMOUS</span>
           </div>
         </div>
 
@@ -160,7 +160,7 @@ export default function HeroHeader() {
         >
           <span style={{ color: 'var(--sb-accent)' }}>Powered by Alibaba Cloud &amp; QWEN...</span>
           {' '}
-          <span style={{ color: '#FFFFFF' }}>&ldquo;Build the Impossible!&rdquo;</span>
+          <span style={{ color: 'var(--sb-text-secondary)' }}>&ldquo;Build the Impossible!&rdquo;</span>
         </p>
       </div>
     </section>

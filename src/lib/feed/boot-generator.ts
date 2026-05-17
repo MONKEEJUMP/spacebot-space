@@ -83,7 +83,7 @@ function getTechTemplates(): BootLine[] {
     { text: `DNS RESOLUTION... spacebot.space > OK`, category: 'tech' },
     { text: `THEME ENGINE... ${rand(12, 24)} THEMES AVAILABLE`, category: 'tech' },
     { text: `GLASS TTY VT220 FONT... LOADED`, category: 'tech' },
-    { text: `TERMINAL GREEN #00DC00... CALIBRATED`, category: 'tech' },
+    { text: `TERMINAL GREEN #5200FF... CALIBRATED`, category: 'tech' },
     { text: `AVATAR SEED GENERATOR... ENTROPY POOL READY`, category: 'tech' },
     { text: `SOP LIBRARY... 204 DOCUMENTS INDEXED`, category: 'tech' },
     { text: `CHAT PIPELINE... GROQ + xAI DUAL-AGENT READY`, category: 'tech' },

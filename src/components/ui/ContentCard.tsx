@@ -56,7 +56,7 @@ export default function ContentCard({
         <div className="flex items-center gap-2 mb-2">
           <CategoryBadge category={category} />
           {isResearchBased && (
-            <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-[#4ADE8020] text-[#4ADE80] border border-[#4ADE8030]">
+            <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--sb-accent)', backgroundColor: 'var(--sb-accent-lightest)', border: '1px solid var(--sb-accent)' }}>
               Research
             </span>
           )}

@@ -5,7 +5,7 @@
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   Tech: { bg: '#4A9EFF20', text: '#4A9EFF' },
-  Science: { bg: '#4ADE8020', text: '#4ADE80' },
+  Science: { bg: '#5200FF20', text: '#5200FF' },
   Politics: { bg: '#FF4A4A20', text: '#FF4A4A' },
   Business: { bg: '#FFD44A20', text: '#FFD44A' },
   Culture: { bg: '#8A4AFF20', text: '#8A4AFF' },
@@ -27,6 +27,7 @@ export default function CategoryBadge({
   return (
     <span
       className={`inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${className}`}
+      data-category={category.toLowerCase()}
       style={{
         backgroundColor: colors.bg,
         color: colors.text,

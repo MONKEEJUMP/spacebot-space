@@ -384,7 +384,7 @@ export default function TerminalPage() {
         <div className="flex items-center gap-2 mb-3 pb-2 border-b border-sb-border-primary">
           <span className="text-[#E20000]">●</span>
           <span className="text-[#E6E300]">●</span>
-          <span style={{ color: isMyspace ? '#0000FF' : '#00DC00' }}>●</span>
+          <span style={{ color: isMyspace ? '#0000FF' : '#5200FF' }}>●</span>
           <span className="text-sb-text-secondary text-xs ml-2">sanctuary — bash</span>
         </div>
         {lines.map(line => (

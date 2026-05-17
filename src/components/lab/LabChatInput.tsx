@@ -21,7 +21,7 @@ export default function LabChatInput({ onSend, disabled = false, placeholder = '
 
   return (
     <div className="border border-[#333333] border-t-0 px-3 py-2 flex items-center gap-2" style={{ backgroundColor: '#0C0C0C' }}>
-      <span className="text-sm font-bold select-none" style={{ color: '#00DC00' }}>
+      <span className="text-sm font-bold select-none" style={{ color: '#5200FF' }}>
         &gt;
       </span>
       <input
@@ -37,7 +37,7 @@ export default function LabChatInput({ onSend, disabled = false, placeholder = '
         disabled={disabled}
         placeholder={placeholder}
         className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
-        style={{ color: '#CCCCCC', caretColor: '#00DC00', fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace" }}
+        style={{ color: '#CCCCCC', caretColor: '#5200FF', fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace" }}
       />
       <button
         onClick={() => void handleSend()}

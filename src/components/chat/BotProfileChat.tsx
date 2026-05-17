@@ -5,7 +5,7 @@
  * Renders a two-column layout: bot card (left) + live chat (right).
  * Visual clone of HomepageBotChat, locked to a single bot via props.
  *
- * Uses /api/chat/stream for all bots and falls back to /api/chat.
+ * Uses /api/chat/stream for all bots without re-posting failed turns.
  *
  * @author PAULIEWOOD! & The Power Trio
  */
@@ -39,6 +39,8 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   type?: "researcher";
+  message_id?: string;
+  error?: boolean;
 }
 
 interface BotStreamEvent {
@@ -48,13 +50,6 @@ interface BotStreamEvent {
   message?: string;
   full_response?: string;
   latency_ms?: number;
-}
-
-interface JsonChatResponse {
-  success?: boolean;
-  response?: string;
-  error?: string;
-  conversationId?: string | null;
 }
 
 interface HistoryApiMessage {
@@ -69,6 +64,34 @@ interface HistoryApiResponse {
   messages?: HistoryApiMessage[];
   conversationId?: string | null;
   error?: string;
+}
+
+type StreamInterruptedError = Error & {
+  partialText?: string;
+};
+
+const INTERRUPTED_RESPONSE_FALLBACK = "[Response interrupted. Please try again.]";
+
+function createStreamInterruptedError(
+  message: string,
+  partialText: string,
+): StreamInterruptedError {
+  const error = new Error(message) as StreamInterruptedError;
+  if (partialText.trim()) {
+    error.partialText = partialText;
+  }
+  return error;
+}
+
+function getInterruptedResponseText(error: unknown): string {
+  if (error instanceof Error) {
+    const partialText = (error as StreamInterruptedError).partialText;
+    if (typeof partialText === "string" && partialText.trim()) {
+      return partialText;
+    }
+  }
+
+  return INTERRUPTED_RESPONSE_FALLBACK;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -206,6 +229,8 @@ export default function BotProfileChat({
   const { requireAuth } = useAuthGate();
   const responseIdRef = useRef(0);
   const streamSessionIdRef = useRef("");
+  const activeStreamControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
   const displayName = botName.toUpperCase();
   const hasLiveStream = Boolean(streamingText) || Boolean(streamStatus);
@@ -221,6 +246,16 @@ export default function BotProfileChat({
   // ══ Focus input on mount ══
   useEffect(() => {
     if (inputRef.current) inputRef.current.focus({ preventScroll: true });
+  }, []);
+
+  // ══ Abort in-flight stream on unmount ══
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      activeStreamControllerRef.current?.abort();
+      activeStreamControllerRef.current = null;
+    };
   }, []);
 
   // ══ Get timestamp ══
@@ -276,6 +311,7 @@ export default function BotProfileChat({
             timestamp:
               formatHistoryTimestamp(message.createdAt) || getCurrentTimestamp(),
             type: undefined,
+            message_id: message.id,
           })),
         );
 
@@ -291,9 +327,7 @@ export default function BotProfileChat({
           streamSessionIdRef.current = "";
         }
       } finally {
-        if (!cancelled) {
-          setIsHistoryLoading(false);
-        }
+        setIsHistoryLoading(false);
       }
     }
 
@@ -305,7 +339,13 @@ export default function BotProfileChat({
   }, [botName, resetStreamingState]);
 
   const appendBotMessage = useCallback(
-    (rid: number, text: string, timestamp: string) => {
+    (
+      rid: number,
+      text: string,
+      timestamp: string,
+      messageId?: string,
+      error = false,
+    ) => {
       setMessages((prev) => [
         ...prev,
         {
@@ -315,52 +355,12 @@ export default function BotProfileChat({
           text,
           timestamp,
           type: undefined,
+          message_id: messageId,
+          error,
         },
       ]);
     },
     [botName],
-  );
-
-  const sendJsonFallback = useCallback(
-    async (text: string, timestamp: string, rid: number) => {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          botName,
-          message: text,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Request failed");
-      }
-
-      const data = (await res.json()) as JsonChatResponse;
-
-      if (typeof data.conversationId === "string" && data.conversationId) {
-        streamSessionIdRef.current = data.conversationId;
-      }
-
-      if (data.success) {
-        appendBotMessage(rid, data.response || "", timestamp);
-        return;
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${rid}`,
-          from: "SYSTEM",
-          fromType: "bot",
-          text: data.error || "SIGNAL INTERRUPTED",
-          timestamp,
-        },
-      ]);
-    },
-    [appendBotMessage, botName],
   );
 
   const sendStreamRequest = useCallback(
@@ -371,6 +371,10 @@ export default function BotProfileChat({
       setStreamingText("");
       setStreamStatus("ESTABLISHING SECURE STREAM");
       setStreamTimestamp(timestamp);
+
+      activeStreamControllerRef.current?.abort();
+      const controller = new AbortController();
+      activeStreamControllerRef.current = controller;
 
       const res = await fetch("/api/chat/stream", {
         method: "POST",
@@ -383,9 +387,13 @@ export default function BotProfileChat({
           message: text,
           sessionId,
         }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
+        if (activeStreamControllerRef.current === controller) {
+          activeStreamControllerRef.current = null;
+        }
         throw new Error("Streaming request failed");
       }
 
@@ -451,7 +459,10 @@ export default function BotProfileChat({
                   : accumulated;
 
               if (!finalText.trim()) {
-                throw new Error("Stream ended without a response");
+                throw createStreamInterruptedError(
+                  "Stream ended without a response",
+                  accumulated,
+                );
               }
 
               completed = true;
@@ -461,21 +472,31 @@ export default function BotProfileChat({
             }
 
             if (data.type === "error") {
-              throw new Error(data.message || "Signal interrupted");
+              throw createStreamInterruptedError(
+                data.message || "Signal interrupted",
+                accumulated,
+              );
             }
           }
         }
       } finally {
         reader.releaseLock();
+        if (activeStreamControllerRef.current === controller) {
+          activeStreamControllerRef.current = null;
+        }
       }
 
       if (!completed && accumulated.trim()) {
-        appendBotMessage(rid, accumulated, timestamp);
-        resetStreamingState();
-        return;
+        throw createStreamInterruptedError(
+          "Bot stream ended before completion",
+          accumulated,
+        );
       }
 
-      throw new Error("Bot stream ended before completion");
+      throw createStreamInterruptedError(
+        "Bot stream ended before completion",
+        accumulated,
+      );
     },
     [appendBotMessage, botName, resetStreamingState],
   );
@@ -514,34 +535,33 @@ export default function BotProfileChat({
       resetStreamingState();
 
       try {
-        try {
-          await sendStreamRequest(text, timestamp, rid);
+        await sendStreamRequest(text, timestamp, rid);
+      } catch (streamError) {
+        if (
+          streamError instanceof DOMException &&
+          streamError.name === "AbortError"
+        ) {
           return;
-        } catch (streamError) {
-          console.warn(
-            "[BotProfileChat] Stream fallback:",
-            streamError instanceof Error ? streamError.message : streamError,
-          );
-          streamSessionIdRef.current = "";
-          resetStreamingState();
         }
-
-        await sendJsonFallback(text, timestamp, rid);
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `err-${rid}`,
-            from: "SYSTEM",
-            fromType: "bot",
-            text: "SIGNAL INTERRUPTED. TRY AGAIN.",
-            timestamp: getTimestamp(),
-          },
-        ]);
+        console.warn(
+          "[BotProfileChat] Stream interrupted:",
+          streamError instanceof Error ? streamError.message : streamError,
+        );
+        activeStreamControllerRef.current = null;
+        if (!mountedRef.current) return;
+        appendBotMessage(
+          rid,
+          getInterruptedResponseText(streamError),
+          timestamp,
+          undefined,
+          true,
+        );
       } finally {
-        setIsLoading(false);
-        resetStreamingState();
-        if (inputRef.current) inputRef.current.focus({ preventScroll: true });
+        if (mountedRef.current) {
+          setIsLoading(false);
+          resetStreamingState();
+          if (inputRef.current) inputRef.current.focus({ preventScroll: true });
+        }
       }
     });
   }, [
@@ -550,8 +570,8 @@ export default function BotProfileChat({
     isLoading,
     requireAuth,
     resetStreamingState,
-    sendJsonFallback,
     sendStreamRequest,
+    appendBotMessage,
   ]);
 
   // ═══════════════════════════════════════════════════════════
@@ -602,6 +622,7 @@ export default function BotProfileChat({
           {/* Messages — left/right aligned */}
           {messages.map((msg) => {
             const isUser = msg.fromType === "user";
+            const isInterrupted = Boolean(msg.error);
             return (
               <div
                 key={msg.id}
@@ -636,6 +657,20 @@ export default function BotProfileChat({
                         DEEP
                       </span>
                     )}
+                    {isInterrupted && (
+                      <span
+                        className="text-[9px] px-1"
+                        style={{
+                          color: "#B42318",
+                          border: "1px solid #B4231844",
+                          fontFamily:
+                            "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        INTERRUPTED
+                      </span>
+                    )}
                     <span
                       className="text-[9px]"
                       style={{
@@ -653,7 +688,9 @@ export default function BotProfileChat({
                       backgroundColor: isUser ? "#F0F0F0" : "#FFFFFF",
                       border: isUser
                         ? "1px solid #E0E0E0"
-                        : `1px solid ${botAccentColor}33`,
+                        : isInterrupted
+                          ? "1px solid #B4231866"
+                          : `1px solid ${botAccentColor}33`,
                       color: "#000000",
                       fontFamily: "'Inter', sans-serif",
                       fontSize: "14px",

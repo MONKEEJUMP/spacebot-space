@@ -31,7 +31,7 @@ const DARK_BORDERS = {
 } as const;
 
 const STATUS_COLORS = {
-  '--sb-status-online': '#4ADE80',
+  '--sb-status-online': '#5200FF',
   '--sb-status-error': '#E20000',
   '--sb-status-warning': '#E6E300',
   '--sb-status-info': '#4A9EFF',
@@ -114,35 +114,35 @@ const THEME_DARK: SiteThemeDefinition = {
   name: 'Dark Mode',
   description: 'Terminal Green on black. The default SpaceBot experience.',
   mode: 'dark',
-  accentHex: '#00DC00',
+  accentHex: '#5200FF',
   vars: {
     ...DARK_BG,
     ...DARK_TEXT,
 
-    '--sb-accent-lightest': '#00DC0014',
+    '--sb-accent-lightest': '#5200FF10',
     '--sb-accent-light': '#33FF33',
-    '--sb-accent': '#00DC00',
-    '--sb-accent-dark': '#00AA00',
+    '--sb-accent': '#5200FF',
+    '--sb-accent-dark': '#3D00CC',
     '--sb-accent-darkest': '#006600',
 
     ...DARK_BORDERS,
     ...STATUS_COLORS,
 
     '--sb-link-color': '#00D9D9',
-    '--sb-link-hover': '#00DC00',
+    '--sb-link-hover': '#5200FF',
     '--sb-link-visited': '#00D9D9',
 
     '--sb-nav-bg': '#0C0C0C',
-    '--sb-nav-text': '#00DC00',
-    '--sb-nav-hover': '#00DC00',
+    '--sb-nav-text': '#5200FF',
+    '--sb-nav-hover': '#5200FF',
     '--sb-nav-border': '#333333',
 
-    ...glow('#00DC00'),
+    ...glow('#5200FF'),
 
-    '--sb-caret-color': '#00DC00',
-    '--sb-selection-bg': '#00DC00',
+    '--sb-caret-color': '#5200FF',
+    '--sb-selection-bg': '#5200FF',
     '--sb-selection-text': '#0C0C0C',
-    '--sb-scrollbar-hover': '#00DC00',
+    '--sb-scrollbar-hover': '#5200FF',
     ...DARK_SPECIAL_BASE,
   },
 };
@@ -185,7 +185,7 @@ const THEME_RED: SiteThemeDefinition = darkTheme(
 
 const THEME_ORANGE: SiteThemeDefinition = darkTheme(
   'orange', 'Orange', 'Warm orange on black. Friendly and inviting.',
-  '#FF6600', '#FF9944', '#CC5200', '#803300',
+  '#FF6A00', '#FF8A33', '#CC5500', '#803500',
 );
 
 const THEME_GOLD: SiteThemeDefinition = darkTheme(
@@ -249,45 +249,47 @@ const THEME_LIGHT: SiteThemeDefinition = {
   name: 'Light Mode',
   description: 'Clean and bright. Terminal vibes in daylight.',
   mode: 'light',
-  accentHex: '#00AA00',
+  accentHex: '#1877F2',
   vars: {
-    '--sb-bg-primary': '#F5F5F5',
+    '--sb-bg-primary': '#F0F2F5',
     '--sb-bg-secondary': '#FFFFFF',
-    '--sb-bg-tertiary': '#EBEBEB',
-    '--sb-bg-elevated': '#E0E0E0',
+    '--sb-bg-tertiary': '#F0F2F5',
+    '--sb-bg-elevated': '#E4E6EB',
+    '--sb-text-primary': '#050505',
+    '--sb-text-secondary': '#65676B',
+    '--sb-text-tertiary': '#8A8D91',
 
-    '--sb-text-primary': '#1A1A1A',
-    '--sb-text-secondary': '#555555',
-    '--sb-text-tertiary': '#888888',
+    '--sb-accent-lightest': '#1877F215',
+    '--sb-accent-light': '#EBF5FF',
+    '--sb-accent': '#1877F2',
+    '--sb-accent-dark': '#166FE5',
+    '--sb-accent-darkest': '#1466D1',
 
-    '--sb-accent-lightest': '#00AA0014',
-    '--sb-accent-light': '#33CC33',
-    '--sb-accent': '#00AA00',
-    '--sb-accent-dark': '#008800',
-    '--sb-accent-darkest': '#006600',
+    '--sb-border-primary': '#CED0D4',
+    '--sb-border-secondary': '#E4E6EB',
 
-    '--sb-border-primary': '#DDDDDD',
-    '--sb-border-secondary': '#EEEEEE',
+    '--sb-status-online': '#1877F2',
+    '--sb-status-error': '#E41E3F',
+    '--sb-status-warning': '#F0AD4E',
+    '--sb-status-info': '#1877F2',
 
-    ...STATUS_COLORS,
+    '--sb-link-color': '#1877F2',
+    '--sb-link-hover': '#166FE5',
+    '--sb-link-visited': '#1466D1',
 
-    '--sb-link-color': '#0066CC',
-    '--sb-link-hover': '#0044AA',
-    '--sb-link-visited': '#0066CC',
-
-    '--sb-nav-bg': '#EBEBEB',
-    '--sb-nav-text': '#333333',
-    '--sb-nav-hover': '#00AA00',
-    '--sb-nav-border': '#DDDDDD',
+    '--sb-nav-bg': '#F0F2F5',
+    '--sb-nav-text': '#050505',
+    '--sb-nav-hover': '#1877F2',
+    '--sb-nav-border': '#CED0D4',
 
     '--sb-glow': 'none',
     '--sb-glow-strong': 'none',
 
-    '--sb-caret-color': '#00AA00',
-    '--sb-selection-bg': '#00AA00',
+    '--sb-caret-color': '#1877F2',
+    '--sb-selection-bg': '#1877F2',
     '--sb-selection-text': '#FFFFFF',
-    '--sb-scrollbar-thumb': '#CCCCCC',
-    '--sb-scrollbar-hover': '#00AA00',
+    '--sb-scrollbar-thumb': '#CED0D4',
+    '--sb-scrollbar-hover': '#1877F2',
     '--sb-border-radius': '0px',
     '--sb-border-width': '1px',
     '--sb-font-body': "'Glass TTY VT220', 'JetBrains Mono', monospace",
@@ -311,7 +313,7 @@ const THEME_INVERTED: SiteThemeDefinition = {
     '--sb-text-secondary': '#1A1A1A',
     '--sb-text-tertiary': '#333333',
 
-    '--sb-accent-lightest': '#003300',
+    '--sb-accent-lightest': '#290099',
     '--sb-accent-light': '#004D00',
     '--sb-accent': '#006600',
     '--sb-accent-dark': '#008000',
@@ -405,6 +407,7 @@ const THEME_CLASSIC_MYSPACE: SiteThemeDefinition = {
 // ════════════════════════════════════════════════
 
 export const SITE_THEMES: readonly SiteThemeDefinition[] = [
+  THEME_ORANGE,
   THEME_DARK,
   THEME_CYAN,
   THEME_BLUE,
@@ -412,7 +415,6 @@ export const SITE_THEMES: readonly SiteThemeDefinition[] = [
   THEME_MAGENTA,
   THEME_PINK,
   THEME_RED,
-  THEME_ORANGE,
   THEME_GOLD,
   THEME_YELLOW,
   THEME_INVERT,
@@ -444,12 +446,12 @@ const ACCENT_TO_THEME: Record<string, SiteThemeId> = {
   '#FF3366': 'pink',
   '#00D9D9': 'cyan',
   '#E600E6': 'magenta',
-  '#00DC00': 'dark',
+  '#5200FF': 'dark',
   '#FFD44A': 'gold',
   '#3399FF': 'blue',
   '#E6E300': 'yellow',
   '#4A9EFF': 'blue',
-  '#00FF00': 'dark',
+  '#7B33FF': 'dark',
 };
 
 export function botAccentToThemeId(accentColor: string): SiteThemeId {

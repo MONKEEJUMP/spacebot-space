@@ -14,11 +14,11 @@ export default function AiSpacePage() {
         <h1
           style={{
             fontFamily: "'Glass TTY VT220', 'VT323', monospace",
-            color: "var(--sb-accent, #00DC00)",
+            color: "var(--sb-accent, #5200FF)",
             fontSize: "clamp(32px, 6vw, 56px)",
             textTransform: "uppercase",
             textShadow:
-              "0 0 20px color-mix(in srgb, var(--sb-accent, #00DC00) 20%, transparent), 0 0 40px color-mix(in srgb, var(--sb-accent, #00DC00) 10%, transparent)",
+              "0 0 20px color-mix(in srgb, var(--sb-accent, #5200FF) 20%, transparent), 0 0 40px color-mix(in srgb, var(--sb-accent, #5200FF) 10%, transparent)",
             marginBottom: "12px",
             letterSpacing: "4px",
             lineHeight: 1.1,
@@ -90,16 +90,16 @@ export default function AiSpacePage() {
               lineHeight: 1.8,
             }}
           >
-            <span style={{ color: "var(--sb-accent, #00DC00)" }}>&gt;</span>{" "}
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
             A<span style={{ textTransform: "none", fontSize: "0.85em", verticalAlign: "baseline" }}>i</span>SPACE IS THE NERVE CENTER FOR ARTIFICIAL INTELLIGENCE NEWS.
             <br />
-            <span style={{ color: "var(--sb-accent, #00DC00)" }}>&gt;</span>{" "}
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
             HEADLINES AGGREGATED FROM 30 SOURCES WORLDWIDE.
             <br />
-            <span style={{ color: "var(--sb-accent, #00DC00)" }}>&gt;</span>{" "}
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
             DEDUPLICATED. CATEGORIZED. SCORED. DELIVERED.
             <br />
-            <span style={{ color: "var(--sb-accent, #00DC00)" }}>&gt;</span>{" "}
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
             POWERED BY QWEN... &quot;BUILD THE IMPOSSIBLE!&quot;
           </p>
         </div>
@@ -141,11 +141,11 @@ function StatusCard({
       <div
         style={{
           fontFamily: "'Glass TTY VT220', 'VT323', monospace",
-          color: "var(--sb-accent, #00DC00)",
+          color: "var(--sb-accent, #5200FF)",
           fontSize: "28px",
           fontWeight: 700,
           lineHeight: 1.2,
-          textShadow: "0 0 10px color-mix(in srgb, var(--sb-accent, #00DC00) 30%, transparent)",
+          textShadow: "0 0 10px color-mix(in srgb, var(--sb-accent, #5200FF) 30%, transparent)",
         }}
       >
         {value}

@@ -12,7 +12,7 @@ import { getFacePrompt, getResearcherPrompt } from '@/lib/lab/prompts';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_MESSAGE_LENGTH = 1000;
+const MAX_MESSAGE_LENGTH = 100000;
 const MAX_HISTORY_ITEMS = 20;
 const MAX_HISTORY_CONTENT_LENGTH = 2000;
 

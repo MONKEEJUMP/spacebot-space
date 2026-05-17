@@ -6,10 +6,10 @@ export default function SiteLogo() {
   return (
     <Link
       href="/"
-      className="fixed top-[4.5rem] left-4 z-[45] hidden sm:inline-flex items-center gap-1.5 text-[#00DC00] opacity-60 hover:opacity-100 transition-opacity duration-200 group"
+      className="fixed top-[4.5rem] left-4 z-[45] hidden sm:inline-flex items-center gap-1.5 text-[#5200FF] opacity-60 hover:opacity-100 transition-opacity duration-200 group"
       aria-label="Return to homepage terminal"
     >
-      <span className="text-[#767676] group-hover:text-[#00DC00] transition-colors text-sm font-mono">
+      <span className="text-[#767676] group-hover:text-[#5200FF] transition-colors text-sm font-mono">
         {'>'}_
       </span>
       <span

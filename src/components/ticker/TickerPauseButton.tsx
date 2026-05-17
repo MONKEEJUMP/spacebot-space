@@ -34,8 +34,8 @@ export default function TickerPauseButton({ isPlaying, onToggle }: TickerPauseBu
         transition: "color 0.15s ease, border-color 0.15s ease",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.color = "var(--sb-accent, #00DC00)";
-        e.currentTarget.style.borderColor = "var(--sb-accent, #00DC00)";
+        e.currentTarget.style.color = "var(--sb-accent, #5200FF)";
+        e.currentTarget.style.borderColor = "var(--sb-accent, #5200FF)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.color = "var(--sb-text-secondary, #767676)";

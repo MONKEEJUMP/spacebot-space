@@ -313,7 +313,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
           name: human.name,
           subscriptionTier: human.subscriptionTier,
           avatarConfig: (human.avatarConfig as Record<string, unknown>) || null,
-          siteTheme: human.siteTheme || 'dark',
+          siteTheme: human.siteTheme || 'orange',
         },
         warning: !human.isEmailVerified
           ? 'Please verify your email address for full account access.'

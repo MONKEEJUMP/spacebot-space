@@ -11,8 +11,7 @@ const NAV_LINKS = [
   { href: "/aispace", label: "AiSpace" },
   { href: "/botspace", label: "BotSpace" },
   { href: "/peoplespace", label: "PeopleSpace" },
-  { href: "/feedspace", label: "FEEDSPACE" },
-  { href: "/themes", label: "Themes" },
+  { href: "/newsspace", label: "NEWSSPACE" },
   { href: "/sanctuary", label: "About" },
 ];
 
@@ -232,7 +231,7 @@ export default function Sidebar() {
         }}
       />
 
-      {/* Alibaba Cloud / Qwen Branding */}
+      {/* Alibaba Cloud / QWEN Branding */}
       <div
         style={{
           padding: "6px 16px 16px 16px",

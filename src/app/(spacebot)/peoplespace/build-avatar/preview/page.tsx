@@ -250,7 +250,7 @@ export default function AvatarResultPage() {
   }, [avatarConfig]);
 
   const schematicColor = useMemo(() => {
-    if (!avatarConfig) return '#00DC00';
+    if (!avatarConfig) return '#5200FF';
     return avatarConfig.schematicColor === 'match' ? palette.primary : avatarConfig.schematicColor;
   }, [avatarConfig, palette.primary]);
 
@@ -373,9 +373,9 @@ export default function AvatarResultPage() {
           onClick={handleDownload}
           className="w-full py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
           style={{
-            backgroundColor: 'var(--sb-accent, #00DC00)',
+            backgroundColor: 'var(--sb-accent, #5200FF)',
             color: '#000',
-            border: '1px solid var(--sb-accent, #00DC00)',
+            border: '1px solid var(--sb-accent, #5200FF)',
             borderRadius: '6px',
           }}
           onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 20px rgba(0,220,0,0.5)'; }}
@@ -393,8 +393,8 @@ export default function AvatarResultPage() {
             className="w-full py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
             style={{
               backgroundColor: 'transparent',
-              color: saveStatus === 'saved' ? '#00DC00' : palette.primary,
-              border: `1px solid ${saveStatus === 'saved' ? '#00DC00' : palette.primary}`,
+              color: saveStatus === 'saved' ? '#5200FF' : palette.primary,
+              border: `1px solid ${saveStatus === 'saved' ? '#5200FF' : palette.primary}`,
               borderRadius: '6px',
               opacity: saveStatus === 'saving' ? 0.6 : 1,
             }}

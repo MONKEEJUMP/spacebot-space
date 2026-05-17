@@ -84,7 +84,7 @@ function toCustomAvatarConfig(avatarConfig: Record<string, unknown> | null | und
     bodyType,
     eyeType,
     mouthType,
-    colorPrimary: customHex || '#00ff00',
+    colorPrimary: customHex || '#7B33FF',
     colorDark: '#000000',
     colorLight: '#ffffff',
     accessories,

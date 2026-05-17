@@ -134,7 +134,7 @@ export default function ProfileEditor({
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`pb-2 text-sm ${isActive ? 'text-[#00DC00] border-b-2 border-[#00DC00]' : 'text-[#767676] hover:text-[#CCCCCC]'} transition-colors`}
+              className={`pb-2 text-sm ${isActive ? 'text-[#5200FF] border-b-2 border-[#5200FF]' : 'text-[#767676] hover:text-[#CCCCCC]'} transition-colors`}
             >
               {tab}
             </button>
@@ -162,7 +162,7 @@ export default function ProfileEditor({
           </div>
 
           <div className="border border-[#333333] bg-black/20 p-4">
-            <div className="text-[#00DC00] font-bold mb-3">CUSTOM</div>
+            <div className="text-[#5200FF] font-bold mb-3">CUSTOM</div>
 
             <div className="space-y-4">
               <div>
@@ -290,7 +290,7 @@ export default function ProfileEditor({
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-[#E2E3DD] text-sm font-bold">{VIBE_META[vibeId].name}</div>
-                    <span className={isActive ? 'text-[#00DC00] text-xs' : 'text-[#767676] text-xs'}>
+                    <span className={isActive ? 'text-[#5200FF] text-xs' : 'text-[#767676] text-xs'}>
                       {isActive ? '[ACTIVE]' : '[SELECT]'}
                     </span>
                   </div>
@@ -342,7 +342,7 @@ export default function ProfileEditor({
                   <button
                     type="button"
                     onClick={() => toggleModule(module)}
-                    className={`border border-[#333333] px-2 py-1 text-xs ${enabled ? 'text-[#00DC00]' : 'text-[#767676]'}`}
+                    className={`border border-[#333333] px-2 py-1 text-xs ${enabled ? 'text-[#5200FF]' : 'text-[#767676]'}`}
                   >
                     {enabled ? 'ENABLED' : 'DISABLED'}
                   </button>
@@ -373,7 +373,7 @@ export default function ProfileEditor({
         <button
           type="button"
           onClick={handleSave}
-          className="border border-[#00DC00] text-[#00DC00] px-4 py-2 text-sm font-bold"
+          className="border border-[#5200FF] text-[#5200FF] px-4 py-2 text-sm font-bold"
         >
           SAVE CHANGES
         </button>

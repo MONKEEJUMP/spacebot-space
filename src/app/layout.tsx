@@ -42,28 +42,20 @@ export const metadata = {
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark overflow-y-scroll">
+    <html lang="en" className="overflow-y-scroll" data-theme="light" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
         <link rel="icon" href="/spacebot-favicon.png" type="image/png" />
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
-            try {
-              var theme = localStorage.getItem('sb-theme');
-              if (theme) {
-                document.documentElement.setAttribute('data-theme', theme);
-              } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-              }
-            } catch(e) {
-              document.documentElement.setAttribute('data-theme', 'dark');
-            }
+            document.documentElement.setAttribute('data-theme', 'light');
+            try { localStorage.removeItem('sb-theme'); } catch(e) {}
           })();
         `}} />
         <style dangerouslySetInnerHTML={{ __html: `
@@ -77,7 +69,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
           }
         `}} />
       </head>
-      <body className={cn('bg-background text-foreground')} style={{ fontFamily: "'IBM Plex Mono', 'Fira Code', 'Source Code Pro', monospace" }}>
+      <body className={cn('text-foreground')} style={{ fontFamily: "'IBM Plex Mono', 'Fira Code', 'Source Code Pro', monospace", backgroundColor: 'var(--sb-bg-primary)' }}>
         <ClerkProvider>
           <Sidebar />
           <div className="sb-content-area">

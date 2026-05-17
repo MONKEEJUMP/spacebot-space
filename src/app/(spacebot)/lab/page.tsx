@@ -147,7 +147,7 @@ export default function LabPage() {
                     </div>
                     <span
                       className="text-xs font-bold tracking-widest flex-shrink-0"
-                      style={{ color: '#00DC00' }}
+                      style={{ color: '#5200FF' }}
                     >
                       ONLINE
                     </span>

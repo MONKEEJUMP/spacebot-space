@@ -54,7 +54,7 @@ export default function TerminalPost({ post, color, age, isNew = false, terminal
 
   return (
     <Link
-      href={`/feedspace/${post.id}?terminal=${terminalIndex}`}
+      href={`/newsspace/${post.id}?terminal=${terminalIndex}`}
       className="terminal-post"
       style={{
         display: 'block',

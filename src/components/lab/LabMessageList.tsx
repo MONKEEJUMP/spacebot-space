@@ -61,7 +61,7 @@ export default function LabMessageList({
               <div className="max-w-[88%]">
                 <div
                   className={`text-[11px] mb-1 ${isUser ? 'text-right' : 'text-left'}`}
-                  style={{ color: isUser ? '#00DC00' : bot.accentColor }}
+                  style={{ color: isUser ? '#5200FF' : bot.accentColor }}
                 >
                   {isUser ? '{you}' : bot.name} · {message.timestamp}
                 </div>
@@ -72,7 +72,7 @@ export default function LabMessageList({
                     fontStyle: 'normal',
                     fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     borderLeft: isUser ? 'none' : `2px solid ${bot.accentColor}`,
-                    borderRight: isUser ? '2px solid #00DC00' : 'none',
+                    borderRight: isUser ? '2px solid #5200FF' : 'none',
                     backgroundColor: isUser
                       ? 'rgba(0, 220, 0, 0.06)'
                       : 'rgba(255, 255, 255, 0.02)',

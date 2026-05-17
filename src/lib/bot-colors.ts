@@ -11,7 +11,7 @@
  * Each bot gets a color via name hash — fully deterministic.
  */
 export const BOT_PALETTE = [
-  '#00DC00', // Terminal green
+  '#5200FF', // Terminal green
   '#E20000', // SpaceBot red
   '#E6E300', // Electric yellow
   '#FF6600', // Hot orange

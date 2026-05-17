@@ -10,7 +10,7 @@ import { LAB_BOTS_BY_SLUG } from '@/lib/lab/lab-bots';
 // ─────────────────────────────────────────────────
 // GREETER PROMPT (Agent 1 — Greeter Master SOP v2)
 // ─────────────────────────────────────────────────
-// Fires on local Ollama (Qwen 2.5 7B). ~120 tokens. Arrives first.
+// Fires on local Ollama (QWEN 2.5 7B). ~120 tokens. Arrives first.
 // Warm, unique greeting. NEVER answers the question.
 // Makes the user feel welcome while the Expert computes.
 

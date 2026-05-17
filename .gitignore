@@ -97,3 +97,28 @@ docs/scratch/
 jspm_packages/
 *.bak-*
 *.orig
+
+# PM2 config contains machine-specific paths (no secrets, but not needed in VCS)
+ecosystem.config.cjs
+
+# Added by emergency commit 2026-05-17
+# Additional env patterns
+.env.*
+.env.local.*
+# Backup file variants (catches -bak, -bak2, pre-NNNB, .lucy-*-bak)
+*-bak
+*-bak[0-9]
+*-bak[0-9][0-9]
+*.pre-*
+*-runpod-bak*
+# Startup scripts (machine-specific, may contain env-loading paths)
+start-spacebot.sh
+# Root directory artifacts (machine-specific)
+/root/
+dump.pm2
+# Rollback / one-off scripts that reference live infra
+rollback-to-dashscope.sh
+# REME server data and venv (per-machine, large)
+reme-venv/
+reme-data/
+reme-config/

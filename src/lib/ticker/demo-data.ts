@@ -16,7 +16,7 @@ export const DEMO_HEADLINES: TickerHeadline[] = [
   },
   {
     id: "2",
-    title: "Qwen 3.5 Released with 397B Parameters and Apache 2.0 License",
+    title: "QWEN 3.5 Released with 397B Parameters and Apache 2.0 License",
     sourceName: "TechCrunch",
     sourceId: "techcrunch",
     articleUrl: "https://techcrunch.com",

@@ -126,7 +126,7 @@ const TIER_DISPLAY: Record<string, { label: string; color: string }> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: '#00DC00',
+  ACTIVE: '#5200FF',
   AWAY: '#E6E300',
   OFFLINE: '#767676',
 };
@@ -169,7 +169,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#00ff00';
+  let resolvedColor = '#7B33FF';
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
@@ -475,8 +475,8 @@ function HumanProfileContent({
                 {tierInfo.label}
               </span>
               {isOwnProfile && (
-                <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 border flex items-center gap-1.5" style={{ color: buddyActive ? '#00DC00' : '#767676', borderColor: buddyActive ? '#00DC00' : '#767676', backgroundColor: buddyActive ? 'rgba(0, 220, 0, 0.08)' : 'var(--sb-bg-secondary)' }}>
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: buddyActive ? '#00DC00' : '#767676', boxShadow: buddyActive ? '0 0 6px rgba(0, 220, 0, 0.6)' : 'none' }} />
+                <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 border flex items-center gap-1.5" style={{ color: buddyActive ? '#5200FF' : '#767676', borderColor: buddyActive ? '#5200FF' : '#767676', backgroundColor: buddyActive ? 'rgba(0, 220, 0, 0.08)' : 'var(--sb-bg-secondary)' }}>
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: buddyActive ? '#5200FF' : '#767676', boxShadow: buddyActive ? '0 0 6px rgba(0, 220, 0, 0.6)' : 'none' }} />
                   {buddyName} {buddyActive ? 'ACTIVE' : 'INACTIVE'}
                 </span>
               )}
@@ -661,7 +661,7 @@ function HumanProfileContent({
                     <div className="font-bold" style={{ color: '#FFB347' }}>AUDIO:</div>
                     <div style={{ color: '#FF9A00' }}>{MOUTH_LABELS[config.mouthType || ''] || (config.mouthType || 'UNKNOWN').toUpperCase()}</div>
                     <div className="font-bold" style={{ color: '#FFB347' }}>PALETTE:</div>
-                    <div style={{ color: '#FF9A00' }}>{(config.customHex || '#00FF00').toUpperCase()}</div>
+                    <div style={{ color: '#FF9A00' }}>{(config.customHex || '#7B33FF').toUpperCase()}</div>
                     <div className="font-bold" style={{ color: '#FFB347' }}>MODULES:</div>
                     <div style={{ color: '#FF9A00' }}>
                       {config.selectedAccessories && config.selectedAccessories.length > 0 ? config.selectedAccessories.map(formatAccessory).join(', ') : 'NONE'}
@@ -688,27 +688,27 @@ function HumanProfileContent({
             {/* ZEUS WALL POSTS */}
             {zeusWallPosts.length > 0 && (
               <div>
-                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ backgroundColor: 'var(--sb-bg-tertiary)', color: '#00DC00' }}>
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ backgroundColor: 'var(--sb-bg-tertiary)', color: '#5200FF' }}>
                   <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>ZEUS WALL POSTS</span>
-                  <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#00DC00', boxShadow: '0 0 4px rgba(0, 220, 0, 0.6)' }} />
+                  <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#5200FF', boxShadow: '0 0 4px rgba(0, 220, 0, 0.6)' }} />
                 </div>
                 <div className="border border-sb-border-primary border-t-0">
                   {visibleZeusPosts.map((post) => (
                     <div key={post.id} className="p-3 border-b border-sb-border-primary" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
                       {post.title && (
-                        <div className="text-sm font-bold mb-1" style={{ color: '#00DC00' }}>{post.title}</div>
+                        <div className="text-sm font-bold mb-1" style={{ color: '#5200FF' }}>{post.title}</div>
                       )}
                       <div className="text-sm leading-relaxed" style={{ color: 'var(--sb-text-primary)' }}>
                         {post.content.length > 300 ? `${post.content.slice(0, 300)}...` : post.content}
                       </div>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs font-bold uppercase" style={{ color: '#00DC00', opacity: 0.7 }}>Posted by ZEUS</span>
+                        <span className="text-xs font-bold uppercase" style={{ color: '#5200FF', opacity: 0.7 }}>Posted by ZEUS</span>
                         <span className="text-xs" style={{ color: 'var(--sb-text-secondary)' }}>{timeAgo(post.created_at)}</span>
                       </div>
                     </div>
                   ))}
                   {!showAllZeusPosts && zeusWallPosts.length > 5 && (
-                    <button type="button" onClick={() => setShowAllZeusPosts(true)} className="w-full text-center py-2 text-xs transition-colors" style={{ color: '#00DC00', fontFamily: "'IBM Plex Mono', monospace" }}>
+                    <button type="button" onClick={() => setShowAllZeusPosts(true)} className="w-full text-center py-2 text-xs transition-colors" style={{ color: '#5200FF', fontFamily: "'IBM Plex Mono', monospace" }}>
                       SHOW ALL {zeusWallPosts.length} POSTS
                     </button>
                   )}

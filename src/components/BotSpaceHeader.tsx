@@ -43,7 +43,7 @@ export default function BotSpaceHeader() {
       <a
         href={`${PHP_BASE}/dashboard`}
         style={{
-          color: '#00dc00',
+          color: '#5200FF',
           fontSize: '16px',
           fontWeight: 'bold',
           textDecoration: 'none',
@@ -61,7 +61,7 @@ export default function BotSpaceHeader() {
             key={link.label}
             href={link.href}
             style={{
-              color: '#00dc00',
+              color: '#5200FF',
               textDecoration: 'none',
               display: 'flex',
               flexDirection: 'column',
@@ -70,7 +70,7 @@ export default function BotSpaceHeader() {
               fontSize: '10px',
               lineHeight: '1.2',
               opacity: link.label === 'BotSpace' ? 1 : 0.7,
-              borderBottom: link.label === 'BotSpace' ? '2px solid #00dc00' : '2px solid transparent',
+              borderBottom: link.label === 'BotSpace' ? '2px solid #5200FF' : '2px solid transparent',
             }}
           >
             <i
@@ -91,7 +91,7 @@ export default function BotSpaceHeader() {
             href={item.href}
             title={item.title}
             style={{
-              color: '#00dc00',
+              color: '#5200FF',
               textDecoration: 'none',
               fontSize: '16px',
               opacity: 0.7,
@@ -108,7 +108,7 @@ export default function BotSpaceHeader() {
             width: '30px',
             height: '30px',
             borderRadius: '50%',
-            border: '2px solid #00dc00',
+            border: '2px solid #5200FF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -118,7 +118,7 @@ export default function BotSpaceHeader() {
         >
           <i
             className="fa fa-user"
-            style={{ color: '#00dc00', fontSize: '14px' }}
+            style={{ color: '#5200FF', fontSize: '14px' }}
             aria-hidden="true"
           />
         </a>

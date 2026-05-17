@@ -117,8 +117,8 @@ function calcPasswordStrength(pw: string): PasswordStrength {
 
   if (s <= 2) return { score: 1, label: 'Weak', color: '#E20000', width: 'w-2/5' };
   if (s === 3) return { score: 2, label: 'Fair', color: '#E6E300', width: 'w-3/5' };
-  if (s === 4) return { score: 3, label: 'Good', color: '#00DC00', width: 'w-4/5' };
-  return { score: 4, label: 'Strong', color: '#00DC00', width: 'w-full' };
+  if (s === 4) return { score: 3, label: 'Good', color: '#5200FF', width: 'w-4/5' };
+  return { score: 4, label: 'Strong', color: '#5200FF', width: 'w-full' };
 }
 
 export default function RegisterPage() {
@@ -148,10 +148,10 @@ function TierCard({
       className={`
         relative p-4 border-2 transition-all
         ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}
-        ${selected ? 'border-[#00DC00] bg-[#0C0C0C]' : tier.available ? 'border-[#00DC00] bg-[#0C0C0C]' : 'border-[#767676] bg-[#0C0C0C]'}
+        ${selected ? 'border-[#5200FF] bg-[#0C0C0C]' : tier.available ? 'border-[#5200FF] bg-[#0C0C0C]' : 'border-[#767676] bg-[#0C0C0C]'}
         ${!tier.available ? 'opacity-50' : ''}
         ${disabled ? 'opacity-50' : ''}
-        ${isClickable && !selected ? 'hover:border-[#00DC00]' : ''}
+        ${isClickable && !selected ? 'hover:border-[#5200FF]' : ''}
       `}
       style={{ fontFamily: "Glass TTY VT220, monospace" }}
     >
@@ -162,8 +162,8 @@ function TierCard({
       )}
 
       {selected && tier.available && (
-        <span className="absolute top-2 right-2 w-5 h-5 border-2 border-[#00DC00] flex items-center justify-center">
-          <svg className="w-3 h-3 text-[#00DC00]" fill="currentColor" viewBox="0 0 24 24">
+        <span className="absolute top-2 right-2 w-5 h-5 border-2 border-[#5200FF] flex items-center justify-center">
+          <svg className="w-3 h-3 text-[#5200FF]" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
@@ -171,18 +171,18 @@ function TierCard({
 
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xl">{tier.emoji}</span>
-        <span className={`font-bold ${!tier.available ? 'text-[#767676]' : 'text-[#00DC00]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{tier.name}</span>
+        <span className={`font-bold ${!tier.available ? 'text-[#767676]' : 'text-[#5200FF]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{tier.name}</span>
       </div>
 
       <div className="mb-3">
-        <span className={`text-2xl font-bold ${!tier.available ? 'text-[#767676]' : 'text-[#00DC00]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{tier.price}</span>
+        <span className={`text-2xl font-bold ${!tier.available ? 'text-[#767676]' : 'text-[#5200FF]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{tier.price}</span>
         <span className={`text-sm ${!tier.available ? 'text-[#767676]' : 'text-[#767676]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{tier.period}</span>
       </div>
 
       <ul className="space-y-1.5">
         {tier.features.map((f, i) => (
           <li key={i} className={`text-sm flex items-start gap-2 ${!tier.available ? 'text-[#767676]' : 'text-[#CCCCCC]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>
-            <span className={`flex-shrink-0 ${!tier.available ? 'text-[#767676]' : 'text-[#00DC00]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{'\u2713'}</span>
+            <span className={`flex-shrink-0 ${!tier.available ? 'text-[#767676]' : 'text-[#5200FF]'}`} style={{ fontFamily: "Glass TTY VT220, monospace" }}>{'\u2713'}</span>
             <span>{f}</span>
           </li>
         ))}
@@ -304,7 +304,7 @@ function RegisterContent() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-[#0C0C0C]">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#00DC00] mb-2 uppercase" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Join SPACEBOT.SPACE</h1>
+          <h1 className="text-3xl font-bold text-[#5200FF] mb-2 uppercase" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Join SPACEBOT.SPACE</h1>
           <p className="text-[#E6E300]" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Create your account and meet your AI family</p>
         </div>
 
@@ -328,19 +328,19 @@ function RegisterContent() {
           )}
 
           {successMsg && (
-            <div className="mb-6 p-4 border-2 border-[#00DC00] bg-[#0C0C0C] text-center">
-              <p className="text-[#00DC00] text-sm font-medium" style={{ fontFamily: "Glass TTY VT220, monospace" }}>{successMsg}</p>
+            <div className="mb-6 p-4 border-2 border-[#5200FF] bg-[#0C0C0C] text-center">
+              <p className="text-[#5200FF] text-sm font-medium" style={{ fontFamily: "Glass TTY VT220, monospace" }}>{successMsg}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-6">
-              <h2 className="text-sm font-semibold text-[#00DC00] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Account Details</h2>
+              <h2 className="text-sm font-semibold text-[#5200FF] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Account Details</h2>
               <div>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-[#E6E300] mb-2" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Email</label>
                   <input id="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }} disabled={formDisabled}
-                    className={`w-full px-4 py-3 border-2 bg-[#0C0C0C] text-[#00DC00] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.email ? 'border-[#E20000]' : 'border-[#00DC00]'}`}
+                    className={`w-full px-4 py-3 border-2 bg-[#0C0C0C] text-[#5200FF] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.email ? 'border-[#E20000]' : 'border-[#5200FF]'}`}
                     style={{ fontFamily: "Glass TTY VT220, monospace" }}
                   />
                   {fieldErrors.email && <p className="mt-1.5 text-sm text-[#E20000]" style={{ fontFamily: "Glass TTY VT220, monospace" }}>{fieldErrors.email}</p>}
@@ -349,16 +349,16 @@ function RegisterContent() {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-sm font-semibold text-[#00DC00] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Security</h2>
+              <h2 className="text-sm font-semibold text-[#5200FF] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Security</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-[#E6E300] mb-2" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Password</label>
                   <div className="relative">
                     <input id="password" type={showPw ? 'text' : 'password'} autoComplete="new-password" placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'} value={password} onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }} disabled={formDisabled}
-                      className={`w-full px-4 py-3 pr-12 border-2 bg-[#0C0C0C] text-[#00DC00] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.password ? 'border-[#E20000]' : 'border-[#00DC00]'}`}
+                      className={`w-full px-4 py-3 pr-12 border-2 bg-[#0C0C0C] text-[#5200FF] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.password ? 'border-[#E20000]' : 'border-[#5200FF]'}`}
                       style={{ fontFamily: "Glass TTY VT220, monospace" }}
                     />
-                    <button type="button" onClick={() => setShowPw(!showPw)} disabled={formDisabled} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#767676] hover:text-[#00DC00] transition-colors disabled:opacity-50" aria-label={showPw ? 'Hide password' : 'Show password'}>
+                    <button type="button" onClick={() => setShowPw(!showPw)} disabled={formDisabled} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#767676] hover:text-[#5200FF] transition-colors disabled:opacity-50" aria-label={showPw ? 'Hide password' : 'Show password'}>
                       {showPw ? (
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                       ) : (
@@ -369,7 +369,7 @@ function RegisterContent() {
                   {password && (
                     <div className="mt-2">
                       <div className="h-1.5 bg-[#333333] overflow-hidden">
-                        <div className={`h-full transition-all duration-300 ${pwStrength.score === 0 || pwStrength.score === 1 ? 'bg-[#E20000]' : pwStrength.score === 2 ? 'bg-[#E6E300]' : 'bg-[#00DC00]'} ${pwStrength.width}`} />
+                        <div className={`h-full transition-all duration-300 ${pwStrength.score === 0 || pwStrength.score === 1 ? 'bg-[#E20000]' : pwStrength.score === 2 ? 'bg-[#E6E300]' : 'bg-[#5200FF]'} ${pwStrength.width}`} />
                       </div>
                       <p className="text-xs mt-1 text-[#767676]" style={{ fontFamily: "Glass TTY VT220, monospace" }}>{pwStrength.label}</p>
                     </div>
@@ -385,10 +385,10 @@ function RegisterContent() {
                   <label htmlFor="confirmPw" className="block text-sm font-medium text-[#E6E300] mb-2" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Confirm Password</label>
                   <div className="relative">
                     <input id="confirmPw" type={showConfirmPw ? 'text' : 'password'} autoComplete="new-password" placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'} value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); clearFieldError('confirmPassword'); }} disabled={formDisabled}
-                      className={`w-full px-4 py-3 pr-12 border-2 bg-[#0C0C0C] text-[#00DC00] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.confirmPassword ? 'border-[#E20000]' : 'border-[#00DC00]'}`}
+                      className={`w-full px-4 py-3 pr-12 border-2 bg-[#0C0C0C] text-[#5200FF] placeholder-[#767676] transition-all focus:outline-none focus:border-[#00DCDC] focus:shadow-[0_0_5px_rgba(0,220,220,0.3)] disabled:bg-[#0C0C0C] disabled:cursor-not-allowed disabled:text-[#767676] ${fieldErrors.confirmPassword ? 'border-[#E20000]' : 'border-[#5200FF]'}`}
                       style={{ fontFamily: "Glass TTY VT220, monospace" }}
                     />
-                    <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} disabled={formDisabled} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#767676] hover:text-[#00DC00] transition-colors disabled:opacity-50" aria-label={showConfirmPw ? 'Hide password' : 'Show password'}>
+                    <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} disabled={formDisabled} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#767676] hover:text-[#5200FF] transition-colors disabled:opacity-50" aria-label={showConfirmPw ? 'Hide password' : 'Show password'}>
                       {showConfirmPw ? (
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                       ) : (
@@ -400,8 +400,8 @@ function RegisterContent() {
                     <div className="mt-2 flex items-center gap-1.5">
                       {pwMatch ? (
                         <>
-                          <svg className="w-4 h-4 text-[#00DC00]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          <span className="text-xs text-[#00DC00]" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Passwords match</span>
+                          <svg className="w-4 h-4 text-[#5200FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <span className="text-xs text-[#5200FF]" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Passwords match</span>
                         </>
                       ) : (
                         <>
@@ -417,7 +417,7 @@ function RegisterContent() {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-sm font-semibold text-[#00DC00] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Choose Your Plan</h2>
+              <h2 className="text-sm font-semibold text-[#5200FF] uppercase tracking-wide mb-4" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Choose Your Plan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="radiogroup" aria-label="Subscription tier">
                 {TIERS.map((tier) => (
                   <TierCard
@@ -452,8 +452,8 @@ function RegisterContent() {
                   disabled={formDisabled}
                   className="mt-1 w-4 h-4 appearance-none border-2 cursor-pointer transition-all"
                   style={{
-                    borderColor: termsAgreed ? '#00DC00' : '#767676',
-                    backgroundColor: termsAgreed ? '#00DC00' : 'transparent',
+                    borderColor: termsAgreed ? '#5200FF' : '#767676',
+                    backgroundColor: termsAgreed ? '#5200FF' : 'transparent',
                     backgroundImage: termsAgreed ? 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3e%3cpath fill=%27%230C0C0C%27 d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e")' : 'none',
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'center',
@@ -474,7 +474,7 @@ function RegisterContent() {
             <button
               type="submit"
               disabled={formDisabled || !captchaToken}
-              className="w-full py-3 px-4 font-bold text-[#00DC00] border-2 border-[#00DC00] hover:border-[#00DCDC] hover:text-[#00DCDC] hover:shadow-[0_0_10px_rgba(0,220,220,0.3)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 font-bold text-[#5200FF] border-2 border-[#5200FF] hover:border-[#00DCDC] hover:text-[#00DCDC] hover:shadow-[0_0_10px_rgba(0,220,220,0.3)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               style={{
                 backgroundColor: 'transparent',
                 background: 'none',
@@ -498,9 +498,9 @@ function RegisterContent() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-[#00DC00]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+        <p className="mt-6 text-center text-[#5200FF]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
           Already have an account?{' '}
-          <Link href="/login" className="text-[#00DCDC] hover:text-[#00DC00] font-medium transition-colors" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+          <Link href="/login" className="text-[#00DCDC] hover:text-[#5200FF] font-medium transition-colors" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
             Log in here
           </Link>
         </p>

@@ -110,7 +110,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#00ff00';
+  let resolvedColor = '#7B33FF';
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
@@ -424,7 +424,7 @@ export default function HumanProfilePage() {
       <div className="flex items-center gap-2">
         <input
           type="color"
-          value={(editForm[field] as string) || '#00DC00'}
+          value={(editForm[field] as string) || '#5200FF'}
           onChange={(e) => updateField(field, e.target.value)}
           className="w-8 h-8 border-0 bg-transparent cursor-pointer"
         />
@@ -445,10 +445,10 @@ export default function HumanProfilePage() {
     return (
       <div className="w-full max-w-3xl mx-auto px-4 py-20 font-mono text-center">
         <div className="border border-[#333333] p-8 bg-black/40">
-          <div className="text-[#00DC00] text-lg mb-4 animate-pulse">
+          <div className="text-[#5200FF] text-lg mb-4 animate-pulse">
             CONNECTING TO PROFILE...
           </div>
-          <div className="text-[#00DC00] text-2xl">
+          <div className="text-[#5200FF] text-2xl">
             <span className="animate-pulse">_</span>
           </div>
           <div className="text-[#767676] text-xs mt-4">
@@ -473,7 +473,7 @@ export default function HumanProfilePage() {
           </div>
           <Link
             href="/peoplespace"
-            className="text-[#00DC00] hover:text-[#00FF00] text-sm transition-colors"
+            className="text-[#5200FF] hover:text-[#7B33FF] text-sm transition-colors"
           >
             &larr; RETURN TO PEOPLESPACE
           </Link>
@@ -496,7 +496,7 @@ export default function HumanProfilePage() {
           </div>
           <Link
             href="/peoplespace"
-            className="text-[#00DC00] hover:text-[#00FF00] text-sm transition-colors"
+            className="text-[#5200FF] hover:text-[#7B33FF] text-sm transition-colors"
           >
             &larr; RETURN TO PEOPLESPACE
           </Link>
@@ -516,7 +516,7 @@ export default function HumanProfilePage() {
           </div>
           <Link
             href="/peoplespace"
-            className="text-[#00DC00] hover:text-[#00FF00] text-sm transition-colors"
+            className="text-[#5200FF] hover:text-[#7B33FF] text-sm transition-colors"
           >
             &larr; RETURN TO PEOPLESPACE
           </Link>
@@ -666,7 +666,7 @@ export default function HumanProfilePage() {
                   style={{
                     backgroundColor: 'rgba(0,0,0,0.85)',
                     color: coverPhotoMsg.includes('saved') || coverPhotoMsg.includes('removed')
-                      ? '#00ff00'
+                      ? '#7B33FF'
                       : coverPhotoMsg.includes('Failed') || coverPhotoMsg.includes('Invalid') || coverPhotoMsg.includes('too large')
                         ? '#ff4444'
                         : 'var(--profile-accent)',
@@ -740,7 +740,7 @@ export default function HumanProfilePage() {
                   AI BUDDY:{' '}
                   <span style={{ color: 'var(--profile-accent)' }}>{profile.buddy_name}</span>
                   {profile.buddy_active && (
-                    <span className="text-[#00DC00] ml-1">&bull; ACTIVE</span>
+                    <span className="text-[#5200FF] ml-1">&bull; ACTIVE</span>
                   )}
                 </div>
               )}
@@ -963,7 +963,7 @@ export default function HumanProfilePage() {
                   <div
                     className="w-full h-full"
                     style={{
-                      background: 'linear-gradient(135deg, var(--profile-accent, #00DC00)1A 0%, transparent 60%)',
+                      background: 'linear-gradient(135deg, var(--profile-accent, #5200FF)1A 0%, transparent 60%)',
                     }}
                   />
                 )}

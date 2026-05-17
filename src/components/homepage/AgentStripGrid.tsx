@@ -86,13 +86,13 @@ export default function AgentStripGrid({ agents }: { agents: AgentData[] }) {
                   <span
                     className="inline-block w-2 h-2 rounded-full"
                     style={{
-                      backgroundColor: "var(--sb-accent, #00DC00)",
-                      boxShadow: "0 0 6px var(--sb-accent, #00DC00)",
+                      backgroundColor: "var(--sb-accent, #5200FF)",
+                      boxShadow: "0 0 6px var(--sb-accent, #5200FF)",
                     }}
                   />
                   <span
                     className="text-xs font-mono"
-                    style={{ color: "var(--sb-accent, #00DC00)" }}
+                    style={{ color: "var(--sb-accent, #5200FF)" }}
                   >
                     LIVE
                   </span>

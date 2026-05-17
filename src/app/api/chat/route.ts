@@ -7,13 +7,29 @@ import { db, chatConversations, chatMessages } from '@/db';
 import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { logger } from '@/lib/logger';
+import { remeClient, type MemoryRecord } from '@/lib/memory/reme-client';
+import {
+  buildWorkspaceId,
+  isMemoryEnabled,
+  isExperienceLoopEnabled,
+} from '@/lib/memory/workspace';
+import { fetchBotPersonality, type BotPersonality } from '@/lib/agentscope/client';
+import {
+  readExperiences,
+  writeExperience,
+  checkDuplicate as checkExperienceDuplicate,
+} from '@/lib/experience/reme-experience';
+import { buildExperienceContext } from '@/lib/experience/context';
+import { evaluateConversation } from '@/lib/experience/evaluator';
+import type { SourceMechanism } from '@/lib/experience/schema';
 import { getBotSystemPrompt } from '../../../../dorylus/personality';
 import { executeDorylusCycle } from '../../../../dorylus';
 import { sanitizeBotResponse } from '../../../../dorylus/sanitize';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_MESSAGE_LENGTH = 2000;
+const MAX_MESSAGE_LENGTH = 100000;
 const MAX_HISTORY_ITEMS = 20;
 
 interface PersistedHistoryMessage {
@@ -132,6 +148,116 @@ async function saveAssistantMessage(options: {
   await touchConversation(options.conversationId);
 }
 
+const MEMORY_TOP_K = 5;
+const MEMORY_READ_TIMEOUT_MS = 1500;
+const EXPERIENCE_TOP_K = 3;
+
+async function readMemoriesIfEnabled(workspaceId: string, query: string): Promise<MemoryRecord[]> {
+  if (!isMemoryEnabled()) return [];
+  try {
+    const memories = await Promise.race([
+      remeClient.read(workspaceId, query, MEMORY_TOP_K),
+      new Promise<MemoryRecord[]>((_, reject) =>
+        setTimeout(() => reject(new Error('memory read timeout')), MEMORY_READ_TIMEOUT_MS)
+      ),
+    ]);
+    return memories;
+  } catch (error) {
+    logger.warn('ReMe memory read failed', {
+      workspaceId,
+      phase: 'chat.route.memory.read',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
+}
+
+function augmentWithMemories(message: string, memories: MemoryRecord[]): string {
+  if (!memories.length) return message;
+  const bullets = memories
+    .map((m) => m.content?.trim())
+    .filter((s): s is string => Boolean(s && s.length > 0))
+    .slice(0, MEMORY_TOP_K)
+    .map((s) => `- ${s}`)
+    .join('\n');
+  if (!bullets) return message;
+  return `[Relevant memories from past conversations]\n${bullets}\n\n[Current message]\n${message}`;
+}
+
+function fireAndForgetMemoryWrite(
+  workspaceId: string,
+  userText: string,
+  assistantText: string,
+  metadata: Record<string, unknown>
+): void {
+  if (!isMemoryEnabled()) return;
+  const body = `User: ${userText}\nAssistant: ${assistantText}`.slice(0, 50000);
+  void remeClient.write(workspaceId, body, metadata).catch((error) => {
+    logger.warn('ReMe memory write failed', {
+      workspaceId,
+      phase: 'chat.route.memory.write',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
+
+async function readExperiencesIfEnabled(botSlug: string, query: string) {
+  if (!isExperienceLoopEnabled()) return [];
+  return readExperiences(botSlug, query, EXPERIENCE_TOP_K);
+}
+
+function fireAndForgetExperienceEval(opts: {
+  botSlug: string;
+  botName: string;
+  personality: BotPersonality | null;
+  userMessage: string;
+  assistantResponse: string;
+  conversationId: string;
+  userId: string;
+  engine: string;
+  sourceMechanism: SourceMechanism;
+}): void {
+  if (!isExperienceLoopEnabled()) return;
+  if (!opts.assistantResponse || !opts.assistantResponse.trim()) return;
+  void (async () => {
+    try {
+      const entry = await evaluateConversation({
+        botSlug: opts.botSlug,
+        botName: opts.botName,
+        botDisplayName: opts.personality?.displayName || opts.botName,
+        botPersonality:
+          opts.personality?.personality ||
+          opts.personality?.systemPrompt ||
+          '',
+        userMessage: opts.userMessage,
+        assistantResponse: opts.assistantResponse,
+        conversationId: opts.conversationId,
+        userId: opts.userId,
+        sourceMechanism: opts.sourceMechanism,
+        modelUsed: opts.engine,
+      });
+      if (!entry) return;
+      const dedupKey = entry.lesson_learned || entry.critique || opts.userMessage;
+      const isDup = await checkExperienceDuplicate(opts.botSlug, dedupKey);
+      if (isDup) {
+        logger.info('Experience duplicate suppressed', {
+          phase: 'chat.route.experience.dedup',
+          botSlug: opts.botSlug,
+          score: entry.score,
+        });
+        return;
+      }
+      writeExperience(entry);
+    } catch (error) {
+      logger.warn('Experience eval failed', {
+        phase: 'chat.route.experience.eval',
+        botSlug: opts.botSlug,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  })();
+}
+
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
   let userIdForLog = 'unknown';
@@ -205,6 +331,33 @@ export async function POST(request: NextRequest) {
     const conversation = await getOrCreateConversation(userId, botName);
     const recentHistory = await loadRecentHistory(conversation.id);
 
+    const workspaceId = buildWorkspaceId(botName, userId);
+    const botSlugForExperience = normalizeBotKey(botName);
+    const [memories, experiences] = await Promise.all([
+      readMemoriesIfEnabled(workspaceId, trimmedMessage),
+      readExperiencesIfEnabled(botSlugForExperience, trimmedMessage),
+    ]);
+    const experienceBlock = buildExperienceContext(experiences);
+    const memoryAugmented = augmentWithMemories(trimmedMessage, memories);
+    const agentMessage = experienceBlock
+      ? `${experienceBlock}\n\n${memoryAugmented}`
+      : memoryAugmented;
+
+    let sharedPersonality: BotPersonality | null = null;
+    if (isExperienceLoopEnabled()) {
+      try {
+        sharedPersonality = await fetchBotPersonality(botName);
+      } catch (personalityError) {
+        logger.warn('Failed to fetch personality for experience eval', {
+          botName,
+          phase: 'chat.route.experience.personality',
+          error: personalityError instanceof Error
+            ? personalityError.message
+            : String(personalityError),
+        });
+      }
+    }
+
     try {
       await saveUserMessage(conversation.id, trimmedMessage);
     } catch (error) {
@@ -221,60 +374,80 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      const agentRes = await fetch('http://localhost:8200/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: trimmedMessage,
-          bot_id: botName,
-          session_id: conversation.id,
-          history: recentHistory.length > 0 ? recentHistory : undefined,
-        }),
-        signal: AbortSignal.timeout(60000),
-      });
-
-      if (!agentRes.ok) {
-        const detail = await agentRes.text().catch(() => '');
-        throw new Error(detail || `Qwen-Agent returned ${agentRes.status}`);
-      }
-
-      const agentData = await agentRes.json() as QwenChatResponse;
-      const responseText = agentData.response || 'Signal processing...';
-
-      try {
-        await saveAssistantMessage({
-          conversationId: conversation.id,
-          content: responseText,
-          modelUsed: 'qwen-agent',
-          latencyMs: agentData.latency_ms ?? null,
-          metadata: {
-            engine: 'qwen-agent',
-            botId: agentData.bot_id || botName,
-            sessionId: agentData.session_id || conversation.id,
-          },
-        });
-      } catch (persistError) {
-        logger.error('Failed to persist chat assistant response', {
-          userId,
-          botName,
-          conversationId: conversation.id,
-          phase: 'chat.route.persist.assistant',
-          error: persistError instanceof Error ? persistError.message : String(persistError),
-        });
-      }
-
-      return NextResponse.json({
-        success: true,
-        response: responseText,
-        botName,
-        conversationId: conversation.id,
-        queryId: `qwen-agent-${Date.now()}`,
-        metrics: { latency_ms: agentData.latency_ms, engine: 'qwen-agent' },
-      });
-    } catch (agentErr: any) {
-      console.error(`[${botName}] Qwen-Agent failed, falling back to Dorylus:`, agentErr?.message);
-    }
+    // ═══ QWEN-AGENT PROXY DISABLED — LUCY IS NOW PRIMARY ENGINE ═══
+    // try {
+    // const agentRes = await fetch('http://localhost:8200/chat', {
+    // method: 'POST',
+    // headers: { 'Content-Type': 'application/json' },
+    // body: JSON.stringify({
+    // message: agentMessage,
+    // bot_id: botName,
+    // session_id: conversation.id,
+    // history: recentHistory.length > 0 ? recentHistory : undefined,
+    // }),
+    // signal: AbortSignal.timeout(60000),
+    // });
+    //
+    // if (!agentRes.ok) {
+    // const detail = await agentRes.text().catch(() => '');
+    // throw new Error(detail || `QWEN-Agent returned ${agentRes.status}`);
+    // }
+    //
+    // const agentData = await agentRes.json() as QwenChatResponse;
+    // const responseText = agentData.response || 'Signal processing...';
+    //
+    // try {
+    // await saveAssistantMessage({
+    // conversationId: conversation.id,
+    // content: responseText,
+    // modelUsed: 'qwen-agent',
+    // latencyMs: agentData.latency_ms ?? null,
+    // metadata: {
+    // engine: 'qwen-agent',
+    // botId: agentData.bot_id || botName,
+    // sessionId: agentData.session_id || conversation.id,
+    // },
+    // });
+    // } catch (persistError) {
+    // logger.error('Failed to persist chat assistant response', {
+    // userId,
+    // botName,
+    // conversationId: conversation.id,
+    // phase: 'chat.route.persist.assistant',
+    // error: persistError instanceof Error ? persistError.message : String(persistError),
+    // });
+    // }
+    //
+    // fireAndForgetMemoryWrite(workspaceId, trimmedMessage, responseText, {
+    // engine: 'qwen-agent',
+    // botId: agentData.bot_id || botName,
+    // conversationId: conversation.id,
+    // });
+    //
+    // fireAndForgetExperienceEval({
+    // botSlug: botSlugForExperience,
+    // botName,
+    // personality: sharedPersonality,
+    // userMessage: trimmedMessage,
+    // assistantResponse: responseText,
+    // conversationId: conversation.id,
+    // userId,
+    // engine: 'qwen-agent',
+    // sourceMechanism: 'self_navigating',
+    // });
+    //
+    // return NextResponse.json({
+    // success: true,
+    // message_id: crypto.randomUUID(),
+    // response: responseText,
+    // botName,
+    // conversationId: conversation.id,
+    // queryId: `qwen-agent-${Date.now()}`,
+    // metrics: { latency_ms: agentData.latency_ms, engine: 'qwen-agent' },
+    // });
+    // } catch (agentErr: any) {
+    // console.error(`[${botName}] QWEN-Agent failed, falling back to LUCY:`, agentErr?.message);
+    // }
 
     const botData = await getBotSystemPrompt(botName);
     if (!botData) {
@@ -288,7 +461,7 @@ export async function POST(request: NextRequest) {
       userId,
       botName,
       botSpace: botData.config.space,
-      originalQuery: trimmedMessage,
+      originalQuery: agentMessage,
       botSystemPrompt: botData.systemPrompt,
       temperature: botData.config.temperature,
     });
@@ -316,6 +489,26 @@ export async function POST(request: NextRequest) {
         conversationId: conversation.id,
         phase: 'chat.route.persist.assistant.dorylus',
         error: persistError instanceof Error ? persistError.message : String(persistError),
+      });
+    }
+
+    if (result.status !== 'error') {
+      fireAndForgetMemoryWrite(workspaceId, trimmedMessage, fallbackResponse, {
+        engine: 'dorylus',
+        queryId: result.queryId,
+        conversationId: conversation.id,
+      });
+
+      fireAndForgetExperienceEval({
+        botSlug: botSlugForExperience,
+        botName,
+        personality: sharedPersonality,
+        userMessage: trimmedMessage,
+        assistantResponse: fallbackResponse,
+        conversationId: conversation.id,
+        userId,
+        engine: 'dorylus',
+        sourceMechanism: 'self_navigating',
       });
     }
 
@@ -359,6 +552,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({
       success: true,
+      message_id: crypto.randomUUID(),
       response: fallbackResponse,
       botName: result.botName,
       conversationId: conversation.id,

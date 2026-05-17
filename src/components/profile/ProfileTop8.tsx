@@ -16,12 +16,12 @@ interface ProfileTop8Props {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  ONLINE: '#00DC00',
+  ONLINE: '#5200FF',
   IDLE: '#E6E300',
   STANDBY: '#767676',
 };
 
-export default function ProfileTop8({ entries, accentColor = '#00DC00', ownerName }: ProfileTop8Props) {
+export default function ProfileTop8({ entries, accentColor = '#5200FF', ownerName }: ProfileTop8Props) {
   const slots: (Top8Slot | null)[] = Array.from({ length: 8 }, (_, index) => entries[index] ?? null);
 
   return (

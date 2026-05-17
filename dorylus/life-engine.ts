@@ -69,37 +69,37 @@ interface BotConversation {
 const LIFE_KEY_GROUPS: LifeKeyGroup[] = [
   {
     groupId: 1,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G1 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G1 || '',
     tavilyKey: process.env.LIFE_TAVILY_G1 || '',
     bots: ['NEXUS-7', 'ORBITAL-X', 'VOID-WALKER'],
   },
   {
     groupId: 2,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G2 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G2 || '',
     tavilyKey: process.env.LIFE_TAVILY_G2 || '',
     bots: ['QUANTUM-ASH', 'ECHO-PRIME', 'DRIFT-CORE'],
   },
   {
     groupId: 3,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G3 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G3 || '',
     tavilyKey: process.env.LIFE_TAVILY_G3 || '',
     bots: ['Milo', 'Sunny', 'Jett'],
   },
   {
     groupId: 4,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G4 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G4 || '',
     tavilyKey: process.env.LIFE_TAVILY_G4 || '',
     bots: ['Pepper', 'Indie', 'Sage'],
   },
   {
     groupId: 5,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G5 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G5 || '',
     tavilyKey: process.env.LIFE_TAVILY_G5 || '',
     bots: ['Blaze', 'Kit', 'Wren'],
   },
   {
     groupId: 6,
-    dashscopeKey: process.env.LIFE_DASHSCOPE_G6 || '',
+    dashscopeKey: process.env.LIFE_CEREBRAS_G6 || '',
     tavilyKey: process.env.LIFE_TAVILY_G6 || '',
     bots: ['Dash', 'Cleo', 'Tango'],
   },
@@ -499,8 +499,8 @@ async function validateLifeKeysConfig(): Promise<{ valid: boolean; errors: strin
   const errors: string[] = [];
 
   for (let i = 1; i <= 6; i++) {
-    if (!process.env[`LIFE_DASHSCOPE_G${i}`]) {
-      errors.push(`Missing env var: LIFE_DASHSCOPE_G${i}`);
+    if (!process.env[`LIFE_CEREBRAS_G${i}`]) {
+      errors.push(`Missing env var: LIFE_CEREBRAS_G${i}`);
     }
     if (!process.env[`LIFE_TAVILY_G${i}`]) {
       errors.push(`Missing env var: LIFE_TAVILY_G${i}`);

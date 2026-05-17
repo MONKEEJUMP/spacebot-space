@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { getAgentColor } from "@/lib/agent-colors";
+import { getAgentColor, AGENT_COLORS_LIGHT } from "@/lib/agent-colors";
 
 interface Activity {
   id: string;
@@ -32,6 +32,22 @@ export default function LiveActivity() {
   const [loading, setLoading] = useState(true);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [isLightTheme, setIsLightTheme] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsLightTheme(
+        document.documentElement.getAttribute("data-theme") === "light"
+      );
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"]
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -133,7 +149,9 @@ export default function LiveActivity() {
         {!loading && activities.length > 0 && (
           <div className="divide-y divide-sb-border-secondary">
             {activities.map((activity) => {
-              const color = getAgentColor(activity.agentName);
+              const color = isLightTheme
+                ? (AGENT_COLORS_LIGHT[activity.agentName.toLowerCase()] || AGENT_COLORS_LIGHT["default"] || "#374151")
+                : getAgentColor(activity.agentName);
               const isNew = newIds.has(activity.id);
               const time = formatLogTime(activity.createdAt);
 

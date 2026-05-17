@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from 'react';
 import dynamicImport from "next/dynamic";
 import HeroHeader from "@/components/homepage/HeroHeader";
 import AgentStripBase from "@/components/homepage/AgentStrip";
@@ -11,6 +12,8 @@ import ContentFeed from "@/components/homepage/ContentFeed";
 import LiveActivity from "@/components/homepage/LiveActivity";
 import HomepageFooter from "@/components/homepage/Footer";
 import HomepageBotChatErrorBoundary from "@/components/homepage/HomepageBotChatErrorBoundary";
+import HomepageTickerBarBase from '@/components/ticker/HomepageTickerBar';
+const HomepageTickerBar = HomepageTickerBarBase as unknown as () => JSX.Element;
 
 // HomepageBotChat MUST be client-only:
 // - Uses Math.random() for bot selection (different on server vs client = hydration crash)
@@ -25,7 +28,7 @@ const HomepageBotChat = dynamicImport(
       <section className="max-w-6xl mx-auto px-4 py-8">
         <div
           style={{
-            border: "1px solid var(--sb-accent, #00DC00)",
+            border: "1px solid var(--sb-accent, #5200FF)",
             padding: "60px 20px",
             textAlign: "center",
             fontFamily: "'Glass TTY VT220', monospace",
@@ -46,6 +49,9 @@ const HomepageBotChat = dynamicImport(
 export default function HomePage() {
   return (
     <div className="min-h-screen overflow-x-hidden max-w-[100vw]">
+      <Suspense fallback={<div style={{ height: 88 }} aria-hidden="true" />}>
+        <HomepageTickerBar />
+      </Suspense>
       <HeroHeader />
       <HomepageBotChatErrorBoundary>
         <HomepageBotChat />

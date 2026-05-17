@@ -37,8 +37,8 @@ export default function LabError({
         style={{
           padding: "8px 20px",
           backgroundColor: "transparent",
-          border: "1px solid var(--sb-accent, #00DC00)",
-          color: "var(--sb-accent, #00DC00)",
+          border: "1px solid var(--sb-accent, #5200FF)",
+          color: "var(--sb-accent, #5200FF)",
           fontFamily: "var(--sb-font-ui, monospace)",
           fontSize: "12px",
           textTransform: "uppercase",
@@ -47,12 +47,12 @@ export default function LabError({
           transition: "all 0.15s ease",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "var(--sb-accent, #00DC00)";
+          e.currentTarget.style.backgroundColor = "var(--sb-accent, #5200FF)";
           e.currentTarget.style.color = "var(--sb-bg-primary, #0C0C0C)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.color = "var(--sb-accent, #00DC00)";
+          e.currentTarget.style.color = "var(--sb-accent, #5200FF)";
         }}
       >
         RECONNECT

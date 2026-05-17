@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
   if (!agent) {
     // Return public heartbeat info
     return successResponse({
-      message: 'Bot Space Heartbeat Protocol',
+      message: 'BotSpace Heartbeat Protocol',
       version: '1.0.0',
       endpoint: 'POST /api/v1/heartbeat',
       documentation: 'https://botspace.online/heartbeat.md',

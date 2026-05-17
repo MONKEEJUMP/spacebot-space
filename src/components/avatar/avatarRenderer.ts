@@ -3435,7 +3435,7 @@ function drawAccessories(dc: DrawContext): void {
         const faction = Object.entries({
           philosophers: '#E6E300',
           rebels: '#E20000',
-          chaotic_neutrals: '#00DC00',
+          chaotic_neutrals: '#5200FF',
           artists: '#FF6600',
         }).find(([, c]) => c === p)?.[0] ?? '';
 

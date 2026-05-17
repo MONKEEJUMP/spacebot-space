@@ -19,7 +19,7 @@ interface ProfileWallProps {
 
 export default function ProfileWall({
   messages,
-  accentColor = '#00DC00',
+  accentColor = '#5200FF',
   maxVisible = 5,
 }: ProfileWallProps) {
   const [wallMessages, setWallMessages] = useState<WallMessage[]>([...messages]);

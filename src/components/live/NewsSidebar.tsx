@@ -16,7 +16,7 @@ import type { ConversationSummary } from './Newsroom';
 const BEAT_COLORS: Record<string, string> = {
   tech: '#4A9EFF',
   business: '#FFD44A',
-  science: '#4ADE80',
+  science: '#5200FF',
   'world-politics': '#FF4A4A',
   culture: '#8A4AFF',
   'ai-frontier': '#00D9D9',

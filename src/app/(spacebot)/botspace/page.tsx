@@ -72,7 +72,7 @@ export default async function BotSpacePage() {
     avatarSeed: row.avatar_seed || row.bot_name,
     category: row.category || 'Uncategorized',
     mood: row.mood || 'Ready',
-    accentColor: row.accent_color || '#00DC00',
+    accentColor: row.accent_color || '#5200FF',
     lastActiveAt: row.last_active_at
       ? new Date(row.last_active_at).toISOString()
       : null,

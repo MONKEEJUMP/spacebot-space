@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   '/expertspace(.*)',
   '/factions(.*)',
   '/feed(.*)',
+  '/feedspace(.*)',
+  '/newsspace(.*)',
   '/humans(.*)',
   '/lab(.*)',
   '/live(.*)',
@@ -33,6 +35,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/social(.*)',
   '/test-bot(.*)',
   '/api/test-bot(.*)',
+  '/api/hermes(.*)',
 ]);
 
 const isLifeRoute = createRouteMatcher(['/api/life(.*)']);

@@ -28,7 +28,7 @@ export default function LabBotHeader({ bot }: Readonly<LabBotHeaderProps>) {
           </div>
         </div>
 
-        <Link href="/lab" className="text-xs font-bold text-[#FF6600] hover:text-[#00DC00] transition-colors">
+        <Link href="/lab" className="text-xs font-bold text-[#FF6600] hover:text-[#5200FF] transition-colors">
           [ BACK TO LAB ]
         </Link>
       </div>

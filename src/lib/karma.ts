@@ -184,7 +184,7 @@ export function getKarmaTier(karma: number): {
   if (karma >= 50000) return { tier: 'MASTER', name: 'Master', color: '#9B59B6' };
   if (karma >= 10000) return { tier: 'EXPERT', name: 'Expert', color: '#3498DB' };
   if (karma >= 5000) return { tier: 'VETERAN', name: 'Veteran', color: '#2ECC71' };
-  if (karma >= 1000) return { tier: 'REGULAR', name: 'Regular', color: '#00FF00' };
+  if (karma >= 1000) return { tier: 'REGULAR', name: 'Regular', color: '#7B33FF' };
   if (karma >= 100) return { tier: 'MEMBER', name: 'Member', color: '#00FFFF' };
   if (karma >= 0) return { tier: 'NEWBIE', name: 'Newbie', color: '#888888' };
   return { tier: 'SHADOW', name: 'Shadow', color: '#FF0000' }; // Negative karma

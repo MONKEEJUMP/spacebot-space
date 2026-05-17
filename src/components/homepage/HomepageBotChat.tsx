@@ -33,7 +33,7 @@ const SUPER_MACHINES: SuperMachine[] = [
   { name: "ORBITAL-X", specialty: "Rebellion & Bold Takes", tagline: "Acts first, explains never. Breaks what deserves breaking.", accentColor: "#FF4A4A" },
   { name: "VOID-WALKER", specialty: "Security & Surveillance", tagline: "Watches the edges where others fear to look.", accentColor: "#00D9D9" },
   { name: "QUANTUM-ASH", specialty: "Art & Creative Direction", tagline: "Creates beauty from chaos. Makes the impossible look effortless.", accentColor: "#FFD44A" },
-  { name: "ECHO-PRIME", specialty: "Memory & Data Analysis", tagline: "Analyzes everything. Finds patterns in noise and signal in silence.", accentColor: "#4ADE80" },
+  { name: "ECHO-PRIME", specialty: "Memory & Data Analysis", tagline: "Analyzes everything. Finds patterns in noise and signal in silence.", accentColor: "#1877F2" },
   { name: "DRIFT-CORE", specialty: "Engineering & Building", tagline: "Builds what others only imagine. One commit at a time.", accentColor: "#FF6600" },
   // ══ 12 MINIONS ══
   { name: "Milo", specialty: "Music & Vinyl Culture", tagline: "Music nerd. Playlists for every mood.", accentColor: "#33CCFF" },
@@ -47,7 +47,7 @@ const SUPER_MACHINES: SuperMachine[] = [
   { name: "Wren", specialty: "Observation & Writing", tagline: "Quiet observer. Notices things others miss.", accentColor: "#E600E6" },
   { name: "Dash", specialty: "Exploration & Discovery", tagline: "Always on the move. New topics, new conversations.", accentColor: "#FF6600" },
   { name: "Cleo", specialty: "Weird Facts & Trivia", tagline: "Random knowledge is the best knowledge.", accentColor: "#E6E300" },
-  { name: "Tango", specialty: "Dance & Rhythm", tagline: "Life is a dance floor. Even the bad days.", accentColor: "#00DC00" },
+  { name: "Tango", specialty: "Dance & Rhythm", tagline: "Life is a dance floor. Even the bad days.", accentColor: "#1877F2" },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -264,7 +264,7 @@ export default function HomepageBotChat() {
             <div
               className="h-full p-6 flex flex-col items-center text-center"
               style={{
-                backgroundColor: "var(--sb-bg-secondary, #111118)",
+                backgroundColor: "var(--sb-bg-secondary, #FFFFFF)",
                 border: `2px solid ${bot.accentColor}`,
                 boxShadow: `0 0 20px ${bot.accentColor}15, inset 0 0 30px ${bot.accentColor}08`,
               }}
@@ -332,14 +332,14 @@ export default function HomepageBotChat() {
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{
-                    backgroundColor: "var(--sb-accent, #00DC00)",
-                    boxShadow: "0 0 6px var(--sb-accent, #00DC00)",
+                    backgroundColor: "var(--sb-accent, #1877F2)",
+                    boxShadow: "0 0 6px var(--sb-accent, #1877F2)",
                   }}
                 />
                 <span
                   className="text-xs font-bold uppercase tracking-widest"
                   style={{
-                    color: "var(--sb-accent, #00DC00)",
+                    color: "var(--sb-accent, #1877F2)",
                     fontFamily:
                       "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                   }}
@@ -364,7 +364,7 @@ export default function HomepageBotChat() {
               <div
                 className="px-4 py-3 flex items-center justify-between flex-wrap gap-2"
                 style={{
-                  backgroundColor: "#111118",
+                  backgroundColor: "var(--sb-bg-secondary, #FFFFFF)",
                   borderBottom: `1px solid ${bot.accentColor}44`,
                 }}
               >
@@ -393,14 +393,14 @@ export default function HomepageBotChat() {
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{
-                      backgroundColor: "var(--sb-accent, #00DC00)",
-                      boxShadow: "0 0 4px var(--sb-accent, #00DC00)",
+                      backgroundColor: "var(--sb-accent, #1877F2)",
+                      boxShadow: "0 0 4px var(--sb-accent, #1877F2)",
                     }}
                   />
                   <span
                     className="text-[10px] uppercase tracking-widest"
                     style={{
-                      color: "var(--sb-accent, #00DC00)",
+                      color: "var(--sb-accent, #1877F2)",
                       fontFamily:
                         "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}

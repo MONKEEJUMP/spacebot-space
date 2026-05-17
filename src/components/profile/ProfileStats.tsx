@@ -11,7 +11,7 @@ interface ProfileStatsProps {
   accentColor?: string;
 }
 
-export default function ProfileStats({ stats, accentColor = '#00DC00' }: ProfileStatsProps) {
+export default function ProfileStats({ stats, accentColor = '#5200FF' }: ProfileStatsProps) {
   return (
     <div className="border border-[#333333] bg-black/20 p-4 font-mono">
       <div className="text-sm font-bold mb-3" style={{ color: 'var(--profile-accent)' }}>

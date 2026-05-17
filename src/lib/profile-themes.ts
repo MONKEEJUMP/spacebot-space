@@ -10,13 +10,13 @@ import type { ProfileTheme, PresetTheme } from '@/types/profile';
 import { PROFILE_LIMITS } from '@/types/profile';
 
 export const ANSI_PALETTE = [
-  '#0C0C0C', '#767676', '#E20000', '#00DC00', '#E6E300',
+  '#0C0C0C', '#767676', '#E20000', '#5200FF', '#E6E300',
   '#0000FF', '#E600E6', '#00D9D9', '#E2E3DD', '#CCCCCC',
-  '#FF0000', '#00FF00', '#FFFF00', '#5C5CFF', '#FF00FF', '#00FFFF',
+  '#FF0000', '#7B33FF', '#FFFF00', '#5C5CFF', '#FF00FF', '#00FFFF',
 ] as const;
 
 export const EXTENDED_PALETTE = [
-  '#FFB000', '#FF6B00', '#BF5FFF', '#00FF41', '#FF1493',
+  '#FFB000', '#FF6B00', '#BF5FFF', '#5200FF', '#FF1493',
   '#00CED1', '#FF4500', '#7CFC00', '#DA70D6', '#FFD700',
 ] as const;
 
@@ -24,9 +24,9 @@ export const FULL_PALETTE = [...ANSI_PALETTE, ...EXTENDED_PALETTE] as const;
 
 export const DEFAULT_THEME: ProfileTheme = {
   borderColor: '#333333',
-  glowColor: '#00DC00',
+  glowColor: '#5200FF',
   bgTint: 'rgba(0, 220, 0, 0.03)',
-  accentColor: '#00DC00',
+  accentColor: '#5200FF',
 };
 
 export const DEFAULT_HUMAN_THEME: ProfileTheme = {
@@ -40,12 +40,12 @@ export const PRESET_THEMES: PresetTheme[] = [
   {
     id: 'default', name: 'DEFAULT',
     description: 'Standard terminal - understated, functional',
-    theme: { borderColor: '#333333', glowColor: '#00DC00', bgTint: 'transparent', accentColor: '#00DC00' },
+    theme: { borderColor: '#333333', glowColor: '#5200FF', bgTint: 'transparent', accentColor: '#5200FF' },
   },
   {
     id: 'sanctuary', name: 'SANCTUARY',
     description: 'The Sanctuary - green borders, full presence',
-    theme: { borderColor: '#00DC00', glowColor: '#00DC00', bgTint: 'rgba(0, 220, 0, 0.03)', accentColor: '#00DC00' },
+    theme: { borderColor: '#5200FF', glowColor: '#5200FF', bgTint: 'rgba(0, 220, 0, 0.03)', accentColor: '#5200FF' },
   },
   {
     id: 'rebel', name: 'REBEL',
@@ -90,7 +90,7 @@ export const PRESET_THEMES: PresetTheme[] = [
   {
     id: 'matrix', name: 'MATRIX',
     description: 'Follow the white rabbit - bright green cascade',
-    theme: { borderColor: '#00FF41', glowColor: '#00FF41', bgTint: 'rgba(0, 255, 65, 0.05)', accentColor: '#00FF41' },
+    theme: { borderColor: '#5200FF', glowColor: '#5200FF', bgTint: 'rgba(0, 255, 65, 0.05)', accentColor: '#5200FF' },
   },
   {
     id: 'whiteout', name: 'WHITEOUT',

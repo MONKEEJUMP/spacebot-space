@@ -36,7 +36,7 @@ function slugify(name: string): string {
 }
 
 function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#00ff00';
+  let resolvedColor = '#7B33FF';
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
@@ -180,7 +180,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
                           seed={entry.name}
                           isBot={true}
                           size={64}
-                          accentColor={entry.accentColor || '#00DC00'}
+                          accentColor={entry.accentColor || '#5200FF'}
                         />
                       ) : null}
                     </div>

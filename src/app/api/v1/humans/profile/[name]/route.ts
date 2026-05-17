@@ -174,7 +174,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         username: human.username || null,
         tier: human.subscriptionTier,
         avatarConfig: human.avatarConfig || null,
-        siteTheme: human.siteTheme || 'dark',
+        siteTheme: human.siteTheme || 'orange',
         joinedAt: human.createdAt,
       },
       profile: profile

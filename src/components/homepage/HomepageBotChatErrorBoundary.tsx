@@ -30,7 +30,7 @@ export default class HomepageBotChatErrorBoundary extends Component<Props, State
         <section className="max-w-6xl mx-auto px-4 py-8">
           <div
             style={{
-              border: "1px solid var(--sb-accent, #00DC00)",
+              border: "1px solid var(--sb-accent, #5200FF)",
               padding: "40px 20px",
               textAlign: "center",
               fontFamily: "'Glass TTY VT220', monospace",

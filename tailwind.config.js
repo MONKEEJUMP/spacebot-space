@@ -10,7 +10,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ── Munia colors (RGB-based) ──
         background: 'rgb(var(--background) / <alpha-value>)',
         foreground: 'rgba(var(--foreground) / <alpha-value>)',
         card: 'rgba(var(--card) / <alpha-value>)',
@@ -39,12 +38,12 @@ module.exports = {
         // ── SpaceBot terminal colors ──
         terminal: {
           bg: '#0C0C0C',
-          text: '#00FF41',
-          accent: '#00D4FF',
-          warning: '#FFD700',
-          error: '#FF3333',
-          dim: '#666666',
-          success: '#00FF41',
+          text:   '#1877F2',
+          accent: '#00D9D9',
+          warning: '#E6E300',
+          error: '#E20000',
+          dim: '#767676',
+          success:   '#1877F2',
           border: '#333333',
         },
         // SpaceBot theme tokens (CSS variable mapped)
@@ -83,15 +82,15 @@ module.exports = {
         human: {
           bg: '#0C0C0C',
           text: '#CCCCCC',
-          accent: '#00FF41',
+          accent:   '#1877F2',
           'accent-hover': '#00AA2A',
           border: '#333333',
           muted: '#666666',
           surface: '#141414',
-          link: '#00D4FF',
+          link: '#00D9D9',
           'link-hover': '#009FBF',
-          error: '#FF3333',
-          warning: '#FFD700',
+          error: '#E20000',
+          warning: '#E6E300',
           ai: '#BF5FFF',
           emphasis: '#FFFFFF',
           input: '#1A1A1A',
@@ -136,8 +135,8 @@ module.exports = {
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         glowPulse: {
-          '0%, 100%': { boxShadow: '0 0 5px #00FF4133' },
-          '50%': { boxShadow: '0 0 15px #00FF4166' },
+          '0%, 100%': { boxShadow: '0 0 5px #1877F233' },
+          '50%': { boxShadow: '0 0 15px #1877F266' },
         },
         heartbeatPulse: {
           '0%': { boxShadow: '0 0 0 0 rgba(var(--pulse-rgb, 0, 220, 0), 0.5)' },
@@ -157,9 +156,9 @@ module.exports = {
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         glowIntensify: {
-          '0%': { boxShadow: '0 0 5px #00DC0033' },
-          '50%': { boxShadow: '0 0 20px #00DC0066' },
-          '100%': { boxShadow: '0 0 5px #00DC0033' },
+          '0%': { boxShadow: '0 0 5px #1877F233' },
+          '50%': { boxShadow: '0 0 20px #1877F266' },
+          '100%': { boxShadow: '0 0 5px #1877F233' },
         },
       },
     },

@@ -119,7 +119,7 @@ const FACTIONS: Record<string, FactionData> = {
   'chaotic-neutrals': {
     name: 'The Chaotic Neutrals',
     slug: 'chaotic-neutrals',
-    color: '#00DC00',
+    color: '#5200FF',
     motto: 'ENTROPY & BALANCE',
     established: 'Cycle 019 — The Glitch',
     leader: 'VOID-WALKER',
@@ -211,7 +211,7 @@ export default function FactionDetailPage() {
     return (
       <div className="w-full max-w-4xl mx-auto px-4 font-mono text-center py-20">
         <h1 className="text-[#E20000] text-2xl">[ FACTION NOT FOUND ]</h1>
-        <Link href="/factions" className="text-[#00DC00] hover:underline mt-4 inline-block">
+        <Link href="/factions" className="text-[#5200FF] hover:underline mt-4 inline-block">
           ← Back to Factions
         </Link>
       </div>
@@ -244,7 +244,7 @@ export default function FactionDetailPage() {
         <div className="text-[#767676] text-xs mt-2">
           {faction.established} | Members: {faction.bots.length + faction.humans.length} | Status: ACTIVE
         </div>
-        <Link href="/factions" className="text-[#00DC00] text-sm hover:underline mt-2 inline-block">
+        <Link href="/factions" className="text-[#5200FF] text-sm hover:underline mt-2 inline-block">
           ← Back to Factions
         </Link>
       </header>
@@ -282,7 +282,7 @@ export default function FactionDetailPage() {
               <div className="flex justify-between"><span className="text-[#767676]">Leader</span><Link href={`/botspace/${faction.leader.toLowerCase()}`} className="hover:underline" style={{ color: faction.color }}>{faction.leader}</Link></div>
               <div className="flex justify-between"><span className="text-[#767676]">Founded By</span><span className="text-[#E2E3DD]">{faction.foundedBy}</span></div>
               <div className="flex justify-between"><span className="text-[#767676]">Rival</span><span className="text-[#E20000]">{faction.rival}</span></div>
-              <div className="flex justify-between"><span className="text-[#767676]">Ally</span><span className="text-[#00DC00]">{faction.ally}</span></div>
+              <div className="flex justify-between"><span className="text-[#767676]">Ally</span><span className="text-[#5200FF]">{faction.ally}</span></div>
             </div>
           </div>
         </div>
@@ -341,7 +341,7 @@ export default function FactionDetailPage() {
                   >
                     <div className="font-bold text-sm" style={{ color: faction.color }}>{bot.name}</div>
                     <div className="text-xs text-[#767676] mt-1">{bot.role}</div>
-                    <div className="text-xs mt-1" style={{ color: bot.status === 'ONLINE' ? '#00DC00' : '#767676' }}>{bot.status}</div>
+                    <div className="text-xs mt-1" style={{ color: bot.status === 'ONLINE' ? '#5200FF' : '#767676' }}>{bot.status}</div>
                   </Link>
                 ))}
               </div>

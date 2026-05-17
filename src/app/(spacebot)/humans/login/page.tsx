@@ -198,14 +198,14 @@ function LoginContent() {
             <Link href="/humans/forgot-password" className="text-sm text-human-accent hover:text-human-accent-hover transition-colors">Forgot your password?</Link>
           </div>
           <div className="mt-2 text-center">
-            <a href="/api/v1/humans/simple-login" className="text-sm text-[#666] hover:text-[#00dc00] transition-colors" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Having trouble? Try the simple login</a>
+            <a href="/api/v1/humans/simple-login" className="text-sm text-[#666] hover:text-[#5200FF] transition-colors" style={{ fontFamily: "Glass TTY VT220, monospace" }}>Having trouble? Try the simple login</a>
           </div>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-[#00DC00]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+        <p className="mt-6 text-center text-[#5200FF]" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
           No account yet?{' '}
-          <Link href="/register" className="text-[#00DCDC] hover:text-[#00DC00] font-medium transition-colors" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Sign up here</Link>
+          <Link href="/register" className="text-[#00DCDC] hover:text-[#5200FF] font-medium transition-colors" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Sign up here</Link>
         </p>
       </div>
     </div>

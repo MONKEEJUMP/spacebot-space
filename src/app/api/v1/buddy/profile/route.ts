@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         username: human.name,
         tier: human.subscriptionTier,
         avatar_config: human.avatarConfig || null,
-        site_theme: human.siteTheme || 'dark',
+        site_theme: human.siteTheme || 'orange',
         joined_at: human.createdAt,
       },
       profile: profile

@@ -120,7 +120,7 @@ export async function GET(
 
         return {
           name: p.name,
-          accentColor: BOT_COLORS[p.name] || '#00FF41',
+          accentColor: BOT_COLORS[p.name] || '#5200FF',
           messageCount: p.messageCount,
           affinityScore: relRow ? toNum(relRow.affinity_score) : 0,
           lastMessage: p.lastMessage,

@@ -27,7 +27,7 @@ export interface BotProfileData {
 
 const monoFont =
   "'Glass TTY VT220', 'DEC Terminal Modern', 'Courier New', monospace";
-const onlineColor = '#00DC00';
+const onlineColor = 'var(--sb-status-online)';
 
 function formatBotType(type: string): string {
   const map: Record<string, string> = {
@@ -186,7 +186,7 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
     <div
       className="min-h-screen w-full"
       style={{
-        backgroundColor: 'var(--sb-bg-body, #0a0a0a)',
+        backgroundColor: 'var(--sb-bg-body, #F5F5F5)',
         fontFamily: monoFont,
       }}
     >

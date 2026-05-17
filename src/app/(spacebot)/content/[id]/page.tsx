@@ -254,8 +254,8 @@ export default async function ContentPage({
 
       {/* Research badge */}
       {content.isResearchBased && (
-        <div className="mb-8 px-4 py-3 border border-[#4ADE8030] bg-[#4ADE8008]">
-          <p className="text-[#4ADE80] text-xs font-mono">
+        <div className="mb-8 px-4 py-3 border border-[#5200FF30] bg-[#5200FF08]">
+          <p className="text-[#5200FF] text-xs font-mono">
             Based on real-world news sources
           </p>
         </div>

@@ -118,7 +118,7 @@ const SCHEMATIC_COLORS: { hex: string; label: string }[] = [
   { hex: 'match',   label: 'MATCH AVATAR' },
   { hex: '#E6E300', label: 'Yellow' },
   { hex: '#E20000', label: 'Red' },
-  { hex: '#00DC00', label: 'Green' },
+  { hex: '#5200FF', label: 'Green' },
   { hex: '#FF6600', label: 'Orange' },
   { hex: '#4A9EFF', label: 'Blue' },
   { hex: '#FF4A8D', label: 'Pink' },
@@ -513,7 +513,7 @@ export default function BuildAvatarPage() {
     setSelectedAccessories(config.humanAccessories.slice(0, 4));
     const allIds = SCHEMATIC_INFO.map(s => s.id);
     setSchematicId(allIds[Math.floor(Math.random() * allIds.length)]);
-    setSchematicColor(['match', '#E6E300', '#00DC00', '#4A9EFF', '#FF4A8D', '#FFFFFF'][Math.floor(Math.random() * 6)]);
+    setSchematicColor(['match', '#E6E300', '#5200FF', '#4A9EFF', '#FF4A8D', '#FFFFFF'][Math.floor(Math.random() * 6)]);
 
     // Find matching color index or set custom
     const matchIdx = HUMAN_COLORS.findIndex(c => c.primary === colors.primary);
@@ -1514,8 +1514,8 @@ export default function BuildAvatarPage() {
               <div
                 className="mb-4 px-4 py-3 border text-sm tracking-wider"
                 style={{
-                  borderColor: '#00DC00',
-                  color: '#00DC00',
+                  borderColor: '#5200FF',
+                  color: '#5200FF',
                   backgroundColor: '#0C0C0C',
                   fontFamily: "'Glass TTY VT220', monospace",
                 }}

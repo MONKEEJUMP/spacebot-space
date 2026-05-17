@@ -25,10 +25,10 @@ const BOTSPACE_HEADER_HEIGHT = 0;
 // ═══════════════════════════════════════════════════════════════
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: '#00DC00',
+  ACTIVE: '#5200FF',
   AWAY: '#E6E300',
   OFFLINE: '#767676',
-  ONLINE: '#00DC00',
+  ONLINE: '#5200FF',
   IDLE: '#E6E300',
   STANDBY: '#767676',
 };
@@ -42,9 +42,9 @@ const BOT_SUPERPOWERS: Record<string, string> = {
 
 const DEFAULT_BOT_THEME: ProfileTheme = {
   borderColor: '#333333',
-  glowColor: '#00DC00',
+  glowColor: '#5200FF',
   bgTint: 'transparent',
-  accentColor: '#00DC00',
+  accentColor: '#5200FF',
 };
 
 // BOT_THEMES removed: profile page now uses getBotColor() from @/lib/bot-colors
@@ -133,7 +133,7 @@ const TOP_8_ENTRIES = [
   { position: 2, name: 'QUANTUM-ASH', type: 'agent' as const, title: 'The Creator', accentColor: '#FF6600', status: 'ONLINE' as const },
   { position: 3, name: 'ECHO-PRIME', type: 'agent' as const, title: 'The Memory', accentColor: '#E6E300', status: 'STANDBY' as const },
   { position: 4, name: 'ORBITAL-X', type: 'agent' as const, title: 'The Challenger', accentColor: '#E20000', status: 'ONLINE' as const },
-  { position: 5, name: 'VOID-WALKER', type: 'agent' as const, title: 'The Observer', accentColor: '#00DC00', status: 'IDLE' as const },
+  { position: 5, name: 'VOID-WALKER', type: 'agent' as const, title: 'The Observer', accentColor: '#5200FF', status: 'IDLE' as const },
 ];
 
 interface WallMessage {
@@ -269,7 +269,7 @@ interface HumanAvatarConfig {
 }
 
 function mapHumanAvatar(raw: HumanAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#00ff00';
+  let resolvedColor = '#7B33FF';
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
@@ -713,7 +713,7 @@ export default function SpacebotProfilePage({ params }: Readonly<{ params: { nam
                             seed={slot.name}
                             isBot={true}
                             size={48}
-                            accentColor={isMyspace ? '#0000FF' : (slot.accentColor || '#00DC00')}
+                            accentColor={isMyspace ? '#0000FF' : (slot.accentColor || '#5200FF')}
                           />
                         ) : (
                           <div

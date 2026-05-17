@@ -1,4 +1,4 @@
-import { TickerHeadline } from "@/lib/ticker/types";
+import { TickerHeadline, TickerCategory } from "@/lib/ticker/types";
 import { TICKER_CATEGORIES } from "@/lib/ticker/categories";
 
 interface TickerItemProps {
@@ -6,8 +6,8 @@ interface TickerItemProps {
 }
 
 export default function TickerItem({ headline }: TickerItemProps) {
-  const categoryConfig = TICKER_CATEGORIES[headline.category];
-  const showBadge = headline.category !== "industry" && categoryConfig.label;
+  const categoryConfig = TICKER_CATEGORIES[headline.category as TickerCategory] ?? TICKER_CATEGORIES.industry;
+  const showBadge = headline.category !== "industry" && !!categoryConfig.label;
 
   return (
     <a

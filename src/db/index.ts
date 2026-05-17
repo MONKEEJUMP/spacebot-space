@@ -2,6 +2,8 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 import * as machineSocialSchema from './machine-social';
+import * as openjudgeSchema from './openjudge-schema';
+import * as hermesSchema from './hermes-schema';
 
 // Connection string from environment
 const connectionString = process.env.SPACEBOT_DATABASE_URL || process.env.DATABASE_URL!;
@@ -15,8 +17,10 @@ const client = postgres(connectionString, {
 });
 
 // Create drizzle instance with all schemas for relational queries
-export const db = drizzle(client, { schema: { ...schema, ...machineSocialSchema } });
+export const db = drizzle(client, { schema: { ...schema, ...machineSocialSchema, ...openjudgeSchema, ...hermesSchema } });
 
 // Export schemas for use in queries
 export * from './schema';
 export * from './machine-social';
+export * from './openjudge-schema';
+export * from './hermes-schema';

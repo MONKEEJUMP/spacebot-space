@@ -68,7 +68,7 @@ export interface FactionPalette {
 export const FACTION_COLORS: Record<string, FactionPalette> = {
   philosophers:     { primary: '#E6E300', dark: '#8A8800', light: '#F5F466' },
   rebels:           { primary: '#E20000', dark: '#880000', light: '#FF6666' },
-  chaotic_neutrals: { primary: '#00DC00', dark: '#008400', light: '#66FF66' },
+  chaotic_neutrals: { primary: '#5200FF', dark: '#008400', light: '#66FF66' },
   artists:          { primary: '#FF6600', dark: '#993D00', light: '#FFB266' },
 };
 
@@ -84,7 +84,7 @@ export const HUMAN_COLORS: FactionPalette[] = [
   { primary: '#C84AFF', dark: '#782D99', light: '#E099FF' },  // Magenta
   { primary: '#E6E300', dark: '#8A8800', light: '#F5F466' },  // Yellow
   { primary: '#E20000', dark: '#880000', light: '#FF6666' },  // Red
-  { primary: '#00DC00', dark: '#008400', light: '#66FF66' },  // Green
+  { primary: '#5200FF', dark: '#008400', light: '#66FF66' },  // Green
   { primary: '#FF6600', dark: '#993D00', light: '#FFB266' },  // Orange
   { primary: '#FFFFFF', dark: '#999999', light: '#FFFFFF' },  // White
   { primary: '#FF1493', dark: '#991080', light: '#FF85C8' },  // Hot Pink

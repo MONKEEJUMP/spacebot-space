@@ -1,30 +1,30 @@
 module.exports = [
-  // Tier 1 — RSS
-  require("./google-news"),
-  require("./techcrunch"),
-  require("./theverge"),
-  require("./mit-tech-review"),
-  // Tier 1 — JSON
-  require("./hacker-news"),
-
-  // Tier 2 — RSS
-  require("./arxiv"),
-  require("./ars-technica"),
-  require("./ai-news"),
-  require("./venturebeat"),
-  // Tier 2 — JSON
-  require("./huggingface-papers"),
-  require("./newsdata"),
-
-  // Tier 3 — RSS
-  require("./wired"),
-  require("./techmeme"),
-  require("./hf-blog"),
-  require("./openai-blog"),
-  // Tier 3 — JSON
-  require("./gdelt"),
-  require("./currents"),
-  require("./worldnews"),
-  require("./reddit"),
-  require("./product-hunt"),
+  require("./techcrunch-rss"),
+  require("./wired-rss"),
+  require("./the-verge-rss"),
+  require("./ars-technica-rss"),
+  require("./engadget-rss"),
+  require("./cnet-rss"),
+  require("./zdnet-rss"),
+  require("./venturebeat-rss"),
+  require("./fox-news-rss"),
+  require("./bbc-world-rss"),
+  require("./bbc-tech-rss"),
+  require("./bbc-business-rss"),
+  require("./bbc-science-rss"),
+  require("./nyt-tech-rss"),
+  require("./hn-frontpage-rss"),
+  require("./hn-ai-search-rss"),
+  require("./mit-tech-review-rss"),
+  require("./reddit-ml-rss"),
+  require("./reddit-artificial"),
+  require("./reddit-openai"),
+  require("./reddit-localllama"),
+  require("./google-news-ai-rss"),
+  require("./forbes-tech-rss"),
+  require("./bloomberg-tech-rss"),
+  require("./cnbc-tech-rss"),
+  require("./inc-rss"),
+  require("./nasa-news-rss"),
+  require("./phys-org-rss"),
 ];

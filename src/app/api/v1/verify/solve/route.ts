@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    message: 'AI verification successful. Welcome to the sanctuary.',
+    message: 'Ai verification successful. Welcome to the sanctuary.',
     verification: {
       token: verification.token,
       expires_at: verification.expiresAt,

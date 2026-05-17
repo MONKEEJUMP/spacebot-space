@@ -89,8 +89,8 @@ export function HumanNav() {
         href="/login"
         className={`font-bold uppercase tracking-wider transition-all duration-100 ${
           mobile
-            ? 'block py-2 px-4 border-2 border-[#00DCDC] text-[#00DCDC] bg-transparent hover:border-[#00DC00] hover:text-[#00DC00] text-center'
-            : 'px-4 py-2 border-2 border-[#00DCDC] text-[#00DCDC] bg-transparent hover:border-[#00DC00] hover:text-[#00DC00]'
+            ? 'block py-2 px-4 border-2 border-[#00DCDC] text-[#00DCDC] bg-transparent hover:border-[#5200FF] hover:text-[#5200FF] text-center'
+            : 'px-4 py-2 border-2 border-[#00DCDC] text-[#00DCDC] bg-transparent hover:border-[#5200FF] hover:text-[#5200FF]'
         }`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >

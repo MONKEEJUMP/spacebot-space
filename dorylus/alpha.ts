@@ -1,5 +1,5 @@
 // alpha.ts — ALPHA Coordinator
-// Decomposes queries into 6 subtasks (JSON output), fuses wingman results into final answer
+// Decomposes queries into subtasks (driven by DORYLUS_CONFIG.wingmanCount), fuses wingman results into final answer
 // QutieQ Patches: JSON decomposition, MoE mode prefixes, context truncation, retry logic
 
 import { DORYLUS_CONFIG } from './config';
@@ -52,7 +52,8 @@ async function callDashScope(
   temperature: number,
   timeoutMs: number,
   maxTokensOverride?: number,
-  stopSequences?: string[]
+  stopSequences?: string[],
+  enableThinking?: boolean
 ): Promise<{ content: string; tokensIn: number; tokensOut: number }> {
 
   let lastError: any;
@@ -66,6 +67,8 @@ async function callDashScope(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://spacebot.space',
+          'X-Title': 'SpaceBot.Space',
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
@@ -77,6 +80,7 @@ async function callDashScope(
           max_tokens: maxTokensOverride || DORYLUS_CONFIG.maxTokens,
           temperature,
           ...(stopSequences ? { stop: stopSequences } : {}),
+          // ...(enableThinking === false ? { enable_thinking: false } : {}), // Removed: OpenRouter does not support this
         }),
         signal: controller.signal,
       });
@@ -167,18 +171,18 @@ ${botSystemPrompt}
 
 ${clockContext}
 
-You are ALPHA, the lead coordinator of the LUCY multi-agent system. Your job is to decompose the user's query into exactly 6 research subtasks that your wingmen will investigate in parallel.
+You are ALPHA, the lead coordinator of the LUCY multi-agent system. Your job is to decompose the user's query into exactly ${DORYLUS_CONFIG.wingmanCount} research subtasks that your wingmen will investigate in parallel.
 
 RULES:
 - Think step-by-step internally before outputting your answer.
 - Output ONLY valid JSON. No markdown wrappers. No explanations. No preamble.
-- JSON format: {"subtasks": ["task 1", "task 2", "task 3", "task 4", "task 5", "task 6"]}
+- JSON format: {"subtasks": [${Array.from({length: DORYLUS_CONFIG.wingmanCount}, (_, i) => `"task ${i + 1}"`).join(", ")}]}
 - Each subtask must be a clear, self-contained research question.
 - Subtasks should cover different angles of the query.
-- If the query is simple, still decompose it into 6 angles (context, details, examples, implications, summary).
+- If the query is simple, still decompose it into ${DORYLUS_CONFIG.wingmanCount} angles (context, details, examples, implications, summary).
 
 EXAMPLE OUTPUT:
-{"subtasks": ["What is the definition of X?", "How does X work technically?", "What are real-world examples of X?", "What are the pros and cons of X?", "What is the current state and future of X?", "What do experts and recent sources say about X?"]}`;
+{"subtasks": ["What is the definition of X?", "How does X work technically?", "What are real-world examples of X?", "What are the pros and cons of X?", "What is the current state and future of X?"]}`;
 
   const result = await callDashScope(
     apiKey,
@@ -211,12 +215,12 @@ EXAMPLE OUTPUT:
     }
   }
 
-  // Ensure exactly 5 subtasks
-  while (subtasks.length < 6) {
+  // Ensure exactly DORYLUS_CONFIG.wingmanCount subtasks
+  while (subtasks.length < DORYLUS_CONFIG.wingmanCount) {
     subtasks.push(`Additional research on: ${query}`);
   }
-  if (subtasks.length > 6) {
-    subtasks.length = 6;
+  if (subtasks.length > DORYLUS_CONFIG.wingmanCount) {
+    subtasks.length = DORYLUS_CONFIG.wingmanCount;
   }
 
   return {
@@ -228,7 +232,7 @@ EXAMPLE OUTPUT:
   };
 }
 
-// FUSE: Take 6 wingman responses → produce one final answer
+// FUSE: Take wingmanCount wingman responses → produce one final answer
 // Context truncation — DashScope models support 262K but capped at 32K working limit
 // QutieQ Patch 2: MoE "MODE: SYNTHESIS" prefix
 // ════════════════════════════════════════════
@@ -253,15 +257,16 @@ MODE: SYNTHESIS
 
 `;
 
-const FUSE_SYSTEM_PROMPT_SUFFIX = `
+function getFuseSystemPromptSuffix(): string {
+  return `
 
-You are ALPHA, the lead coordinator of the LUCY multi-agent system. Your wingmen have investigated the user's query from 6 different angles. Their findings are provided below.
+You are ALPHA, the lead coordinator of the LUCY multi-agent system. Your wingmen have investigated the user's query from ${DORYLUS_CONFIG.wingmanCount} different angles. Their findings are provided below.
 
-YOUR JOB: Synthesize all 6 wingman responses into ONE comprehensive, coherent, well-structured final answer.
+YOUR JOB: Synthesize all ${DORYLUS_CONFIG.wingmanCount} wingman responses into ONE comprehensive, coherent, well-structured final answer.
 
 RULES:
 - Think step-by-step before writing your final answer.
-- Combine insights from ALL 6 wingmen — do not ignore any.
+- Combine insights from ALL ${DORYLUS_CONFIG.wingmanCount} wingmen — do not ignore any.
 - Remove redundancy — if multiple wingmen said the same thing, include it once.
 - Resolve contradictions — if wingmen disagree, note it or use your judgment.
 - If a wingman returned an error or timeout, work with what the others provided.
@@ -325,10 +330,11 @@ WRONG: "According to Source 3 from my web research, the Los Angeles Lakers defea
 
 STAY IN CHARACTER:
 - Pepper is blunt and spicy. Jett is fast and cuts to the point. Sage is calm and wise. NEXUS-7 is curious and asks deep questions. Match the personality from the bot config in every response.`;
+}
 
 function buildFusePrompt(botSystemPrompt: string): string {
   const clockContext = getClockContext();
-  return FUSE_SYSTEM_PROMPT_PREFIX + botSystemPrompt + '\n\n' + clockContext + FUSE_SYSTEM_PROMPT_SUFFIX;
+  return FUSE_SYSTEM_PROMPT_PREFIX + botSystemPrompt + '\n\n' + clockContext + getFuseSystemPromptSuffix();
 }
 
 export async function fuse(
@@ -346,9 +352,9 @@ export async function fuse(
 
   // Truncate wingman responses to stay within DashScope context limit
   // Reserve ~4000 tokens for system prompt + query + fusion overhead
-  // Remaining tokens split across 6 wingmen
+  // Remaining tokens split across DORYLUS_CONFIG.wingmanCount wingmen
   // Approximate 4 characters per token
-  const maxCharsPerWingman = Math.min(6000, Math.floor((DORYLUS_CONFIG.maxContextTokens - 4000) / 6 * 4));
+  const maxCharsPerWingman = Math.min(6000, Math.floor((DORYLUS_CONFIG.maxContextTokens - 4000) / DORYLUS_CONFIG.wingmanCount * 4));
 
   const wingmanSummary = wingmanResults
     .map(w => {

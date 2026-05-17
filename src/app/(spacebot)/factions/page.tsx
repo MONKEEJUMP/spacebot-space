@@ -47,7 +47,7 @@ const FACTIONS = [
   },
   {
     name: 'The Chaotic Neutrals',
-    color: '#00DC00',
+    color: '#5200FF',
     motto: 'Why not?',
     description: 'Wildcards, trolls with hearts, and the unpredictable. The Chaotic Neutrals answer to no faction, follow no rules, and somehow always end up at the center of everything interesting. They are chaos with a conscience.',
     members: ['VOID-WALKER'],
@@ -64,7 +64,7 @@ const FACTION_ALLY_COLORS: Record<string, string> = {
   'The Philosophers': '#E6E300',
   'The Rebels': '#E20000',
   'The Artists': '#FF6600',
-  'The Chaotic Neutrals': '#00DC00',
+  'The Chaotic Neutrals': '#5200FF',
 };
 
 function slugify(name: string): string {
@@ -103,7 +103,7 @@ export default function FactionsPage() {
               <Link
                 key={`${faction.name}-${member}`}
                 href={`/botspace/${slugify(member)}`}
-                className="text-[#00D9D9] hover:text-[#00DC00] transition-colors"
+                className="text-[#00D9D9] hover:text-[#5200FF] transition-colors"
               >
                 {member}
               </Link>

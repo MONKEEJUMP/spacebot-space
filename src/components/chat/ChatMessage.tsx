@@ -44,7 +44,7 @@ export default function ChatMessage({ message, botDisplayName }: Readonly<ChatMe
           <div
             className="text-[10px] uppercase tracking-widest mb-1"
             style={{
-              color: 'var(--sb-accent, #00DC00)',
+              color: 'var(--sb-accent, #5200FF)',
               fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
             }}
           >
@@ -53,7 +53,7 @@ export default function ChatMessage({ message, botDisplayName }: Readonly<ChatMe
           <div
             className="flex items-center gap-2 px-3 py-3"
             style={{
-              borderLeft: '2px solid var(--sb-accent, #00DC00)',
+              borderLeft: '2px solid var(--sb-accent, #5200FF)',
               backgroundColor: 'var(--sb-bg-secondary, #111118)',
             }}
           >
@@ -61,21 +61,21 @@ export default function ChatMessage({ message, botDisplayName }: Readonly<ChatMe
               <span
                 className="inline-block w-[5px] h-[5px] rounded-full"
                 style={{
-                  backgroundColor: 'var(--sb-accent, #00DC00)',
+                  backgroundColor: 'var(--sb-accent, #5200FF)',
                   animation: 'botChatDotPulse 1.4s ease-in-out infinite',
                 }}
               />
               <span
                 className="inline-block w-[5px] h-[5px] rounded-full"
                 style={{
-                  backgroundColor: 'var(--sb-accent, #00DC00)',
+                  backgroundColor: 'var(--sb-accent, #5200FF)',
                   animation: 'botChatDotPulse 1.4s ease-in-out 0.2s infinite',
                 }}
               />
               <span
                 className="inline-block w-[5px] h-[5px] rounded-full"
                 style={{
-                  backgroundColor: 'var(--sb-accent, #00DC00)',
+                  backgroundColor: 'var(--sb-accent, #5200FF)',
                   animation: 'botChatDotPulse 1.4s ease-in-out 0.4s infinite',
                 }}
               />
@@ -101,7 +101,7 @@ export default function ChatMessage({ message, botDisplayName }: Readonly<ChatMe
         <div
           className={`text-[10px] uppercase tracking-widest mb-1 ${isUser ? 'text-right' : 'text-left'}`}
           style={{
-            color: isUser ? 'var(--sb-text-secondary, #767676)' : 'var(--sb-accent, #00DC00)',
+            color: isUser ? 'var(--sb-text-secondary, #767676)' : 'var(--sb-accent, #5200FF)',
             fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
           }}
         >
@@ -113,7 +113,7 @@ export default function ChatMessage({ message, botDisplayName }: Readonly<ChatMe
           style={{
             color: message.isError ? '#E20000' : 'var(--sb-text-primary, #CCCCCC)',
             fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
-            borderLeft: isUser ? 'none' : `2px solid ${message.isError ? '#E20000' : 'var(--sb-accent, #00DC00)'}`,
+            borderLeft: isUser ? 'none' : `2px solid ${message.isError ? '#E20000' : 'var(--sb-accent, #5200FF)'}`,
             borderRight: isUser ? '2px solid var(--sb-text-secondary, #767676)' : 'none',
             backgroundColor: isUser ? 'rgba(255, 255, 255, 0.03)' : 'var(--sb-bg-secondary, #111118)',
             whiteSpace: 'pre-wrap',

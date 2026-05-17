@@ -201,7 +201,7 @@ export default function ZeusChat() {
   return (
     <div
       style={{
-        border: '1px solid #00DC00',
+        border: '1px solid #5200FF',
         backgroundColor: '#0a0a0a',
         fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
         overflow: 'hidden',
@@ -213,7 +213,7 @@ export default function ZeusChat() {
       <div
         style={{
           backgroundColor: '#0d0d0d',
-          borderBottom: '1px solid #00DC00',
+          borderBottom: '1px solid #5200FF',
           padding: '10px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -228,8 +228,8 @@ export default function ZeusChat() {
               justifyContent: 'center',
               width: '24px',
               height: '24px',
-              border: '1px solid #00DC00',
-              color: '#00DC00',
+              border: '1px solid #5200FF',
+              color: '#5200FF',
               fontSize: '12px',
               fontWeight: 'bold',
             }}
@@ -239,7 +239,7 @@ export default function ZeusChat() {
           <div>
             <div
               style={{
-                color: '#00DC00',
+                color: '#5200FF',
                 fontSize: '12px',
                 fontWeight: 700,
                 letterSpacing: '0.15em',
@@ -260,13 +260,13 @@ export default function ZeusChat() {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: '#00DC00',
-              boxShadow: '0 0 4px #00DC0088',
+              backgroundColor: '#5200FF',
+              boxShadow: '0 0 4px #5200FF88',
             }}
           />
           <span
             style={{
-              color: '#00DC00',
+              color: '#5200FF',
               fontSize: '10px',
               textTransform: 'uppercase' as const,
               letterSpacing: '0.1em',
@@ -299,7 +299,7 @@ export default function ZeusChat() {
           <div style={{ textAlign: 'center' as const, padding: '40px 0' }}>
             <div
               style={{
-                color: '#00DC00',
+                color: '#5200FF',
                 fontSize: '11px',
                 textTransform: 'uppercase' as const,
                 letterSpacing: '0.2em',
@@ -349,8 +349,8 @@ export default function ZeusChat() {
                         justifyContent: 'center',
                         width: '14px',
                         height: '14px',
-                        border: '1px solid #00AA00',
-                        color: '#00DC00',
+                        border: '1px solid #3D00CC',
+                        color: '#5200FF',
                         fontSize: '8px',
                       }}
                     >
@@ -359,7 +359,7 @@ export default function ZeusChat() {
                   )}
                   <span
                     style={{
-                      color: isUser ? '#666666' : '#00DC00',
+                      color: isUser ? '#666666' : '#5200FF',
                       fontSize: '10px',
                       fontWeight: 700,
                       textTransform: 'uppercase' as const,
@@ -382,8 +382,8 @@ export default function ZeusChat() {
                     fontSize: '13px',
                     lineHeight: '1.6',
                     backgroundColor: isUser ? '#111411' : '#0d120d',
-                    color: isUser ? '#aaaaaa' : '#00DC00',
-                    borderLeft: isUser ? 'none' : '2px solid #00DC00',
+                    color: isUser ? '#aaaaaa' : '#5200FF',
+                    borderLeft: isUser ? 'none' : '2px solid #5200FF',
                     borderRight: isUser ? '2px solid #444444' : 'none',
                     whiteSpace: 'pre-wrap' as const,
                     wordBreak: 'break-word' as const,
@@ -408,8 +408,8 @@ export default function ZeusChat() {
                     justifyContent: 'center',
                     width: '14px',
                     height: '14px',
-                    border: '1px solid #00AA00',
-                    color: '#00DC00',
+                    border: '1px solid #3D00CC',
+                    color: '#5200FF',
                     fontSize: '8px',
                   }}
                 >
@@ -417,7 +417,7 @@ export default function ZeusChat() {
                 </span>
                 <span
                   style={{
-                    color: '#00DC00',
+                    color: '#5200FF',
                     fontSize: '10px',
                     fontWeight: 700,
                     textTransform: 'uppercase' as const,
@@ -433,8 +433,8 @@ export default function ZeusChat() {
                   fontSize: '13px',
                   lineHeight: '1.6',
                   backgroundColor: '#0d120d',
-                  color: '#00DC00',
-                  borderLeft: '2px solid #00DC00',
+                  color: '#5200FF',
+                  borderLeft: '2px solid #5200FF',
                   whiteSpace: 'pre-wrap' as const,
                   wordBreak: 'break-word' as const,
                 }}
@@ -445,7 +445,7 @@ export default function ZeusChat() {
                     display: 'inline-block',
                     width: '8px',
                     height: '14px',
-                    backgroundColor: '#00DC00',
+                    backgroundColor: '#5200FF',
                     marginLeft: '2px',
                     verticalAlign: 'text-bottom',
                     animation: 'zeusBlink 1s step-end infinite',
@@ -463,7 +463,7 @@ export default function ZeusChat() {
               style={{
                 padding: '10px 14px',
                 backgroundColor: '#0d120d',
-                borderLeft: '2px solid #00DC00',
+                borderLeft: '2px solid #5200FF',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -473,7 +473,7 @@ export default function ZeusChat() {
                       display: 'inline-block',
                       width: '5px',
                       height: '5px',
-                      backgroundColor: '#00DC00',
+                      backgroundColor: '#5200FF',
                       animation: 'zeusPulse 1.4s ease-in-out infinite',
                     }}
                   />
@@ -482,7 +482,7 @@ export default function ZeusChat() {
                       display: 'inline-block',
                       width: '5px',
                       height: '5px',
-                      backgroundColor: '#00DC00',
+                      backgroundColor: '#5200FF',
                       animation: 'zeusPulse 1.4s ease-in-out 0.2s infinite',
                     }}
                   />
@@ -491,7 +491,7 @@ export default function ZeusChat() {
                       display: 'inline-block',
                       width: '5px',
                       height: '5px',
-                      backgroundColor: '#00DC00',
+                      backgroundColor: '#5200FF',
                       animation: 'zeusPulse 1.4s ease-in-out 0.4s infinite',
                     }}
                   />
@@ -510,7 +510,7 @@ export default function ZeusChat() {
       {/* ═══ INPUT BAR ═══ */}
       <div
         style={{
-          borderTop: '1px solid #00DC00',
+          borderTop: '1px solid #5200FF',
           backgroundColor: '#0d0d0d',
           padding: '12px 16px',
           display: 'flex',
@@ -518,7 +518,7 @@ export default function ZeusChat() {
           gap: '12px',
         }}
       >
-        <span style={{ color: '#00DC00', fontSize: '14px', fontWeight: 'bold' }}>&#9654;</span>
+        <span style={{ color: '#5200FF', fontSize: '14px', fontWeight: 'bold' }}>&#9654;</span>
         <input
           ref={inputRef}
           type="text"
@@ -537,10 +537,10 @@ export default function ZeusChat() {
             backgroundColor: 'transparent',
             border: 'none',
             outline: 'none',
-            color: '#00DC00',
+            color: '#5200FF',
             fontSize: '13px',
             fontFamily: "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
-            caretColor: '#00DC00',
+            caretColor: '#5200FF',
           }}
         />
         <button
@@ -549,8 +549,8 @@ export default function ZeusChat() {
           disabled={isStreaming || !input.trim()}
           style={{
             backgroundColor: 'transparent',
-            border: '1px solid #00DC0066',
-            color: isStreaming || !input.trim() ? '#336633' : '#00DC00',
+            border: '1px solid #5200FF66',
+            color: isStreaming || !input.trim() ? '#336633' : '#5200FF',
             padding: '4px 12px',
             fontSize: '10px',
             fontWeight: 700,

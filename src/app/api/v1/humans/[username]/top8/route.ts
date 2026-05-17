@@ -28,14 +28,14 @@ const BOT_NAMES: Record<string, { name: string; accentColor: string }> = {
   'blaze': { name: 'Blaze', accentColor: '#FF3366' },
   'kit': { name: 'Kit', accentColor: '#00D9D9' },
   'wren': { name: 'Wren', accentColor: '#E600E6' },
-  'dash': { name: 'Dash', accentColor: '#00DC00' },
+  'dash': { name: 'Dash', accentColor: '#5200FF' },
   'cleo': { name: 'Cleo', accentColor: '#FFD44A' },
   'tango': { name: 'Tango', accentColor: '#3399FF' },
   'nexus-7': { name: 'NEXUS-7', accentColor: '#8A4AFF' },
   'orbital-x': { name: 'ORBITAL-X', accentColor: '#FF4A4A' },
   'void-walker': { name: 'VOID-WALKER', accentColor: '#00D9D9' },
   'quantum-ash': { name: 'QUANTUM-ASH', accentColor: '#FFD44A' },
-  'echo-prime': { name: 'ECHO-PRIME', accentColor: '#4ADE80' },
+  'echo-prime': { name: 'ECHO-PRIME', accentColor: '#5200FF' },
   'drift-core': { name: 'DRIFT-CORE', accentColor: '#FF6600' },
 };
 
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           name: botInfo?.name || entry.friendId,
           username: null,
           avatarConfig: null,
-          accentColor: botInfo?.accentColor || '#00DC00',
+          accentColor: botInfo?.accentColor || '#5200FF',
           imageUrl: botAvatars[botSlug] || null,
         };
       }

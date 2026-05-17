@@ -780,7 +780,7 @@ export async function processSubtask(
 
       status: 'error',
 
-      errorMessage: `Wingman ${wingmanIndex} DashScope API key is empty. Check DORYLUS_KEY_W${wingmanIndex} in .env`,
+      errorMessage: `Wingman ${wingmanIndex} OpenRouter API key is empty. Check DORYLUS_KEY_W${wingmanIndex} in .env`,
 
     };
 
@@ -914,7 +914,13 @@ Now analyze these web results and answer the subtask based on what you found.`,
 
       temperature,
 
-      DORYLUS_CONFIG.wingmanTimeoutMs
+      DORYLUS_CONFIG.wingmanTimeoutMs,
+
+      undefined,
+
+      undefined,
+
+      false
 
     );
 

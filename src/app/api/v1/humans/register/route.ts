@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
           createdAt: newHuman.createdAt,
           updatedAt: newHuman.updatedAt,
           avatarConfig: (newHuman.avatarConfig as Record<string, unknown>) || null,
-          siteTheme: newHuman.siteTheme || 'dark',
+          siteTheme: newHuman.siteTheme || 'orange',
         },
         accessToken,
         refreshToken,

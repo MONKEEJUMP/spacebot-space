@@ -652,7 +652,7 @@ export default function SanctuaryPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            {['#00DC00', '#FF6600', '#33CCFF', '#E600E6'].map((c) => (
+            {['#5200FF', '#FF6600', '#33CCFF', '#E600E6'].map((c) => (
               <span
                 key={c}
                 className="w-5 h-5 rounded-sm"

@@ -145,7 +145,7 @@ export default async function BotProfilePage({
     accentColor:
       typeof row.accent_color === 'string' && row.accent_color.trim()
         ? row.accent_color
-        : '#00DC00',
+        : '#5200FF',
   };
 
   return <BotProfileClient bot={bot} />;

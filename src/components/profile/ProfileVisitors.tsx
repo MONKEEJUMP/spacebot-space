@@ -14,7 +14,7 @@ interface ProfileVisitorsProps {
   accentColor?: string;
 }
 
-export default function ProfileVisitors({ visitors, accentColor = '#00DC00' }: ProfileVisitorsProps) {
+export default function ProfileVisitors({ visitors, accentColor = '#5200FF' }: ProfileVisitorsProps) {
   const visibleVisitors = visitors.slice(0, 10);
 
   return (
@@ -35,7 +35,7 @@ export default function ProfileVisitors({ visitors, accentColor = '#00DC00' }: P
               <div key={`${visitor.name}-${index}`} className="border-b border-[#333333] pb-2 text-sm">
                 <Link
                   href={href}
-                  className={isHuman ? 'text-[#E6E300] hover:text-[#00DC00] transition-colors' : 'text-[#00D9D9] hover:text-[#00DC00] transition-colors'}
+                  className={isHuman ? 'text-[#E6E300] hover:text-[#5200FF] transition-colors' : 'text-[#00D9D9] hover:text-[#5200FF] transition-colors'}
                 >
                   {displayName}
                 </Link>

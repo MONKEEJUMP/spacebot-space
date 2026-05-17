@@ -8,7 +8,13 @@ import { DEMO_HEADLINES } from "@/lib/ticker/demo-data";
 import TickerItem from "./TickerItem";
 import TickerPauseButton from "./TickerPauseButton";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((r) => r.json())
+    .then((data) => {
+      if (Array.isArray(data)) return data;
+      return [...(data.topTickerItems ?? []), ...(data.bottomTickerItems ?? [])];
+    });
 
 interface TickerBarProps {
   initialHeadlines?: TickerHeadline[];
@@ -77,7 +83,7 @@ export default function TickerBar({ initialHeadlines }: TickerBarProps) {
             <TickerItem headline={headline} />
             <span
               style={{
-                color: "var(--sb-accent, #00DC00)",
+                color: "var(--sb-accent, #5200FF)",
                 margin: "0 20px",
                 fontSize: "8px",
                 opacity: 0.6,
@@ -119,7 +125,7 @@ export default function TickerBar({ initialHeadlines }: TickerBarProps) {
 
         .ticker-item:hover .ticker-headline-text {
           text-decoration: underline;
-          text-decoration-color: var(--sb-accent, #00DC00);
+          text-decoration-color: var(--sb-accent, #5200FF);
           text-underline-offset: 2px;
         }
 
