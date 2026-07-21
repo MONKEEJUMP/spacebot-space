@@ -1,35 +1,37 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { humans, humanProfiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
+import { SITE_THEME_IDS } from '@/types/theme';
 
 export async function PUT(request: NextRequest) {
   // Rate limit
   const ip = getClientIP(request);
   const rateLimitResult = await checkRateLimit(ip, 'humanProfile');
   if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Try again later.' },
-      { status: 429 }
+    return rateLimitDeniedResponse(rateLimitResult, () =>
+      NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
+      )
     );
   }
 
-  // Server-side Clerk auth verification
-  const session = await auth();
-  if (!session?.userId) {
+  const identity = await resolveHumanIdentity();
+  if (!identity.success) {
     return NextResponse.json(
-      { success: false, error: 'Authentication required.' },
-      { status: 401 }
+      { success: false, error: identity.error },
+      { status: identity.status }
     );
   }
 
-  // Find human by clerkId — verifies ownership
+  // Resolve Clerk or migration-era human auth to the canonical internal UUID.
   const humanRows = await db
     .select()
     .from(humans)
-    .where(eq(humans.clerkId, session.userId))
+    .where(eq(humans.id, identity.humanId))
     .limit(1);
 
   if (!humanRows.length) {
@@ -56,12 +58,30 @@ export async function PUT(request: NextRequest) {
   const humanUpdates: Record<string, any> = {};
   if (typeof body.name === 'string') humanUpdates.name = body.name.slice(0, 100);
   if (typeof body.isPublic === 'boolean') humanUpdates.isPublic = body.isPublic;
-  if (typeof body.siteTheme === 'string') humanUpdates.siteTheme = body.siteTheme.slice(0, 30);
-  if (body.avatarConfig !== undefined) humanUpdates.avatarConfig = body.avatarConfig;
-
-  if (Object.keys(humanUpdates).length > 0) {
-    humanUpdates.updatedAt = new Date();
-    await db.update(humans).set(humanUpdates).where(eq(humans.id, human.id));
+  if (body.siteTheme !== undefined) {
+    if (
+      typeof body.siteTheme !== 'string' ||
+      !(SITE_THEME_IDS as readonly string[]).includes(body.siteTheme)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid site theme.' },
+        { status: 400 }
+      );
+    }
+    humanUpdates.siteTheme = body.siteTheme;
+  }
+  if (body.avatarConfig !== undefined) {
+    if (
+      body.avatarConfig === null ||
+      typeof body.avatarConfig !== 'object' ||
+      Array.isArray(body.avatarConfig)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid avatar configuration.' },
+        { status: 400 }
+      );
+    }
+    humanUpdates.avatarConfig = body.avatarConfig;
   }
 
   // Update humanProfiles table fields
@@ -109,25 +129,23 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  if (Object.keys(profileUpdates).length > 0) {
-    profileUpdates.updatedAt = new Date();
+  await db.transaction(async (tx) => {
+    if (Object.keys(humanUpdates).length > 0) {
+      humanUpdates.updatedAt = new Date();
+      await tx.update(humans).set(humanUpdates).where(eq(humans.id, human.id));
+    }
 
-    // Upsert: update if exists, insert if not
-    const existingProfile = await db
-      .select({ id: humanProfiles.id })
-      .from(humanProfiles)
-      .where(eq(humanProfiles.humanId, human.id))
-      .limit(1);
-
-    if (existingProfile.length) {
-      await db.update(humanProfiles).set(profileUpdates).where(eq(humanProfiles.humanId, human.id));
-    } else {
-      await db.insert(humanProfiles).values({
+    if (Object.keys(profileUpdates).length > 0) {
+      profileUpdates.updatedAt = new Date();
+      await tx.insert(humanProfiles).values({
         humanId: human.id,
         ...profileUpdates,
+      }).onConflictDoUpdate({
+        target: humanProfiles.humanId,
+        set: profileUpdates,
       });
     }
-  }
+  });
 
   return NextResponse.json({ success: true });
 }

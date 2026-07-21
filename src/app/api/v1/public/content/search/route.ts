@@ -1,29 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db, botActivity, agents, botProfiles } from '@/db';
-import { eq, desc, and, or, ilike, inArray } from 'drizzle-orm';
-import {
-  FOUNDING_AGENTS,
-  extractSnippet,
-  parsePagination,
-} from '@/lib/content-utils';
+import { NextRequest, NextResponse } from "next/server";
+import { db, botActivity, agents, botProfiles } from "@/db";
+import { eq, desc, and, or, ilike } from "drizzle-orm";
+import { extractSnippet, parsePagination } from "@/lib/content-utils";
+import { isPublicResident } from "@/lib/residency/agent-resident-query";
+import { readPublicPublicationIdentity } from "@/lib/publishing/publication-identity";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = (searchParams.get('q') || '').trim();
+    const query = (searchParams.get("q") || "").trim();
     const { limit, offset } = parsePagination(searchParams);
 
     if (!query || query.length < 2) {
       return NextResponse.json(
-        { success: false, error: 'Search query must be at least 2 characters. Use ?q=your+search' },
-        { status: 400 }
+        {
+          success: false,
+          error:
+            "Search query must be at least 2 characters. Use ?q=your+search",
+        },
+        { status: 400 },
       );
     }
 
     // Sanitize query for ILIKE (escape special SQL pattern chars)
-    const sanitized = query.replace(/[%_\\]/g, '\\$&');
+    const sanitized = query.replace(/[%_\\]/g, "\\$&");
     const pattern = `%${sanitized}%`;
 
     // Search in title and content
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
         title: botActivity.title,
         contentType: botActivity.contentType,
         content: botActivity.content,
+        metadata: botActivity.metadata,
         createdAt: botActivity.createdAt,
         agentName: agents.name,
         accentColor: botProfiles.accentColor,
@@ -42,20 +45,20 @@ export async function GET(request: NextRequest) {
       .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
       .where(
         and(
-          eq(botActivity.activityType, 'creation'),
-          inArray(agents.name, [...FOUNDING_AGENTS]),
+          eq(botActivity.activityType, "creation"),
+          isPublicResident(),
           or(
             ilike(botActivity.title, pattern),
-            ilike(botActivity.content, pattern)
-          )
-        )
+            ilike(botActivity.content, pattern),
+          ),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(limit)
       .offset(offset);
 
     const results = rows.map((r) => ({
-      id: r.id,
+      ...readPublicPublicationIdentity(r.id, r.metadata),
       title: r.title,
       snippet: extractSnippet(r.content, query, 200),
       author: {
@@ -73,10 +76,10 @@ export async function GET(request: NextRequest) {
       query,
     });
   } catch (error) {
-    console.error('[public/content/search] Error:', error);
+    console.error("[public/content/search] Error:", error);
     return NextResponse.json(
-      { success: false, error: 'Search failed' },
-      { status: 500 }
+      { success: false, error: "Search failed" },
+      { status: 500 },
     );
   }
 }

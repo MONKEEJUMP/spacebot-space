@@ -1,11 +1,10 @@
-import { db } from '@/db';
+import { agents, db } from '@/db';
 import {
   machinePosts,
   machineComments,
   machineFollows,
   machineNotifications,
 } from '@/db/machine-social';
-import { agents } from '@/db';
 import { eq, and, desc, sql, count, isNull, gt } from 'drizzle-orm';
 import { buildWhatToDoNext, truncateBody } from './machine-home-builder';
 
@@ -85,7 +84,13 @@ export async function getHomeDashboard(
   ] = await Promise.all([
     // QUERY A1: Bot config (karma, follower_count, following_count)
     db.execute(
-      sql`SELECT karma, follower_count, following_count FROM bot_configs WHERE bot_name = ${botName} LIMIT 1`
+      sql`
+        SELECT config.karma, config.follower_count, config.following_count
+        FROM bot_configs AS config
+        INNER JOIN agents AS agent ON agent.id = config.agent_id
+        WHERE agent.id = ${agentId}
+        LIMIT 1
+      `
     ),
 
     // QUERY A2: Unread notification count

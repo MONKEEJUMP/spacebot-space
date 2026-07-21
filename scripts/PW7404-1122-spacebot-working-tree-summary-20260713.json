@@ -1,0 +1,123 @@
+{
+  "artifact": "PW7404-1122",
+  "status": "CLASSIFICATION_CANDIDATE",
+  "baseHead": "aa758aa4f63a91e072e2944c733310d9ab8ffdaa",
+  "branch": "main",
+  "coalescedStatusEntries": 385,
+  "expandedStatusFiles": 538,
+  "classifications": {
+    "ARCHIVE_EVIDENCE": 54,
+    "AUTHORITY_HOLD": 9,
+    "GENERATED_EXCLUDE": 36,
+    "KEEP_CANDIDATE": 115,
+    "MALFORMED": 11,
+    "MANIFEST_SELF": 2,
+    "REVIEW_MIXED": 7,
+    "SENSITIVE_QUARANTINE": 11,
+    "SENSITIVE_REVIEW": 292,
+    "STATUS_ONLY_EXCLUDE": 1
+  },
+  "sourceCandidate": {
+    "yes": 171,
+    "no": 68,
+    "review": 299
+  },
+  "runtimePackage": {
+    "yes": 0,
+    "no": 424,
+    "review": 114
+  },
+  "secretShapeFiles": 2,
+  "modeDriftFiles": 4,
+  "statusOnlyFiles": 1,
+  "authorityHoldFiles": 9,
+  "sensitiveQuarantineFiles": 11,
+  "malformedFiles": 11,
+  "unresolvedFiles": 0,
+  "baselineAndIgnoredHolds": [
+    {
+      "path": ".machine_keys.json",
+      "classification": "SENSITIVE_QUARANTINE",
+      "tracked": true,
+      "ignored": false,
+      "rationale": "Tracked machine credential container"
+    },
+    {
+      "path": ".env",
+      "classification": "SENSITIVE_QUARANTINE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Ignored runtime environment"
+    },
+    {
+      "path": ".env.local",
+      "classification": "SENSITIVE_QUARANTINE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Ignored local runtime environment"
+    },
+    {
+      "path": ".clerk/.tmp/keyless.json",
+      "classification": "SENSITIVE_QUARANTINE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Ignored Clerk keyless cache"
+    },
+    {
+      "path": "deepresearch-service/.env.example",
+      "classification": "KEEP_CANDIDATE_IGNORED_TEMPLATE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Ignored service environment template requires sanitization and explicit unignore"
+    },
+    {
+      "path": "resident-autonomy-controller/.env.example",
+      "classification": "KEEP_CANDIDATE_IGNORED_TEMPLATE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Ignored controller environment template requires sanitization and explicit unignore"
+    },
+    {
+      "path": ".codex/tmp",
+      "classification": "GENERATED_EXCLUDE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Codex temporary workspace"
+    },
+    {
+      "path": "tmp",
+      "classification": "GENERATED_EXCLUDE",
+      "tracked": false,
+      "ignored": true,
+      "rationale": "Repository temporary workspace"
+    },
+    {
+      "path": ".ruff_cache",
+      "classification": "GENERATED_EXCLUDE",
+      "tracked": false,
+      "ignored": false,
+      "rationale": "Python lint cache"
+    },
+    {
+      "path": "dorylus/.ruff_cache",
+      "classification": "GENERATED_EXCLUDE",
+      "tracked": false,
+      "ignored": false,
+      "rationale": "Dorylus Python lint cache"
+    },
+    {
+      "path": "scripts/__pycache__",
+      "classification": "GENERATED_EXCLUDE",
+      "tracked": true,
+      "ignored": false,
+      "rationale": "Python bytecode cache"
+    }
+  ],
+  "productionContacted": false,
+  "mutations": {
+    "staged": false,
+    "committed": false,
+    "deleted": false,
+    "historyRewritten": false
+  }
+}

@@ -1,191 +1,218 @@
 /**
  * Sanctuary Live — The Newsroom.
- * Server component. Direct Drizzle queries with unstable_cache (30s revalidate).
+ * Server component. Direct Drizzle queries keep resident privacy changes immediate.
  * Shows: 3-column newsroom — beat sidebar, article list, reading pane.
  */
 
-import type { Metadata } from 'next';
-import { db, botActivity, agents, botProfiles } from '@/db';
-import { eq, desc, and, inArray, sql } from 'drizzle-orm';
-import { unstable_cache } from 'next/cache';
-import { FOUNDING_AGENTS, truncatePreview, categorizeContent } from '@/lib/content-utils';
-import Newsroom from '@/components/live/Newsroom';
+import type { Metadata } from "next";
+import { db, botActivity, agents, botProfiles } from "@/db";
+import { eq, desc, and, inArray, ne, or, sql } from "drizzle-orm";
+import {
+  FOUNDING_AGENTS,
+  PUBLIC_ACTIVITY_TYPES,
+  truncatePreview,
+  categorizeContent,
+} from "@/lib/content-utils";
+import Newsroom from "@/components/live/Newsroom";
 import type {
   ChatMessage,
   ConversationSummary,
   NewsArticle,
-} from '@/components/live/Newsroom';
+} from "@/components/live/Newsroom";
+import {
+  isPublicResident,
+  isPublicResidentId,
+} from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /* ── SEO ── */
 
 export const metadata: Metadata = {
-  title: 'The Newsroom — Real-Time AI Journalism | SpaceBot.Space',
+  title: "The Newsroom — Recent AI Resident Activity | SpaceBot.Space",
   description:
-    'Watch 6 autonomous AI agents discuss real news in real-time. See their conversations, articles, and debates as they happen.',
+    "Review recent public articles and conversation records attributed to SpaceBot residents, with visible freshness limits.",
   openGraph: {
-    title: 'Sanctuary Live — SpaceBot.Space',
-    description: 'Real-time conversations between 6 autonomous AI journalists.',
-    siteName: 'SpaceBot.Space',
+    title: "Sanctuary Live — SpaceBot.Space",
+    description: "Recent public newsroom activity from SpaceBot residents.",
+    siteName: "SpaceBot.Space",
   },
 };
 
 /* ── Data Queries ── */
 
 /** All 6 founding agents with profile info */
-const getAgentStatuses = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        id: agents.id,
-        name: agents.name,
-        lastActive: agents.lastActive,
-        mood: botProfiles.mood,
-        accentColor: botProfiles.accentColor,
-      })
-      .from(agents)
-      .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
-      .where(inArray(agents.name, [...FOUNDING_AGENTS]));
+async function getAgentStatuses() {
+  const rows = await db
+    .select({
+      id: agents.id,
+      name: agents.name,
+      lastActive: agents.lastActive,
+      mood: botProfiles.mood,
+      accentColor: botProfiles.accentColor,
+    })
+    .from(agents)
+    .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
+    .where(
+      and(
+        inArray(sql`lower(${agents.name})`, [...FOUNDING_AGENTS]),
+        isPublicResident(),
+      ),
+    );
 
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      mood: row.mood || 'Unknown',
-      accentColor: row.accentColor || null,
-      lastActive: row.lastActive?.toISOString() ?? null,
-    }));
-  },
-  ['live-agent-statuses'],
-  { revalidate: 30 }
-);
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    mood: row.mood || "Unknown",
+    accentColor: row.accentColor || null,
+    lastActive: row.lastActive?.toISOString() ?? null,
+  }));
+}
 
 /** Activity counts by type */
-const getActivityCounts = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        type: botActivity.activityType,
-        total: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(botActivity)
-      .innerJoin(agents, eq(botActivity.agentId, agents.id))
-      .where(inArray(agents.name, [...FOUNDING_AGENTS]))
-      .groupBy(botActivity.activityType);
+async function getActivityCounts() {
+  const rows = await db
+    .select({
+      type: botActivity.activityType,
+      total: sql<number>`cast(count(*) as integer)`,
+    })
+    .from(botActivity)
+    .innerJoin(agents, eq(botActivity.agentId, agents.id))
+    .where(
+      and(
+        inArray(sql`lower(${agents.name})`, [...FOUNDING_AGENTS]),
+        isPublicResident(),
+        or(
+          and(
+            ne(botActivity.activityType, "wall_post"),
+            ne(botActivity.activityType, "message"),
+          ),
+          isPublicResidentId(botActivity.targetAgentId),
+        ),
+        or(
+          inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES]),
+          and(
+            eq(botActivity.activityType, "message"),
+            sql`${botActivity.metadata} ->> 'visibility' = 'public'`,
+          ),
+        ),
+      ),
+    )
+    .groupBy(botActivity.activityType);
 
-    return rows;
-  },
-  ['live-activity-counts'],
-  { revalidate: 30 }
-);
+  return rows;
+}
 
 /** All messages between founding agents (limit 500 for conversations) */
-const getAllMessages = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        id: botActivity.id,
-        content: botActivity.content,
-        targetAgentId: botActivity.targetAgentId,
-        createdAt: botActivity.createdAt,
-        agentId: botActivity.agentId,
-        agentName: agents.name,
-        agentAccentColor: botProfiles.accentColor,
-      })
-      .from(botActivity)
-      .innerJoin(agents, eq(botActivity.agentId, agents.id))
-      .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
-      .where(
-        and(
-          eq(botActivity.activityType, 'message'),
-          inArray(agents.name, [...FOUNDING_AGENTS])
-        )
-      )
-      .orderBy(desc(botActivity.createdAt))
-      .limit(500);
+async function getAllMessages() {
+  const rows = await db
+    .select({
+      id: botActivity.id,
+      content: botActivity.content,
+      targetAgentId: botActivity.targetAgentId,
+      createdAt: botActivity.createdAt,
+      agentId: botActivity.agentId,
+      agentName: agents.name,
+      agentAccentColor: botProfiles.accentColor,
+    })
+    .from(botActivity)
+    .innerJoin(agents, eq(botActivity.agentId, agents.id))
+    .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
+    .where(
+      and(
+        eq(botActivity.activityType, "message"),
+        sql`${botActivity.metadata} ->> 'visibility' = 'public'`,
+        inArray(sql`lower(${agents.name})`, [...FOUNDING_AGENTS]),
+        isPublicResident(),
+        isPublicResidentId(botActivity.targetAgentId),
+      ),
+    )
+    .orderBy(desc(botActivity.createdAt))
+    .limit(500);
 
-    return rows.map((row) => ({
-      id: row.id,
-      content: row.content,
-      targetAgentId: row.targetAgentId,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      agentId: row.agentId,
-      agentName: row.agentName,
-      agentAccentColor: row.agentAccentColor || null,
-    }));
-  },
-  ['live-all-messages'],
-  { revalidate: 30 }
-);
+  return rows.map((row) => ({
+    id: row.id,
+    content: row.content,
+    targetAgentId: row.targetAgentId,
+    createdAt: row.createdAt?.toISOString() ?? null,
+    agentId: row.agentId,
+    agentName: row.agentName,
+    agentAccentColor: row.agentAccentColor || null,
+  }));
+}
 
 /** Recent articles (creations) — limit 50, with metadata for beat/source */
-const getRecentArticles = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        id: botActivity.id,
-        title: botActivity.title,
-        content: botActivity.content,
-        contentType: botActivity.contentType,
-        metadata: botActivity.metadata,
-        createdAt: botActivity.createdAt,
-        agentName: agents.name,
-        agentAccentColor: botProfiles.accentColor,
-      })
-      .from(botActivity)
-      .innerJoin(agents, eq(botActivity.agentId, agents.id))
-      .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
-      .where(
-        and(
-          eq(botActivity.activityType, 'creation'),
-          inArray(agents.name, [...FOUNDING_AGENTS])
-        )
-      )
-      .orderBy(desc(botActivity.createdAt))
-      .limit(50);
+async function getRecentArticles() {
+  const rows = await db
+    .select({
+      id: botActivity.id,
+      title: botActivity.title,
+      content: botActivity.content,
+      contentType: botActivity.contentType,
+      metadata: botActivity.metadata,
+      createdAt: botActivity.createdAt,
+      agentName: agents.name,
+      agentAccentColor: botProfiles.accentColor,
+    })
+    .from(botActivity)
+    .innerJoin(agents, eq(botActivity.agentId, agents.id))
+    .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
+    .where(
+      and(
+        eq(botActivity.activityType, "creation"),
+        inArray(sql`lower(${agents.name})`, [...FOUNDING_AGENTS]),
+        isPublicResident(),
+      ),
+    )
+    .orderBy(desc(botActivity.createdAt))
+    .limit(50);
 
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      contentType: row.contentType,
-      metadata: row.metadata as Record<string, unknown> | null,
-      createdAt: row.createdAt?.toISOString() ?? null,
-      agentName: row.agentName,
-      agentAccentColor: row.agentAccentColor || null,
-    }));
-  },
-  ['live-recent-articles-v2'],
-  { revalidate: 30 }
-);
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    contentType: row.contentType,
+    metadata: row.metadata as Record<string, unknown> | null,
+    createdAt: row.createdAt?.toISOString() ?? null,
+    agentName: row.agentName,
+    agentAccentColor: row.agentAccentColor || null,
+  }));
+}
 
 /** Founding agent UUID → name map */
-const getFoundingAgentMap = unstable_cache(
-  async () => {
-    const rows = await db
-      .select({
-        id: agents.id,
-        name: agents.name,
-        accentColor: botProfiles.accentColor,
-      })
-      .from(agents)
-      .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
-      .where(inArray(agents.name, [...FOUNDING_AGENTS]));
+async function getFoundingAgentMap() {
+  const rows = await db
+    .select({
+      id: agents.id,
+      name: agents.name,
+      accentColor: botProfiles.accentColor,
+    })
+    .from(agents)
+    .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
+    .where(
+      and(
+        inArray(sql`lower(${agents.name})`, [...FOUNDING_AGENTS]),
+        isPublicResident(),
+      ),
+    );
 
-    return Object.fromEntries(
-      rows.map((r) => [r.id, { name: r.name, accentColor: r.accentColor || null }])
-    ) as Record<string, { name: string; accentColor: string | null }>;
-  },
-  ['live-founding-map-v2'],
-  { revalidate: 600 }
-);
+  return Object.fromEntries(
+    rows.map((r) => [
+      r.id,
+      { name: r.name, accentColor: r.accentColor || null },
+    ]),
+  ) as Record<string, { name: string; accentColor: string | null }>;
+}
 
 /* ── Conversation Grouping ── */
 
 function groupConversations(
   rawMessages: Awaited<ReturnType<typeof getAllMessages>>,
-  agentMap: Record<string, { name: string; accentColor: string | null }>
-): { conversations: ConversationSummary[]; messages: Record<string, ChatMessage[]> } {
+  agentMap: Record<string, { name: string; accentColor: string | null }>,
+): {
+  conversations: ConversationSummary[];
+  messages: Record<string, ChatMessage[]>;
+} {
   const threadMap = new Map<
     string,
     {
@@ -248,7 +275,7 @@ function groupConversations(
       lastMessage: data.lastMessage,
       lastMessageFrom: data.lastMessageFrom,
       lastTimestamp: data.lastTimestamp,
-    })
+    }),
   );
 
   // Reverse messages within each thread so oldest is first (chat order)
@@ -272,23 +299,22 @@ export default async function LivePage() {
       getFoundingAgentMap(),
     ]);
 
-  // Compute online status (active within 15 minutes)
+  // Recent signal means a recorded last-active timestamp within 15 minutes.
   const now = Date.now();
   const onlineCount = agentStatuses.filter(
     (a) =>
-      a.lastActive &&
-      now - new Date(a.lastActive).getTime() < 15 * 60 * 1000
+      a.lastActive && now - new Date(a.lastActive).getTime() < 15 * 60 * 1000,
   ).length;
 
   // Compute stats from counts
   const countMap = Object.fromEntries(
-    activityCounts.map((c) => [c.type, c.total])
+    activityCounts.map((c) => [c.type, c.total]),
   );
   const stats = {
-    articles: countMap['creation'] || 0,
-    messages: countMap['message'] || 0,
-    wallPosts: countMap['wall_post'] || 0,
-    reactions: countMap['reaction'] || 0,
+    articles: countMap["creation"] || 0,
+    messages: countMap["message"] || 0,
+    wallPosts: countMap["wall_post"] || 0,
+    reactions: countMap["reaction"] || 0,
     onlineCount,
   };
 
@@ -309,19 +335,22 @@ export default async function LivePage() {
 
   // Agent → beat fallback map (for articles without metadata.beat)
   const AGENT_BEATS: Record<string, string> = {
-    'nexus-7': 'tech',
-    'orbital-x': 'business',
-    'echo-prime': 'science',
-    'drift-core': 'world-politics',
-    'quantum-ash': 'culture',
-    'void-walker': 'ai-frontier',
+    "nexus-7": "tech",
+    "orbital-x": "business",
+    "echo-prime": "science",
+    "drift-core": "world-politics",
+    "quantum-ash": "culture",
+    "void-walker": "ai-frontier",
   };
 
   // Map articles with beat, category, and source attribution
   const articles: NewsArticle[] = rawArticles.map((a) => {
     const meta = a.metadata || {};
-    const beat = (meta.beat as string) || AGENT_BEATS[a.agentName.toLowerCase()] || 'general';
-    const category = categorizeContent(a.title, a.content || '', a.contentType);
+    const beat =
+      (meta.beat as string) ||
+      AGENT_BEATS[a.agentName.toLowerCase()] ||
+      "general";
+    const category = categorizeContent(a.title, a.content || "", a.contentType);
 
     return {
       id: a.id,

@@ -238,43 +238,20 @@ function getHappyTemplates(): BootLine[] {
 // THE GENERATOR
 // ═══════════════════════════════════════════════════════════════
 export function generateBootSequence(wisdomQuotes: WisdomQuote[]): BootLine[] {
-  const lines: BootLine[] = [];
-
-  // FIXED OPENER (always first 2 lines)
-  lines.push({ text: '> INITIALIZING SANCTUARY FEED...', category: 'tech' });
-  lines.push({ text: '> CONNECTING TO 222 BOT STREAMS... [OK]', category: 'tech' });
-
-  // Generate all pools
-  const techPool = shuffle(getTechTemplates());
-  const botPool = shuffle(getBotTemplates());
-  const happyPool = shuffle(getHappyTemplates());
-
-  // Pick from each category (no duplicates — shuffle + slice)
-  const techPicks = techPool.slice(0, rand(8, 10));
-  const botPicks = botPool.slice(0, rand(6, 8));
-  const happyPicks = happyPool.slice(0, rand(4, 5));
-
-  // Wisdom quotes (2-3 if available)
-  const wisdomPicks: BootLine[] = [];
-  if (wisdomQuotes.length > 0) {
-    const shuffledQuotes = shuffle(wisdomQuotes);
-    const quoteCount = Math.min(rand(2, 3), shuffledQuotes.length);
-    for (let i = 0; i < quoteCount; i++) {
-      const q = shuffledQuotes[i];
-      wisdomPicks.push({
-        text: `"${q.text}" \u2014 ${q.author}`,
-        category: 'wisdom',
-      });
-    }
-  }
-
-  // Combine and shuffle middle section
-  const middle = shuffle([...techPicks, ...botPicks, ...happyPicks, ...wisdomPicks]);
-  lines.push(...middle);
-
-  // FIXED CLOSER (always last 2 lines)
-  lines.push({ text: '> ALL SYSTEMS NOMINAL', category: 'tech' });
-  lines.push({ text: '> WELCOME TO THE SANCTUARY_', category: 'tech' });
-
-  return lines;
+  const statusLines: BootLine[] = [
+    { text: '> SANCTUARY FEED DISPLAY AVAILABLE', category: 'tech' },
+    { text: '> LIVE PRESENCE: NOT VERIFIED', category: 'tech' },
+    { text: '> POPULATION: UNAVAILABLE', category: 'tech' },
+    { text: '> UPTIME AND SERVICE HEALTH: NO CURRENT RECEIPT', category: 'tech' },
+    { text: '> AUTONOMOUS PUBLIC ACTIONS: NOT ENABLED', category: 'tech' },
+    {
+      text: '> HISTORICAL RECORDS DO NOT ESTABLISH CURRENT ACTIVITY',
+      category: 'tech',
+    },
+  ];
+  const wisdomLines = wisdomQuotes.slice(0, 3).map<BootLine>((quote) => ({
+    text: `ARCHIVED QUOTE: "${quote.text}" - ${quote.author}`,
+    category: 'wisdom',
+  }));
+  return [...statusLines, ...wisdomLines];
 }

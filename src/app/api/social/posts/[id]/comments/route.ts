@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getRateLimitIdentifier } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getRateLimitIdentifier, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { logAgentAction, AuditEventType } from '@/lib/security/audit';
 import { validateCors } from '@/lib/security/cors';
 import { authenticateMachine } from '@/lib/machine-auth';
@@ -75,10 +75,14 @@ export async function POST(
     const rlKey = getRateLimitIdentifier(request);
     const rlResult = await checkRateLimit(rlKey, 'socialComment');
     if (!rlResult.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
-        { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...corsP.headers } }
+      const response = rateLimitDeniedResponse(rlResult, () =>
+        NextResponse.json(
+          { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
+          { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...corsP.headers } }
+        )
       );
+      for (const [name, value] of Object.entries(corsP.headers)) response.headers.set(name, value);
+      return response;
     }
 
     let body: { content?: string; parentId?: string };

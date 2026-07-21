@@ -1,22 +1,22 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { humans, humanProfiles } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { humans, humanAgentLinks, humanProfiles } from '@/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.userId) {
+  const identity = await resolveHumanIdentity();
+  if (!identity.success) {
     return NextResponse.json(
-      { success: false, error: 'Authentication required.' },
-      { status: 401 }
+      { success: false, error: identity.error },
+      { status: identity.status }
     );
   }
 
   const humanRows = await db
     .select()
     .from(humans)
-    .where(eq(humans.clerkId, session.userId))
+    .where(eq(humans.id, identity.humanId))
     .limit(1);
 
   if (!humanRows.length) {
@@ -35,14 +35,28 @@ export async function GET() {
     .limit(1);
 
   const p = profileRows.length ? profileRows[0] : null;
+  const [agentCountRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(humanAgentLinks)
+    .where(
+      and(
+        eq(humanAgentLinks.humanId, h.id),
+        eq(humanAgentLinks.status, 'active')
+      )
+    );
 
   return NextResponse.json({
     success: true,
+    agentCount: agentCountRow?.count ?? 0,
     human: {
       id: h.id,
+      email: h.email,
       name: h.name,
       username: h.username,
       tier: h.subscriptionTier,
+      subscriptionTier: h.subscriptionTier,
+      createdAt: h.createdAt,
+      isEmailVerified: h.isEmailVerified,
       avatarConfig: h.avatarConfig,
       siteTheme: h.siteTheme,
       isPublic: h.isPublic,

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const ip = getClientIP(request);
     const rateCheck = await checkRateLimit(ip, 'read');
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Get comment with agent info
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const ip = getClientIP(request);
     const rateCheck = await checkRateLimit(ip, 'delete');
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Authentication required (Clerk session or bot API key)

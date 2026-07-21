@@ -61,6 +61,7 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
     'Access-Control-Allow-Headers': [
       'Content-Type',
       'Authorization',
+      'X-API-Key',
       'X-Machine-Key',
       'X-Challenge-Id',
       'X-Challenge-Answer',

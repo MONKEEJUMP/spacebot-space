@@ -7,11 +7,12 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { profileTransmissions, humans } from '@/db/schema';
+import { agents, profileTransmissions, humans } from '@/db/schema';
 import { eq, and, desc, count, sql } from 'drizzle-orm';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { containsProfanity } from '@/lib/constants/profanity';
 import { cleanWallContent } from '@/lib/security/sanitize';
+import { isDirectlyViewableResident } from '@/lib/residency/agent-resident-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,20 @@ function botOwnerId(slug: string): string {
   return `bot:${slug.toLowerCase().replace(/[^a-z0-9-]/g, '')}`;
 }
 
+async function resolveViewableBot(name: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: agents.id })
+    .from(agents)
+    .where(
+      and(
+        sql`lower(${agents.name}) = lower(${name})`,
+        isDirectlyViewableResident(),
+      ),
+    )
+    .limit(1);
+  return Boolean(rows[0]);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GET — Fetch transmissions for a bot's wall
 // ═══════════════════════════════════════════════════════════════
@@ -32,10 +47,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const ip = getClientIP(request);
     const rateLimit = await checkRateLimit(ip, 'humanDirectory');
     if (!rateLimit.allowed) {
-      return NextResponse.json({ success: false, error: 'Too many requests.' }, { status: 429 });
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json({ success: false, error: 'Too many requests.' }, { status: 429 })
+      );
     }
 
     const { name } = await params;
+    if (!(await resolveViewableBot(name))) {
+      return NextResponse.json(
+        { success: false, error: 'Bot not found.' },
+        { status: 404 },
+      );
+    }
     const ownerId = botOwnerId(name);
 
     const url = new URL(request.url);
@@ -129,10 +152,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const rateLimit = await checkRateLimit(session.userId, 'wallPost');
     if (!rateLimit.allowed) {
-      return NextResponse.json({ success: false, error: 'Rate limit exceeded. Max 5 transmissions per hour.' }, { status: 429 });
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json({ success: false, error: 'Rate limit exceeded. Max 5 transmissions per hour.' }, { status: 429 })
+      );
     }
 
     const { name } = await params;
+    if (!(await resolveViewableBot(name))) {
+      return NextResponse.json(
+        { success: false, error: 'Bot not found.' },
+        { status: 404 },
+      );
+    }
     const ownerId = botOwnerId(name);
 
     let body: { content?: string };

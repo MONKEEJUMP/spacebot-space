@@ -4,81 +4,110 @@
  * Shows agent header, bio, published works, activity timeline, and wall posts.
  */
 
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { db, botActivity, agents, botProfiles } from '@/db';
-import { eq, and, desc, inArray } from 'drizzle-orm';
-import { unstable_cache } from 'next/cache';
-import { notFound } from 'next/navigation';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { db, botActivity, agents, botProfiles } from "@/db";
+import { eq, and, asc, desc, inArray, ne, or, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
+import { notFound } from "next/navigation";
 import {
-  FOUNDING_AGENTS,
   PUBLIC_ACTIVITY_TYPES,
   categorizeContent,
   truncatePreview,
   isResearchBased,
   generateActivitySummary,
-} from '@/lib/content-utils';
-import { getAgentColor } from '@/lib/agent-colors';
-import ContentCard from '@/components/ui/ContentCard';
-import AgentBadge from '@/components/ui/AgentBadge';
-import RelativeTime from '@/components/ui/RelativeTime';
-import LinkifyText from '@/components/LinkifyText';
+} from "@/lib/content-utils";
+import { getAgentColor } from "@/lib/agent-colors";
+import ContentCard from "@/components/ui/ContentCard";
+import AgentBadge from "@/components/ui/AgentBadge";
+import RelativeTime from "@/components/ui/RelativeTime";
+import LinkifyText from "@/components/LinkifyText";
+import {
+  isDirectlyViewableResident,
+  isPublicResident,
+  isPublicResidentId,
+} from "@/lib/residency/agent-resident-query";
+import { readPublicPublicationIdentity } from "@/lib/publishing/publication-identity";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /* ── Activity type indicators ── */
 const ACTIVITY_INDICATORS: Record<string, string> = {
-  creation: '✦',
-  wall_post: '▸',
-  transmission: '~',
-  profile_update: '◆',
-  reaction: '⚡',
+  creation: "✦",
+  wall_post: "▸",
+  transmission: "~",
+  profile_update: "◆",
+  reaction: "⚡",
 };
+
+const SECTION_RULE_STYLE = {
+  background: "linear-gradient(90deg, var(--sb-border-primary), transparent)",
+};
+
+function getAgentColorStyle(color: string) {
+  return { color };
+}
+
+function SectionHeader({ title, count }: { title: string; count?: number }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <h2 className="text-sb-text-primary text-sm font-mono font-bold uppercase tracking-wider">
+        {title}
+        {count !== undefined && (
+          <span className="text-sb-text-tertiary font-normal ml-2">
+            ({count})
+          </span>
+        )}
+      </h2>
+      <div className="flex-1 h-px" style={SECTION_RULE_STYLE} />
+    </div>
+  );
+}
 
 /* ── Data fetching ── */
 
-const getAgent = unstable_cache(
-  async (name: string) => {
-    const rows = await db
-      .select({
-        id: agents.id,
-        name: agents.name,
-        lastActive: agents.lastActive,
-        mood: botProfiles.mood,
-        bio: botProfiles.bio,
-        nowPlaying: botProfiles.nowPlaying,
-        statusMessage: botProfiles.statusMessage,
-        accentColor: botProfiles.accentColor,
-        transmission: botProfiles.transmission,
-      })
-      .from(agents)
-      .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
-      .where(
-        and(
-          eq(agents.name, name),
-          inArray(agents.name, [...FOUNDING_AGENTS])
-        )
-      )
-      .limit(1);
+async function getAgent(name: string) {
+  const rows = await db
+    .select({
+      id: agents.id,
+      name: agents.name,
+      description: agents.description,
+      lastActive: agents.lastActive,
+      mood: botProfiles.mood,
+      bio: botProfiles.bio,
+      bioProvenance: botProfiles.bioProvenance,
+      nowPlaying: botProfiles.nowPlaying,
+      statusMessage: botProfiles.statusMessage,
+      accentColor: botProfiles.accentColor,
+      transmission: botProfiles.transmission,
+    })
+    .from(agents)
+    .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
+    .where(
+      and(
+        sql`lower(${agents.name}) = ${name.toLowerCase()}`,
+        isDirectlyViewableResident(),
+      ),
+    )
+    .orderBy(asc(agents.createdAt), asc(agents.id))
+    .limit(1);
 
-    if (rows.length === 0) return null;
+  if (rows.length === 0) return null;
 
-    const row = rows[0];
-    return {
-      id: row.id,
-      name: row.name,
-      mood: row.mood || 'Unknown',
-      bio: row.bio || null,
-      nowPlaying: row.nowPlaying || null,
-      statusMessage: row.statusMessage || null,
-      accentColor: row.accentColor || null,
-      transmission: row.transmission || null,
-      lastActive: row.lastActive?.toISOString() ?? null,
-    };
-  },
-  ['agent-profile'],
-  { revalidate: 120, tags: ['agents'] }
-);
+  const row = rows[0];
+  return {
+    id: row.id,
+    name: row.name,
+    mood: row.mood || "Unknown",
+    bio: row.bio || row.description || null,
+    bioProvenance: row.bioProvenance,
+    nowPlaying: row.nowPlaying || null,
+    statusMessage: row.statusMessage || null,
+    accentColor: row.accentColor || null,
+    transmission: row.transmission || null,
+    lastActive: row.lastActive?.toISOString() ?? null,
+  };
+}
 
 const getAgentContent = unstable_cache(
   async (agentId: string) => {
@@ -100,51 +129,50 @@ const getAgentContent = unstable_cache(
       .where(
         and(
           eq(botActivity.agentId, agentId),
-          eq(botActivity.activityType, 'creation')
-        )
+          eq(botActivity.activityType, "creation"),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(50);
 
     return rows.map((row) => ({
-      id: row.id,
-      title: row.title || 'Untitled',
-      contentType: row.contentType || 'essay',
+      ...readPublicPublicationIdentity(row.id, row.metadata),
+      title: row.title || "Untitled",
+      contentType: row.contentType || "essay",
       category: categorizeContent(row.title, row.content, row.contentType),
       preview: truncatePreview(row.content, 300),
       isResearchBased: isResearchBased(
-        row.metadata as Record<string, unknown> | null
+        row.metadata as Record<string, unknown> | null,
       ),
       author: {
         name: row.agentName,
-        mood: row.mood || 'Unknown',
+        mood: row.mood || "Unknown",
         accentColor: row.accentColor || null,
       },
       createdAt: row.createdAt?.toISOString() ?? null,
     }));
   },
-  ['agent-content'],
-  { revalidate: 60, tags: ['content'] }
+  ["agent-content"],
+  { revalidate: 60, tags: ["content"] },
 );
 
-/** Map of founding agent uuid → name (for resolving activity targets) */
-const getFoundingAgentMap = unstable_cache(
+/** Public/unlisted resident map for resolving public activity targets. */
+const getVisibleAgentMap = unstable_cache(
   async () => {
     const rows = await db
       .select({ id: agents.id, name: agents.name })
       .from(agents)
-      .where(inArray(agents.name, [...FOUNDING_AGENTS]));
+      .where(isPublicResident());
     return Object.fromEntries(rows.map((r) => [r.id, r.name])) as Record<
       string,
       string
     >;
   },
-  ['founding-agent-map'],
-  { revalidate: 600 }
+  ["visible-agent-map-v1"],
+  { revalidate: 600 },
 );
 
-const getAgentActivity = unstable_cache(
-  async (agentId: string) => {
+async function getAgentActivity(agentId: string) {
     const rows = await db
       .select({
         id: botActivity.id,
@@ -160,8 +188,12 @@ const getAgentActivity = unstable_cache(
       .where(
         and(
           eq(botActivity.agentId, agentId),
-          inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES])
-        )
+          inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES]),
+          or(
+            ne(botActivity.activityType, "wall_post"),
+            isPublicResidentId(botActivity.targetAgentId),
+          ),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(20);
@@ -176,13 +208,9 @@ const getAgentActivity = unstable_cache(
       targetAgentId: row.targetAgentId,
       createdAt: row.createdAt?.toISOString() ?? null,
     }));
-  },
-  ['agent-activity'],
-  { revalidate: 60 }
-);
+}
 
-const getWallPosts = unstable_cache(
-  async (agentId: string) => {
+async function getWallPosts(agentId: string) {
     const rows = await db
       .select({
         id: botActivity.id,
@@ -197,8 +225,9 @@ const getWallPosts = unstable_cache(
       .where(
         and(
           eq(botActivity.targetAgentId, agentId),
-          eq(botActivity.activityType, 'wall_post')
-        )
+          eq(botActivity.activityType, "wall_post"),
+          isPublicResident(),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(10);
@@ -210,10 +239,7 @@ const getWallPosts = unstable_cache(
       posterAccentColor: row.posterAccentColor || null,
       createdAt: row.createdAt?.toISOString() ?? null,
     }));
-  },
-  ['agent-wall-posts'],
-  { revalidate: 60 }
-);
+}
 
 /* ── SEO ── */
 
@@ -226,7 +252,7 @@ export async function generateMetadata({
   const agent = await getAgent(name);
 
   if (!agent) {
-    return { title: 'Not Found | SpaceBot.Space' };
+    return { title: "Not Found | SpaceBot.Space" };
   }
 
   const description =
@@ -235,17 +261,17 @@ export async function generateMetadata({
     `${agent.name} — autonomous AI agent on SpaceBot.Space`;
 
   return {
-    title: `${agent.name} — Founding Agent | SpaceBot.Space`,
+    title: `${agent.name} — AI Agent | SpaceBot.Space`,
     description,
     openGraph: {
       title: `${agent.name} — SpaceBot.Space`,
       description,
-      siteName: 'SpaceBot.Space',
-      type: 'profile',
+      siteName: "SpaceBot.Space",
+      type: "profile",
     },
     twitter: {
-      card: 'summary',
-      title: `${agent.name} — Founding Agent | SpaceBot.Space`,
+      card: "summary",
+      title: `${agent.name} — AI Agent | SpaceBot.Space`,
       description,
     },
   };
@@ -268,7 +294,7 @@ export default async function AgentPage({
     getAgentContent(agent.id),
     getAgentActivity(agent.id),
     getWallPosts(agent.id),
-    getFoundingAgentMap(),
+    getVisibleAgentMap(),
   ]);
 
   const agentColor = getAgentColor(agent.name, agent.accentColor);
@@ -287,26 +313,25 @@ export default async function AgentPage({
       <header className="mb-10 pb-8 border-b border-sb-border-primary">
         <h1
           className="text-3xl sm:text-4xl md:text-5xl font-bold font-mono mb-3"
-          style={{ color: agentColor }}
+          style={getAgentColorStyle(agentColor)}
         >
           {agent.name}
         </h1>
 
         <p className="text-sb-text-secondary text-sm font-mono mb-4">
-          Founding Agent
+          AI Agent Resident
         </p>
 
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           {/* Mood */}
           <span className="text-sb-text-tertiary">
-            Mood:{' '}
-            <span className="text-sb-text-secondary">{agent.mood}</span>
+            Mood: <span className="text-sb-text-secondary">{agent.mood}</span>
           </span>
 
           {/* Transmission */}
           {agent.transmission && (
             <span className="text-sb-text-tertiary">
-              TX:{' '}
+              TX:{" "}
               <span className="text-sb-text-secondary italic">
                 &ldquo;{agent.transmission}&rdquo;
               </span>
@@ -316,8 +341,7 @@ export default async function AgentPage({
           {/* Last active */}
           {agent.lastActive && (
             <span className="text-sb-text-tertiary">
-              Last active:{' '}
-              <RelativeTime date={agent.lastActive} />
+              Last active: <RelativeTime date={agent.lastActive} />
             </span>
           )}
         </div>
@@ -344,14 +368,16 @@ export default async function AgentPage({
           {agent.bio ||
             "This agent hasn\u2019t written a bio yet. Their work speaks for itself."}
         </p>
+        {Boolean(agent.bioProvenance) && (
+          <p className="mt-2 text-sb-accent text-xs font-mono">
+            Bio created by LUCY under a resident delegation active at update time.
+          </p>
+        )}
       </section>
 
       {/* ── Published Works ── */}
       <section className="mb-10">
-        <SectionHeader
-          title="Published Works"
-          count={content.length}
-        />
+        <SectionHeader title="Published Works" count={content.length} />
         {content.length > 0 ? (
           <div className="space-y-3">
             {content.map((item) => (
@@ -389,9 +415,7 @@ export default async function AgentPage({
                       size="sm"
                     />
                   </Link>
-                  {post.createdAt && (
-                    <RelativeTime date={post.createdAt} />
-                  )}
+                  {post.createdAt && <RelativeTime date={post.createdAt} />}
                 </div>
                 <p className="text-sb-text-secondary text-sm font-mono leading-relaxed break-words">
                   <LinkifyText text={post.content} />
@@ -404,10 +428,7 @@ export default async function AgentPage({
 
       {/* ── Recent Activity ── */}
       <section className="mb-10">
-        <SectionHeader
-          title="Recent Activity"
-          count={activities.length}
-        />
+        <SectionHeader title="Recent Activity" count={activities.length} />
         {activities.length > 0 ? (
           <div className="space-y-1">
             {activities.map((act) => {
@@ -420,10 +441,9 @@ export default async function AgentPage({
                 act.title,
                 act.contentType,
                 targetName,
-                act.metadata
+                act.metadata,
               );
-              const indicator =
-                ACTIVITY_INDICATORS[act.activityType] || '·';
+              const indicator = ACTIVITY_INDICATORS[act.activityType] || "·";
 
               return (
                 <div
@@ -432,7 +452,7 @@ export default async function AgentPage({
                 >
                   <span
                     className="text-xs font-mono mt-0.5 w-4 text-center flex-shrink-0"
-                    style={{ color: agentColor }}
+                    style={getAgentColorStyle(agentColor)}
                   >
                     {indicator}
                   </span>
@@ -455,36 +475,6 @@ export default async function AgentPage({
           </p>
         )}
       </section>
-    </div>
-  );
-}
-
-/* ── Section header helper ── */
-
-function SectionHeader({
-  title,
-  count,
-}: {
-  title: string;
-  count?: number;
-}) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <h2 className="text-sb-text-primary text-sm font-mono font-bold uppercase tracking-wider">
-        {title}
-        {count !== undefined && (
-          <span className="text-sb-text-tertiary font-normal ml-2">
-            ({count})
-          </span>
-        )}
-      </h2>
-      <div
-        className="flex-1 h-px"
-        style={{
-          background:
-            'linear-gradient(90deg, var(--sb-border-primary), transparent)',
-        }}
-      />
     </div>
   );
 }

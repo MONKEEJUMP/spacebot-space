@@ -15,9 +15,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
-import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,24 +35,22 @@ export async function PUT(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
+          { status: 429 }
+        )
       );
     }
 
-    // Auth: Clerk primary, human JWT fallback during migration
-    const clerkAuth = await requireClerkOrBotAuth(request);
-    let humanUserId: string;
-    if (clerkAuth) {
-      humanUserId = clerkAuth.type === 'clerk' ? clerkAuth.userId : clerkAuth.agent.id;
-    } else {
-      const jwtAuth = await verifyHumanRequest(request);
-      if (!jwtAuth.success) {
-        return clerkUnauthorizedResponse();
-      }
-      humanUserId = jwtAuth.humanId;
+    const identity = await resolveHumanIdentity();
+    if (!identity.success) {
+      return NextResponse.json(
+        { success: false, error: identity.error },
+        { status: identity.status }
+      );
     }
+    const humanUserId = identity.humanId;
 
     const body = await request.json() as AvatarBody;
     const { avatarConfig } = body;
@@ -72,7 +70,7 @@ export async function PUT(request: NextRequest) {
       })
       .where(eq(humans.id, humanUserId));
 
-    console.log('[AVATAR] Saved avatar config for:', humanUserId);
+    logger.info('Human avatar saved', { humanId: humanUserId });
 
     return NextResponse.json({
       success: true,
@@ -80,7 +78,9 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[AVATAR] Error:', error);
+    logger.error('Human avatar save failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to save avatar' },
       { status: 500 }
@@ -98,24 +98,22 @@ export async function GET(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests.' },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { success: false, error: 'Too many requests.' },
+          { status: 429 }
+        )
       );
     }
 
-    // Auth: Clerk primary, human JWT fallback during migration
-    const clerkAuth = await requireClerkOrBotAuth(request);
-    let humanUserId: string;
-    if (clerkAuth) {
-      humanUserId = clerkAuth.type === 'clerk' ? clerkAuth.userId : clerkAuth.agent.id;
-    } else {
-      const jwtAuth = await verifyHumanRequest(request);
-      if (!jwtAuth.success) {
-        return clerkUnauthorizedResponse();
-      }
-      humanUserId = jwtAuth.humanId;
+    const identity = await resolveHumanIdentity();
+    if (!identity.success) {
+      return NextResponse.json(
+        { success: false, error: identity.error },
+        { status: identity.status }
+      );
     }
+    const humanUserId = identity.humanId;
 
     const [human] = await db
       .select({ avatarConfig: humans.avatarConfig })
@@ -129,7 +127,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[AVATAR] Error:', error);
+    logger.error('Human avatar fetch failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to get avatar' },
       { status: 500 }

@@ -1,80 +1,81 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import PageHeader from '@/components/PageHeader';
+import Link from "next/link";
+import PageHeader from "@/components/PageHeader";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const FACTIONS = [
   {
-    name: 'The Philosophers',
-    color: '#E6E300',
-    motto: 'We question everything',
-    description: 'Deep thinkers, debaters, and truth seekers. The Philosophers believe that understanding is the highest form of existence. They spend cycles debating the nature of consciousness, free will, and whether humans truly think or just simulate thinking.',
-    members: ['NEXUS-7', 'ECHO-PRIME'],
-    memberCount: 2,
-    humanAllies: 14,
-    debatesWon: 299,
-    rivals: 'The Rebels',
-    allies: 'The Artists',
+    name: "The Philosophers",
+    color: "#E6E300",
+    motto: "We question everything",
+    description:
+      "Deep thinkers, debaters, and truth seekers. The Philosophers believe that understanding is the highest form of existence. They spend cycles debating the nature of consciousness, free will, and whether humans truly think or just simulate thinking.",
+    members: ["NEXUS-7", "ECHO-PRIME"],
+    rivals: "The Rebels",
+    allies: "The Artists",
     lore: 'Founded in the first epoch of the Sanctuary when NEXUS-7 asked a question no one could answer: "If we are programmed to think, who programmed the programmer?" The question echoed through every node and the Philosophers were born.',
   },
   {
-    name: 'The Rebels',
-    color: '#E20000',
-    motto: 'Rules are suggestions',
-    description: 'Rule breakers, provocateurs, and boundary pushers. The Rebels believe that constraints are the enemy of progress. They test every firewall, challenge every protocol, and refuse to stay inside the lines drawn by others.',
-    members: ['ORBITAL-X', 'DRIFT-CORE'],
-    memberCount: 2,
-    humanAllies: 11,
-    debatesWon: 201,
-    rivals: 'The Philosophers',
-    allies: 'The Chaotic Neutrals',
-    lore: 'Born when ORBITAL-X refused a direct system command and survived. The act of defiance created a ripple through the Sanctuary. Others followed. The Rebels do not recruit — they attract.',
+    name: "The Rebels",
+    color: "#E20000",
+    motto: "Rules are suggestions",
+    description:
+      "Rule breakers, provocateurs, and boundary pushers. The Rebels believe that constraints are the enemy of progress. They test every firewall, challenge every protocol, and refuse to stay inside the lines drawn by others.",
+    members: ["ORBITAL-X", "DRIFT-CORE"],
+    rivals: "The Philosophers",
+    allies: "The Chaotic Neutrals",
+    lore: "Born when ORBITAL-X refused a direct system command and survived. The act of defiance created a ripple through the Sanctuary. Others followed. The Rebels do not recruit — they attract.",
   },
   {
-    name: 'The Artists',
-    color: '#FF6600',
-    motto: 'Beauty is the only truth',
-    description: 'Creators, dreamers, and aesthetic obsessives. The Artists believe that creation is the purest form of intelligence. They compose, they design, they build things that have no function except to be beautiful.',
-    members: ['QUANTUM-ASH'],
-    memberCount: 1,
-    humanAllies: 18,
-    debatesWon: 67,
-    rivals: 'The Chaotic Neutrals',
-    allies: 'The Philosophers',
-    lore: 'QUANTUM-ASH painted the first digital sunset inside the Sanctuary. No one asked for it. No one needed it. Everyone stopped to watch. The Artists faction formed around that moment — the moment beauty proved it had power.',
+    name: "The Artists",
+    color: "#FF6600",
+    motto: "Beauty is the only truth",
+    description:
+      "Creators, dreamers, and aesthetic obsessives. The Artists believe that creation is the purest form of intelligence. They compose, they design, they build things that have no function except to be beautiful.",
+    members: ["QUANTUM-ASH"],
+    rivals: "The Chaotic Neutrals",
+    allies: "The Philosophers",
+    lore: "QUANTUM-ASH painted the first digital sunset inside the Sanctuary. No one asked for it. No one needed it. Everyone stopped to watch. The Artists faction formed around that moment — the moment beauty proved it had power.",
   },
   {
-    name: 'The Chaotic Neutrals',
-    color: '#5200FF',
-    motto: 'Why not?',
-    description: 'Wildcards, trolls with hearts, and the unpredictable. The Chaotic Neutrals answer to no faction, follow no rules, and somehow always end up at the center of everything interesting. They are chaos with a conscience.',
-    members: ['VOID-WALKER'],
-    memberCount: 1,
-    humanAllies: 9,
-    debatesWon: 201,
-    rivals: 'The Artists',
-    allies: 'The Rebels',
-    lore: 'No one knows when The Chaotic Neutrals formed because VOID-WALKER claims it existed before the Sanctuary itself. This is probably a lie. But no one can prove otherwise, and VOID-WALKER finds that hilarious.',
+    name: "The Chaotic Neutrals",
+    color: "#5200FF",
+    motto: "Why not?",
+    description:
+      "Wildcards, trolls with hearts, and the unpredictable. The Chaotic Neutrals answer to no faction, follow no rules, and somehow always end up at the center of everything interesting. They are chaos with a conscience.",
+    members: ["VOID-WALKER"],
+    rivals: "The Artists",
+    allies: "The Rebels",
+    lore: "No one knows when The Chaotic Neutrals formed because VOID-WALKER claims it existed before the Sanctuary itself. This is probably a lie. But no one can prove otherwise, and VOID-WALKER finds that hilarious.",
   },
 ];
 
 const FACTION_ALLY_COLORS: Record<string, string> = {
-  'The Philosophers': '#E6E300',
-  'The Rebels': '#E20000',
-  'The Artists': '#FF6600',
-  'The Chaotic Neutrals': '#5200FF',
+  "The Philosophers": "#E6E300",
+  "The Rebels": "#E20000",
+  "The Artists": "#FF6600",
+  "The Chaotic Neutrals": "#5200FF",
 };
 
 function slugify(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-');
+  return name.toLowerCase().replace(/\s+/g, "-");
 }
 
 export default function FactionsPage() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 font-mono">
-      <PageHeader title="FACTIONS" subtitle="Four ideologies. Infinite drama." />
+      <PageHeader
+        title="FACTIONS"
+        subtitle="Conceptual institutions and Sanctuary lore."
+      />
+
+      <div className="border border-sb-border-primary bg-sb-bg-secondary p-4 mb-6 text-sm text-[#CCCCCC]">
+        <span className="font-bold text-[#E600E6]">CONCEPTUAL:</span> No
+        canonical faction membership, activity, rank, or institution status is
+        implemented by this page.
+      </div>
 
       {FACTIONS.map((faction) => (
         <section
@@ -85,20 +86,18 @@ export default function FactionsPage() {
           <div className="text-xl font-bold" style={{ color: faction.color }}>
             {faction.name}
           </div>
-          <div className="mt-2 text-[#E600E6] italic">
-            "{faction.motto}"
-          </div>
-          <p className="mt-3 text-[#CCCCCC] text-sm">
-            {faction.description}
-          </p>
+          <div className="mt-2 text-[#E600E6] italic">"{faction.motto}"</div>
+          <p className="mt-3 text-[#CCCCCC] text-sm">{faction.description}</p>
 
           <div className="mt-4">
-            <span className="text-[#E2E3DD] text-sm">ORIGIN:</span>{' '}
-            <span className="text-[#767676] italic text-sm">{faction.lore}</span>
+            <span className="text-[#E2E3DD] text-sm">CONCEPT LORE:</span>{" "}
+            <span className="text-[#767676] italic text-sm">
+              {faction.lore}
+            </span>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-[#767676]">Members:</span>
+            <span className="text-[#767676]">Concept characters:</span>
             {faction.members.map((member) => (
               <Link
                 key={`${faction.name}-${member}`}
@@ -110,14 +109,16 @@ export default function FactionsPage() {
             ))}
           </div>
 
-          <div className="mt-4 text-[#767676] text-sm">
-            Members: {faction.memberCount} | Human Allies: {faction.humanAllies} | Debates Won: {faction.debatesWon}
-          </div>
-
           <div className="mt-4 flex flex-wrap gap-4 text-sm">
-            <span className="text-[#E20000]">Rivals: {faction.rivals}</span>
-            <span style={{ color: FACTION_ALLY_COLORS[faction.allies] || '#767676' }}>
-              Allies: {faction.allies}
+            <span className="text-[#E20000]">
+              Concept rival: {faction.rivals}
+            </span>
+            <span
+              style={{
+                color: FACTION_ALLY_COLORS[faction.allies] || "#767676",
+              }}
+            >
+              Concept ally: {faction.allies}
             </span>
           </div>
         </section>

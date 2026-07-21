@@ -150,6 +150,40 @@ interface StoredAvatarConfig {
   androidName?: string;
 }
 
+const UNDERLAY_SCHEMATICS = new Set([
+  'pcb_circuit',
+  'pcb_dense',
+  'circuit_radial',
+  'hex_grid',
+  'triangle_mesh',
+  'isometric_grid',
+  'waveform',
+  'data_matrix',
+]);
+
+interface SaveApiResponse {
+  success?: boolean;
+  error?: string;
+}
+
+async function readSaveResponse(response: Response): Promise<SaveApiResponse> {
+  try {
+    const body = await response.json() as unknown;
+    if (body && typeof body === 'object') {
+      return body as SaveApiResponse;
+    }
+  } catch {
+    // The fallback below reports malformed or empty responses honestly.
+  }
+
+  return {
+    success: false,
+    error: response.ok
+      ? 'The server returned an invalid response. Your avatar was not saved.'
+      : `Failed to save avatar (status ${response.status}).`,
+  };
+}
+
 function applyAvatarConfig(
   config: StoredAvatarConfig,
   setters: {
@@ -256,17 +290,6 @@ function AvatarPreview({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
-  const UNDERLAY_SCHEMATICS = new Set([
-    'pcb_circuit',
-    'pcb_dense',
-    'circuit_radial',
-    'hex_grid',
-    'triangle_mesh',
-    'isometric_grid',
-    'waveform',
-    'data_matrix',
-  ]);
-
   useEffect(() => {
     const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
     const hasSchematic = Boolean(schematicId && schematicId !== 'none' && schematicColor);
@@ -368,6 +391,8 @@ export default function BuildAvatarPage() {
   const { requireAuth } = useAuthGate();
   const { isSignedIn, isLoaded: clerkLoaded } = useUser();
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveMessage, setProfileSaveMessage] = useState<string | null>(null);
   const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
@@ -429,7 +454,7 @@ export default function BuildAvatarPage() {
       }
     };
 
-    void preloadAvatar();
+    preloadAvatar().catch(() => undefined);
   }, []);
 
   // ─── Measure command center height ───
@@ -502,7 +527,7 @@ export default function BuildAvatarPage() {
       const idx = HUMAN_COLORS.findIndex(c => c.primary === forceColor);
       colors = idx >= 0 ? HUMAN_COLORS[idx] : { primary: forceColor, dark: forceColor, light: forceColor };
     } else {
-      const colorRng = seededRandom(seed + ':color');
+      const colorRng = seededRandom(`${seed}:color`);
       colors = getColors(undefined, false, colorRng);
     }
 
@@ -578,6 +603,7 @@ export default function BuildAvatarPage() {
     onClick: () => void,
   ) => (
     <button
+      type="button"
       key={key}
       onClick={onClick}
       className="p-3 text-left transition-all duration-200 cursor-pointer"
@@ -692,6 +718,7 @@ export default function BuildAvatarPage() {
         }}>
           {STEP_LABELS.map((label, i) => (
             <button
+              type="button"
               key={label}
               onClick={() => scrollToStep(i + 1)}
               style={{
@@ -789,6 +816,7 @@ export default function BuildAvatarPage() {
                 const selected = colorIndex === i && !customHex;
                 return (
                   <button
+                    type="button"
                     key={palette.primary}
                     onClick={() => { setColorIndex(i); setCustomHex(''); }}
                     className="flex flex-col items-center gap-2 p-3 transition-all duration-200 cursor-pointer"
@@ -852,6 +880,7 @@ export default function BuildAvatarPage() {
                 />
                 {customHex && (
                   <button
+                    type="button"
                     onClick={() => setCustomHex('')}
                     className="text-xs text-[#767676] hover:text-[#CCCCCC] transition-colors px-2 py-1"
                   >
@@ -924,6 +953,7 @@ export default function BuildAvatarPage() {
                 const disabled = !selected && selectedAccessories.length >= 4;
                 return (
                   <button
+                    type="button"
                     key={acc}
                     onClick={() => toggleAccessory(acc)}
                     className="p-2 text-left transition-all duration-200"
@@ -955,6 +985,7 @@ export default function BuildAvatarPage() {
                 const disabled = !selected && selectedAccessories.length >= 4;
                 return (
                   <button
+                    type="button"
                     key={acc}
                     onClick={() => toggleAccessory(acc)}
                     className="p-2 text-left transition-all duration-200"
@@ -986,6 +1017,7 @@ export default function BuildAvatarPage() {
                 const disabled = !selected && selectedAccessories.length >= 4;
                 return (
                   <button
+                    type="button"
                     key={acc}
                     onClick={() => toggleAccessory(acc)}
                     className="p-2 text-left transition-all duration-200"
@@ -1025,6 +1057,7 @@ export default function BuildAvatarPage() {
                 const displayColor = sc.hex === 'match' ? activePalette.primary : sc.hex;
                 return (
                   <button
+                    type="button"
                     key={sc.hex}
                     onClick={() => setSchematicColor(sc.hex)}
                     className="flex flex-col items-center gap-1.5 p-2 transition-all duration-200 cursor-pointer"
@@ -1069,6 +1102,7 @@ export default function BuildAvatarPage() {
 
             {/* NONE option */}
             <button
+              type="button"
               onClick={() => setSchematicId('none')}
               className="w-full p-3 text-left transition-all duration-200 cursor-pointer mb-4"
               style={{
@@ -1095,6 +1129,7 @@ export default function BuildAvatarPage() {
                     const selected = schematicId === si.id;
                     return (
                       <button
+                        type="button"
                         key={si.id}
                         onClick={() => setSchematicId(si.id)}
                         className="p-3 text-left transition-all duration-200 cursor-pointer"
@@ -1131,6 +1166,7 @@ export default function BuildAvatarPage() {
                 const selected = animationType === at;
                 return (
                   <button
+                    type="button"
                     key={at}
                     onClick={() => setAnimationType(at)}
                     className="p-4 text-left transition-all duration-200 cursor-pointer"
@@ -1153,6 +1189,7 @@ export default function BuildAvatarPage() {
 
               {/* NONE option */}
               <button
+                type="button"
                 onClick={() => setAnimationType('none')}
                 className="p-4 text-left transition-all duration-200 cursor-pointer"
                 style={{
@@ -1285,6 +1322,7 @@ export default function BuildAvatarPage() {
             {isNewUser && (
               <div className="flex flex-col gap-3 mb-6">
                 <button
+                  type="button"
                   disabled={profileSaving}
                   onClick={async () => {
                     setProfileSaving(true);
@@ -1301,11 +1339,12 @@ export default function BuildAvatarPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ avatarConfig: avatarData }),
                       });
-                      if (res.ok) {
+                      const result = await readSaveResponse(res);
+                      if (res.ok && result.success) {
                         const username = clerkHuman?.username;
                         router.push(username ? `/peoplespace/${username}` : '/peoplespace');
                       } else {
-                        setProfileSaveError('Failed to save avatar. Please try again.');
+                        setProfileSaveError(result.error || 'Failed to save avatar. Please try again.');
                       }
                     } catch {
                       setProfileSaveError('Connection failed. Please try again.');
@@ -1328,12 +1367,16 @@ export default function BuildAvatarPage() {
                   {profileSaving ? 'SAVING...' : 'SAVE AVATAR TO YOUR PROFILE'}
                 </button>
                 <button
+                  type="button"
                   disabled={profileSaving}
                   onClick={async () => {
                     setProfileSaving(true);
+                    setProfileSaveError(null);
                     try {
                       randomizeAll();
-                      await new Promise(r => globalThis.setTimeout(r, 100));
+                      await new Promise<void>((resolve) => {
+                        window.setTimeout(resolve, 100);
+                      });
                       const randomConfig = JSON.parse(localStorage.getItem('custom-avatar') || '{}');
                       if (!randomConfig.bodyType) {
                         const seed = Date.now().toString();
@@ -1353,11 +1396,16 @@ export default function BuildAvatarPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ avatarConfig: randomConfig }),
                       });
-                      if (res.ok) {
+                      const result = await readSaveResponse(res);
+                      if (res.ok && result.success) {
                         const username = clerkHuman?.username;
                         router.push(username ? `/peoplespace/${username}` : '/peoplespace');
+                      } else {
+                        setProfileSaveError(result.error || 'Failed to save avatar. Please try again.');
                       }
-                    } catch { /* silent */ }
+                    } catch {
+                      setProfileSaveError('Connection failed. Your avatar was not saved. Please try again.');
+                    }
                     finally { setProfileSaving(false); }
                   }}
                   className="w-full py-3 px-6 text-sm tracking-widest transition-all duration-200"
@@ -1386,6 +1434,7 @@ export default function BuildAvatarPage() {
                   <>
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button
+                        type="button"
                         onClick={async () => {
                           setProfileSaving(true);
                           setProfileSaveMessage(null);
@@ -1430,6 +1479,7 @@ export default function BuildAvatarPage() {
                         {profileSaving ? 'SAVING...' : 'SAVE TO PROFILE'}
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           const container = document.getElementById('avatar-command-center');
                           if (!container) return;
@@ -1510,94 +1560,81 @@ export default function BuildAvatarPage() {
             )}
 
             {/* Action buttons */}
-            {saveSuccessMessage && (
+            {(saveSuccessMessage || saveErrorMessage) && (
               <div
                 className="mb-4 px-4 py-3 border text-sm tracking-wider"
                 style={{
-                  borderColor: '#5200FF',
-                  color: '#5200FF',
+                  borderColor: saveErrorMessage ? '#E20000' : '#5200FF',
+                  color: saveErrorMessage ? '#E20000' : '#5200FF',
                   backgroundColor: '#0C0C0C',
                   fontFamily: "'Glass TTY VT220', monospace",
                 }}
               >
-                {saveSuccessMessage}
+                {saveErrorMessage || saveSuccessMessage}
               </div>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                type="button"
+                disabled={avatarSaving}
                 onClick={() => {
                   requireAuth(async () => {
-                  setSaveSuccessMessage(null);
-                  const avatarData = {
-                    bodyType,
-                    eyeType,
-                    mouthType,
-                    colorIndex,
-                    customHex,
-                    selectedAccessories,
-                    schematicId,
-                    schematicColor,
-                    overlayPreset,
-                    animationType,
-                    androidName,
-                  };
-
-                  // Always save to localStorage first (preview needs this)
-                  localStorage.setItem('custom-avatar', JSON.stringify({
-                    ...avatarData,
-                    timestamp: Date.now(),
-                  }));
-
-                  // Save to database with retry on expired token
-                  try {
-                    const putOptions: RequestInit = {
-                      method: 'PUT',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ avatarConfig: avatarData }),
+                    setAvatarSaving(true);
+                    setSaveSuccessMessage(null);
+                    setSaveErrorMessage(null);
+                    const avatarData = {
+                      bodyType,
+                      eyeType,
+                      mouthType,
+                      colorIndex,
+                      customHex,
+                      selectedAccessories,
+                      schematicId,
+                      schematicColor,
+                      overlayPreset,
+                      animationType,
+                      androidName,
                     };
 
-                    let res = await fetch('/api/v1/humans/avatar', putOptions);
+                    // Keep the local preview available without claiming persistence succeeded.
+                    localStorage.setItem('custom-avatar', JSON.stringify({
+                      ...avatarData,
+                      timestamp: Date.now(),
+                    }));
 
-                    // If token expired (401), refresh and retry once
-                    if (res.status === 401) {
-                      const refreshRes = await fetch('/api/v1/humans/refresh', {
-                        method: 'POST',
+                    try {
+                      const putOptions: RequestInit = {
+                        method: 'PUT',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({}),
-                      });
+                        body: JSON.stringify({ avatarConfig: avatarData }),
+                      };
 
-                      if (refreshRes.ok) {
-                        // Retry PUT with fresh token (new cookie set by refresh)
-                        res = await fetch('/api/v1/humans/avatar', {
-                          method: 'PUT',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ avatarConfig: avatarData }),
-                        });
+                      const res = await fetch('/api/v1/humans/avatar', putOptions);
+
+                      const result = await readSaveResponse(res);
+                      if (!res.ok || !result.success) {
+                        setSaveErrorMessage(result.error || 'Failed to save avatar. Please try again.');
+                        return;
                       }
-                    }
 
-                    if (!res.ok) {
-                      console.warn('[AVATAR] Server save status:', res.status);
-                    } else {
-                      console.log('[AVATAR] Saved to database successfully');
                       setSaveSuccessMessage(
                         isEditingExistingAvatar
                           ? 'Avatar updated successfully.'
                           : 'Avatar created successfully.'
                       );
-                      await new Promise((resolve) => globalThis.setTimeout(resolve, 900));
+                      await new Promise<void>((resolve) => {
+                        window.setTimeout(resolve, 900);
+                      });
+                      window.location.href = '/peoplespace/build-avatar/preview';
+                    } catch {
+                      setSaveErrorMessage('Connection failed. Your avatar was not saved. Please try again.');
+                    } finally {
+                      setAvatarSaving(false);
                     }
-                  } catch (err) {
-                    console.error('[AVATAR] Failed to save to database:', err);
-                  }
-
-                  globalThis.location.href = '/peoplespace/build-avatar/preview';
                   });
                 }}
-                className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
+                className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200 disabled:opacity-50"
                 style={{
                   backgroundColor: uiColor,
                   color: '#000',
@@ -1607,10 +1644,13 @@ export default function BuildAvatarPage() {
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 16px ${uiColor}80`; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
               >
-                {isEditingExistingAvatar ? 'UPDATE AVATAR' : 'CREATE AVATAR'}
+                {avatarSaving
+                  ? 'SAVING...'
+                  : isEditingExistingAvatar ? 'UPDATE AVATAR' : 'CREATE AVATAR'}
               </button>
 
               <button
+                type="button"
                 onClick={randomizeAll}
                 className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
                 style={{
@@ -1626,6 +1666,7 @@ export default function BuildAvatarPage() {
               </button>
 
               <button
+                type="button"
                 onClick={startOver}
                 className="flex-1 py-3 px-6 font-bold text-sm tracking-widest transition-all duration-200"
                 style={{
@@ -1641,6 +1682,7 @@ export default function BuildAvatarPage() {
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   localStorage.removeItem('custom-avatar');
                   startOver();

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const rateLimit = await checkRateLimit(ip, 'aiChallenge');
 
   if (!rateLimit.allowed) {
-    return rateLimitExceededResponse(rateLimit.retryAfter);
+    return rateLimitExceededResponse(rateLimit);
   }
 
   // Generate challenge (default difficulty 2)

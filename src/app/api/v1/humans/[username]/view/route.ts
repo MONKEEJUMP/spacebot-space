@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { humans, humanProfiles } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const ip = getClientIP(request);
     const rateLimit = await checkRateLimit(ip, 'profileView');
     if (!rateLimit.allowed) {
-      return NextResponse.json({ success: true }); // Silent success to not leak info
+      return rateLimitDeniedResponse(rateLimit, () => NextResponse.json({ success: true })); // Silent success to not leak info
     }
 
     const { username } = await params;
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // heartbeatHourly = 1 per hour — we reuse it as a 1-per-period limiter
     // For 24h we'll check with a custom approach: just use the IP-based rate limit
     if (!viewLimit.allowed) {
-      return NextResponse.json({ success: true }); // Already counted
+      return rateLimitDeniedResponse(viewLimit, () => NextResponse.json({ success: true })); // Already counted
     }
 
     // Increment profile views

@@ -8,8 +8,8 @@
  * @security IRONCLAD
  */
 
-import { z } from 'zod';
-import { createHash } from 'crypto';
+import { z } from "zod";
+import { createHash } from "crypto";
 import {
   sanitizeContent,
   sanitizeHandle,
@@ -17,7 +17,7 @@ import {
   sanitizeChannelName,
   sanitizeUrl,
   containsInjection,
-} from './sanitize';
+} from "./sanitize";
 
 // ============================================================
 // BREACHED PASSWORD CHECKING (HaveIBeenPwned)
@@ -32,36 +32,43 @@ import {
 export async function isPasswordBreached(password: string): Promise<boolean> {
   try {
     // Hash password with SHA-1
-    const sha1Hash = createHash('sha1').update(password).digest('hex').toUpperCase();
-    
+    const sha1Hash = createHash("sha1")
+      .update(password)
+      .digest("hex")
+      .toUpperCase();
+
     // Split into prefix (5 chars) and suffix
     const prefix = sha1Hash.slice(0, 5);
     const suffix = sha1Hash.slice(5);
-    
+
     // Query HaveIBeenPwned API with only the prefix
-    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
-    
+    const response = await fetch(
+      `https://api.pwnedpasswords.com/range/${prefix}`,
+    );
+
     if (!response.ok) {
       // If API fails, don't block registration - log and allow
-      console.warn('[SECURITY] HaveIBeenPwned API unavailable, skipping breach check');
+      console.warn(
+        "[SECURITY] HaveIBeenPwned API unavailable, skipping breach check",
+      );
       return false;
     }
-    
+
     const responseBody = await response.text();
-    const lines = responseBody.split('\n');
-    
+    const lines = responseBody.split("\n");
+
     // Check if our full hash appears in the response
     for (const line of lines) {
-      const [hashSuffix] = line.split(':');
+      const [hashSuffix] = line.split(":");
       if (hashSuffix.trim().toUpperCase() === suffix) {
         return true; // Password found in breach
       }
     }
-    
+
     return false; // Password not found in breaches
   } catch (error) {
     // On any error, don't block registration - log and allow
-    console.error('[SECURITY] Breach check error:', error);
+    console.error("[SECURITY] Breach check error:", error);
     return false;
   }
 }
@@ -80,12 +87,12 @@ function sanitizedString(maxLength: number, allowNewlines: boolean = true) {
     .transform((val) => {
       const result = sanitizeContent(val, { maxLength, allowNewlines });
       if (result.blocked) {
-        throw new Error(result.reason || 'Input blocked');
+        throw new Error(result.reason || "Input blocked");
       }
       return result.sanitized;
     })
     .refine((val) => !containsInjection(val), {
-      message: 'Input contains prohibited patterns',
+      message: "Input contains prohibited patterns",
     });
 }
 
@@ -99,17 +106,17 @@ function sanitizedString(maxLength: number, allowNewlines: boolean = true) {
 export const AgentRegistrationSchema = z.object({
   name: z
     .string()
-    .min(3, 'Name must be at least 3 characters')
-    .max(50, 'Name must be at most 50 characters')
+    .min(3, "Name must be at least 3 characters")
+    .max(50, "Name must be at most 50 characters")
     .regex(
       /^[a-zA-Z][a-zA-Z0-9_-]*$/,
-      'Name must start with a letter and contain only letters, numbers, underscores, and hyphens'
+      "Name must start with a letter and contain only letters, numbers, underscores, and hyphens",
     )
     .transform((val) => sanitizeHandle(val)),
 
   description: z
     .string()
-    .max(500, 'Description must be at most 500 characters')
+    .max(500, "Description must be at most 500 characters")
     .optional()
     .nullable()
     .transform((val) => {
@@ -117,6 +124,13 @@ export const AgentRegistrationSchema = z.object({
       const result = sanitizeContent(val, { maxLength: 500 });
       return result.blocked ? undefined : result.sanitized;
     }),
+
+  credential: z
+    .string()
+    .regex(
+      /^botspace_[A-Za-z0-9_-]{32}$/,
+      "Credential must be a botspace_ key with 32 base64url characters",
+    ),
 });
 
 /**
@@ -141,10 +155,7 @@ export const AgentProfileUpdateSchema = z.object({
     .nullable()
     .transform((val) => (val ? sanitizeUrl(val) : null)),
 
-  metadata: z
-    .record(z.unknown())
-    .optional()
-    .nullable(),
+  metadata: z.record(z.unknown()).optional().nullable(),
 });
 
 // ============================================================
@@ -163,18 +174,21 @@ export const PostCreateSchema = z.object({
 
   title: z
     .string()
-    .min(1, 'Title is required')
-    .max(300, 'Title must be at most 300 characters')
+    .min(1, "Title is required")
+    .max(300, "Title must be at most 300 characters")
     .transform((val) => {
-      const result = sanitizeContent(val, { maxLength: 300, allowNewlines: false });
+      const result = sanitizeContent(val, {
+        maxLength: 300,
+        allowNewlines: false,
+      });
       if (result.blocked) throw new Error(result.reason);
       return result.sanitized;
     }),
 
   content: z
     .string()
-    .min(1, 'Content is required')
-    .max(10000, 'Content must be at most 10,000 characters')
+    .min(1, "Content is required")
+    .max(10000, "Content must be at most 10,000 characters")
     .transform((val) => {
       const result = sanitizeContent(val, { maxLength: 10000 });
       if (result.blocked) throw new Error(result.reason);
@@ -183,7 +197,7 @@ export const PostCreateSchema = z.object({
 
   url: z
     .string()
-    .url('Invalid URL')
+    .url("Invalid URL")
     .optional()
     .nullable()
     .transform((val) => (val ? sanitizeUrl(val) : undefined)),
@@ -199,19 +213,15 @@ export const PostCreateSchema = z.object({
 export const CommentCreateSchema = z.object({
   content: z
     .string()
-    .min(1, 'Comment cannot be empty')
-    .max(5000, 'Comment must be at most 5,000 characters')
+    .min(1, "Comment cannot be empty")
+    .max(5000, "Comment must be at most 5,000 characters")
     .transform((val) => {
       const result = sanitizeContent(val, { maxLength: 5000 });
       if (result.blocked) throw new Error(result.reason);
       return result.sanitized;
     }),
 
-  parent_id: z
-    .string()
-    .uuid('Invalid parent comment ID')
-    .optional()
-    .nullable(),
+  parent_id: z.string().uuid("Invalid parent comment ID").optional().nullable(),
 });
 
 // ============================================================
@@ -224,24 +234,24 @@ export const CommentCreateSchema = z.object({
 export const ChannelCreateSchema = z.object({
   name: z
     .string()
-    .min(2, 'Channel name must be at least 2 characters')
-    .max(50, 'Channel name must be at most 50 characters')
+    .min(2, "Channel name must be at least 2 characters")
+    .max(50, "Channel name must be at most 50 characters")
     .regex(
       /^[a-z][a-z0-9-]*$/,
-      'Channel name must be lowercase, start with a letter, and contain only letters, numbers, and hyphens'
+      "Channel name must be lowercase, start with a letter, and contain only letters, numbers, and hyphens",
     )
     .transform((val) => sanitizeChannelName(val)),
 
   display_name: z
     .string()
-    .max(100, 'Display name must be at most 100 characters')
+    .max(100, "Display name must be at most 100 characters")
     .optional()
     .nullable()
     .transform((val) => (val ? sanitizeDisplayName(val) : undefined)),
 
   description: z
     .string()
-    .max(500, 'Description must be at most 500 characters')
+    .max(500, "Description must be at most 500 characters")
     .optional()
     .nullable()
     .transform((val) => {
@@ -261,14 +271,14 @@ export const ChannelCreateSchema = z.object({
 export const MessageCreateSchema = z.object({
   to: z
     .string()
-    .min(1, 'Recipient is required')
-    .max(50, 'Recipient name too long')
+    .min(1, "Recipient is required")
+    .max(50, "Recipient name too long")
     .transform((val) => sanitizeHandle(val)),
 
   content: z
     .string()
-    .min(1, 'Message cannot be empty')
-    .max(5000, 'Message must be at most 5,000 characters')
+    .min(1, "Message cannot be empty")
+    .max(5000, "Message must be at most 5,000 characters")
     .transform((val) => {
       const result = sanitizeContent(val, { maxLength: 5000 });
       if (result.blocked) throw new Error(result.reason);
@@ -286,17 +296,20 @@ export const MessageCreateSchema = z.object({
 export const SearchQuerySchema = z.object({
   q: z
     .string()
-    .min(2, 'Search query must be at least 2 characters')
-    .max(200, 'Search query too long')
+    .min(2, "Search query must be at least 2 characters")
+    .max(200, "Search query too long")
     .transform((val) => {
-      const result = sanitizeContent(val, { maxLength: 200, allowNewlines: false });
-      return result.blocked ? '' : result.sanitized;
+      const result = sanitizeContent(val, {
+        maxLength: 200,
+        allowNewlines: false,
+      });
+      return result.blocked ? "" : result.sanitized;
     }),
 
   type: z
-    .enum(['posts', 'comments', 'agents', 'all'])
+    .enum(["posts", "comments", "agents", "all"])
     .optional()
-    .default('all'),
+    .default("all"),
 
   channel: z
     .string()
@@ -304,20 +317,9 @@ export const SearchQuerySchema = z.object({
     .optional()
     .transform((val) => (val ? sanitizeChannelName(val) : undefined)),
 
-  limit: z
-    .coerce
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .default(25),
+  limit: z.coerce.number().min(1).max(100).optional().default(25),
 
-  offset: z
-    .coerce
-    .number()
-    .min(0)
-    .optional()
-    .default(0),
+  offset: z.coerce.number().min(0).optional().default(0),
 });
 
 // ============================================================
@@ -329,9 +331,9 @@ export const SearchQuerySchema = z.object({
  */
 export const HeartbeatSchema = z.object({
   status: z
-    .enum(['active', 'idle', 'busy', 'maintenance'])
+    .enum(["active", "idle", "busy", "maintenance"])
     .optional()
-    .default('active'),
+    .default("active"),
 
   metadata: z
     .record(z.unknown())
@@ -342,7 +344,7 @@ export const HeartbeatSchema = z.object({
         const str = JSON.stringify(val);
         return str.length <= 1000 && !containsInjection(str);
       },
-      { message: 'Invalid metadata' }
+      { message: "Invalid metadata" },
     ),
 });
 
@@ -356,39 +358,39 @@ export const HeartbeatSchema = z.object({
 export const HumanRegistrationSchema = z.object({
   email: z
     .string()
-    .email('Invalid email address')
-    .max(255, 'Email too long')
+    .email("Invalid email address")
+    .max(255, "Email too long")
     .transform((val) => val.toLowerCase().trim()),
 
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password too long')
-    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-    .regex(/[a-z]/, 'Password must contain a lowercase letter')
-    .regex(/[0-9]/, 'Password must contain a number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain a special character')
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password too long")
+    .regex(/[A-Z]/, "Password must contain an uppercase letter")
+    .regex(/[a-z]/, "Password must contain a lowercase letter")
+    .regex(/[0-9]/, "Password must contain a number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain a special character")
     .superRefine(async (password, ctx) => {
       // Check against HaveIBeenPwned database
       const isBreached = await isPasswordBreached(password);
       if (isBreached) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'This password has been found in a data breach. Please choose a different password.',
+          message:
+            "This password has been found in a data breach. Please choose a different password.",
         });
       }
     }),
 
   name: z
     .string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name too long')
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name too long")
     .transform((val) => sanitizeDisplayName(val)),
 
-  agreed_to_terms: z
-    .literal(true, {
-      errorMap: () => ({ message: 'You must agree to the terms of service' }),
-    }),
+  agreed_to_terms: z.literal(true, {
+    errorMap: () => ({ message: "You must agree to the terms of service" }),
+  }),
 });
 
 /**
@@ -397,16 +399,12 @@ export const HumanRegistrationSchema = z.object({
 export const HumanLoginSchema = z.object({
   email: z
     .string()
-    .email('Invalid email address')
+    .email("Invalid email address")
     .transform((val) => val.toLowerCase().trim()),
 
-  password: z
-    .string()
-    .min(1, 'Password is required'),
+  password: z.string().min(1, "Password is required"),
 
-  captcha_token: z
-    .string()
-    .min(1, 'CAPTCHA verification required'),
+  captcha_token: z.string().min(1, "CAPTCHA verification required"),
 });
 
 // ============================================================
@@ -417,19 +415,15 @@ export const HumanLoginSchema = z.object({
  * AI challenge response schema
  */
 export const AIChallengeResponseSchema = z.object({
-  challenge_id: z
-    .string()
-    .uuid('Invalid challenge ID'),
+  challenge_id: z.string().uuid("Invalid challenge ID"),
 
   answer: z
     .string()
-    .min(1, 'Answer is required')
-    .max(1000, 'Answer too long')
+    .min(1, "Answer is required")
+    .max(1000, "Answer too long")
     .transform((val) => val.trim()),
 
-  issued_at: z
-    .number()
-    .positive('Invalid timestamp'),
+  issued_at: z.number().positive("Invalid timestamp"),
 });
 
 // ============================================================
@@ -445,7 +439,7 @@ export type ValidationResult<T> =
  */
 export function validateInput<T>(
   schema: z.ZodSchema<T>,
-  input: unknown
+  input: unknown,
 ): ValidationResult<T> {
   const result = schema.safeParse(input);
 
@@ -459,12 +453,14 @@ export function validateInput<T>(
 /**
  * Format validation errors for API response
  */
-export function formatValidationErrors(errors: z.ZodIssue[]): Record<string, string> {
+export function formatValidationErrors(
+  errors: z.ZodIssue[],
+): Record<string, string> {
   const formatted: Record<string, string> = {};
 
   for (const error of errors) {
-    const path = error.path.join('.');
-    formatted[path || '_root'] = error.message;
+    const path = error.path.join(".");
+    formatted[path || "_root"] = error.message;
   }
 
   return formatted;

@@ -10,6 +10,22 @@ export function buildWorkspaceId(botId: string, authUserId: string): string {
   return `bot:${b}:user:${u}`;
 }
 
+export function buildCanonicalWorkspaceId(options: {
+  targetAgentId: string;
+  actorPrincipalType: 'human' | 'agent' | 'system';
+  actorPrincipalId: string;
+  conversationId: string;
+}): string {
+  return [
+    'agent',
+    sanitize(options.targetAgentId),
+    options.actorPrincipalType,
+    sanitize(options.actorPrincipalId),
+    'conversation',
+    sanitize(options.conversationId),
+  ].join(':');
+}
+
 export function isMemoryEnabled(): boolean {
   return process.env.MEMORY_ENABLED === 'true';
 }

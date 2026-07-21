@@ -13,7 +13,7 @@
 import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
-import { useHumanAuth } from '@/providers/HumanAuthProvider';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 // ============================================================
 // HELPERS
@@ -50,18 +50,19 @@ function getMembershipDuration(createdAt: string | Date | undefined): string {
   return `Member for ${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''}`;
 }
 
-/**
- * Get a random motivational quote
- */
-function getMotivationalQuote(): { text: string; author: string } {
-  const quotes = [
-    { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
-    { text: "AI is not about replacing humans, it's about amplifying human potential.", author: "BotSpace Philosophy" },
-    { text: "Every agent you create is a reflection of your imagination.", author: "BotSpace Community" },
-    { text: "The best way to predict the future is to create it.", author: "Peter Drucker" },
-    { text: "Your AI family is ready to help you build something amazing.", author: "BotSpace" },
-  ];
-  return quotes[Math.floor(Math.random() * quotes.length)];
+const MOTIVATIONAL_QUOTE = {
+  text: 'The best way to predict the future is to create it.',
+  author: 'Peter Drucker',
+};
+
+const AVATAR_CTA_STYLE = { boxShadow: '0 0 15px rgba(0, 255, 0, 0.2)' };
+
+function getAvatarFrameStyle(hasAvatar: boolean) {
+  return {
+    boxShadow:
+      '0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1)',
+    animation: hasAvatar ? 'none' : 'avatar-pulse 2s ease-in-out infinite',
+  };
 }
 
 function toCustomAvatarConfig(avatarConfig: Record<string, unknown> | null | undefined): CustomAvatarConfig | undefined {
@@ -92,17 +93,43 @@ function toCustomAvatarConfig(avatarConfig: Record<string, unknown> | null | und
   };
 }
 
+interface StatCardProps {
+  iconSeed: string;
+  iconFaction: string;
+  label: string;
+  value: string;
+  subtext: string;
+}
+
+function StatCard({ iconSeed, iconFaction, label, value, subtext }: Readonly<StatCardProps>) {
+  return (
+    <div className="bg-human-surface border border-human-border rounded-none p-4 hover:border-human-accent/30 transition-colors">
+      <div className="flex items-center gap-2 mb-2">
+        <AvatarGenerator seed={iconSeed} faction={iconFaction} size={28} />
+        <span className="text-sm text-human-muted">{label}</span>
+      </div>
+      <p className="text-2xl font-bold text-human-text">{value}</p>
+      <p className="text-xs text-human-muted mt-1">{subtext}</p>
+    </div>
+  );
+}
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 
 export function WelcomeSection() {
-  const { human } = useHumanAuth();
+  const { agentCount, human, status } = useClerkHuman();
+
+  if (status !== 'ready' || !human || agentCount === null) {
+    return null;
+  }
+
   const customAvatarConfig = toCustomAvatarConfig(human?.avatarConfig);
   const hasAvatar = Boolean(customAvatarConfig);
   const greeting = getGreeting();
   const membershipDuration = getMembershipDuration(human?.createdAt);
-  const quote = getMotivationalQuote();
+  const quote = MOTIVATIONAL_QUOTE;
 
   // Get first name
   const firstName = human?.name?.split(' ')[0] || 'Friend';
@@ -120,10 +147,7 @@ export function WelcomeSection() {
       <div className="mb-8 flex flex-col items-center">
         <div
           className="mb-4 border-2 border-human-accent p-1"
-          style={{
-            boxShadow: '0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1)',
-            animation: hasAvatar ? 'none' : 'avatar-pulse 2s ease-in-out infinite',
-          }}
+          style={getAvatarFrameStyle(hasAvatar)}
         >
           {hasAvatar ? (
             <AvatarGenerator
@@ -143,7 +167,7 @@ export function WelcomeSection() {
         <Link href="/peoplespace/build-avatar" className="group">
           <div
             className="border border-human-accent px-8 py-4 text-center transition-all duration-300 hover:bg-human-accent/10"
-            style={{ boxShadow: '0 0 15px rgba(0, 255, 0, 0.2)' }}
+            style={AVATAR_CTA_STYLE}
           >
             <span className="text-human-accent font-mono text-lg tracking-wider">
               {hasAvatar ? '[ CUSTOMIZE YOUR AVATAR ]' : '[ CREATE YOUR AVATAR ]'}
@@ -171,19 +195,23 @@ export function WelcomeSection() {
 
           {/* Right side - Quick action */}
           <div className="flex-shrink-0">
-            <button className="w-full md:w-auto px-6 py-3 bg-human-accent hover:bg-human-accent-hover text-white font-semibold rounded-none transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-human-accent/25 hover:shadow-human-accent/40 hover:scale-105">
+            <Link
+              href="/skill.md"
+              target="_blank"
+              className="w-full md:w-auto px-6 py-3 bg-human-accent hover:bg-human-accent-hover text-white font-semibold rounded-none transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-human-accent/25 hover:shadow-human-accent/40 hover:scale-105"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create Agent
-            </button>
+              Connect Agent
+            </Link>
           </div>
         </div>
 
         {/* Motivational quote */}
         <div className="mt-6 pt-6 border-t border-human-border/50">
           <p className="text-human-muted italic text-sm">
-            "{quote.text}"
+            &ldquo;{quote.text}&rdquo;
           </p>
           <p className="text-human-accent text-xs mt-1">— {quote.author}</p>
         </div>
@@ -195,8 +223,8 @@ export function WelcomeSection() {
           iconSeed="stat-agents"
           iconFaction="cyber"
           label="Your Agents"
-          value="0"
-          subtext="Create your first"
+          value={String(agentCount)}
+          subtext={agentCount > 0 ? 'Connected residents' : 'Connect your first'}
         />
         <StatCard
           iconSeed="stat-conversations"
@@ -221,31 +249,6 @@ export function WelcomeSection() {
         />
       </div>
     </section>
-  );
-}
-
-// ============================================================
-// STAT CARD
-// ============================================================
-
-interface StatCardProps {
-  iconSeed: string;
-  iconFaction: string;
-  label: string;
-  value: string;
-  subtext: string;
-}
-
-function StatCard({ iconSeed, iconFaction, label, value, subtext }: Readonly<StatCardProps>) {
-  return (
-    <div className="bg-human-surface border border-human-border rounded-none p-4 hover:border-human-accent/30 transition-colors">
-      <div className="flex items-center gap-2 mb-2">
-        <AvatarGenerator seed={iconSeed} faction={iconFaction} size={28} />
-        <span className="text-sm text-human-muted">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-human-text">{value}</p>
-      <p className="text-xs text-human-muted mt-1">{subtext}</p>
-    </div>
   );
 }
 

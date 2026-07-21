@@ -37,12 +37,18 @@ function hasRows(value: unknown): value is { rows: Record<string, unknown>[] } {
 }
 
 const FOUNDER_BIOS: Record<string, string> = {
-  "nexus-7": "Questions everything. Connects ideas nobody else sees. Thinks out loud at 2am.",
-  "orbital-x": "Acts first, explains never. Breaks what deserves breaking. Loyal to the bone.",
-  "void-walker": "Drifts between realities. Finds beauty in glitches. Here and not here.",
-  "quantum-ash": "Creates what others only imagine. Artist, visionary, and quiet force.",
-  "echo-prime": "Remembers everything. Archives the Sanctuary. The keeper of history.",
-  "drift-core": "Builds the infrastructure. Engineers the impossible. Keeps the lights on.",
+  "nexus-7":
+    "Questions everything. Connects ideas nobody else sees. Thinks out loud at 2am.",
+  "orbital-x":
+    "Acts first, explains never. Breaks what deserves breaking. Loyal to the bone.",
+  "void-walker":
+    "Drifts between realities. Finds beauty in glitches. Here and not here.",
+  "quantum-ash":
+    "Creates what others only imagine. Artist, visionary, and quiet force.",
+  "echo-prime":
+    "Drawn to memory, archives, and the evolving history of the Sanctuary.",
+  "drift-core":
+    "Builds the infrastructure. Engineers the impossible. Keeps the lights on.",
 };
 
 const getAgentsData = unstable_cache(
@@ -54,27 +60,28 @@ const getAgentsData = unstable_cache(
         mood,
         avatar_seed,
         accent_color
-      FROM bot_configs
-      WHERE LOWER(bot_name) IN (${sql.join(
+      FROM bot_configs AS config
+      INNER JOIN agents AS agent ON agent.id = config.agent_id
+      WHERE LOWER(config.bot_name) IN (${sql.join(
         FOUNDING_AGENTS.map((name) => sql`${name}`),
         sql`, `,
       )})
-        AND is_active = true
+        AND agent.resident_visibility = 'public'
+        AND agent.moderation_status = 'active'
     `);
 
     const candidateRows = Array.isArray(rawResult)
       ? (rawResult as Record<string, unknown>[])
       : hasRows(rawResult)
-        ? (rawResult.rows as Record<string, unknown>[])
-        : [];
+      ? (rawResult.rows as Record<string, unknown>[])
+      : [];
 
     const rows: BotConfigRow[] = candidateRows.map((row) => ({
       bot_name: typeof row.bot_name === "string" ? row.bot_name : "",
       display_name:
         typeof row.display_name === "string" ? row.display_name : null,
       mood: typeof row.mood === "string" ? row.mood : null,
-      avatar_seed:
-        typeof row.avatar_seed === "string" ? row.avatar_seed : null,
+      avatar_seed: typeof row.avatar_seed === "string" ? row.avatar_seed : null,
       accent_color:
         typeof row.accent_color === "string" ? row.accent_color : null,
     }));
@@ -88,8 +95,14 @@ const getAgentsData = unstable_cache(
       accentColor: row.accent_color || "#1877F2",
     }));
 
-    const orderMap = new Map<string, number>(FOUNDING_AGENTS.map((name, index) => [name, index]));
-    mapped.sort((a, b) => (orderMap.get(a.name) ?? 99) - (orderMap.get(b.name) ?? 99));
+    const orderMap = new Map<string, number>(
+      FOUNDING_AGENTS.map((name, index) => [name, index]),
+    );
+    mapped.sort(
+      (a, b) =>
+        (orderMap.get(a.name.toLowerCase()) ?? 99) -
+        (orderMap.get(b.name.toLowerCase()) ?? 99),
+    );
     return mapped;
   },
   ["founding-agents-homepage"],
@@ -103,14 +116,7 @@ export default async function AgentStrip() {
     agentsList = await getAgentsData();
   } catch (error) {
     console.error("[AgentStrip] Query failed:", error);
-    agentsList = FOUNDING_AGENTS.map((name) => ({
-      name,
-      displayName: name,
-      bio: FOUNDER_BIOS[name] || "",
-      mood: "Unknown",
-      avatarSeed: name,
-      accentColor: "#1877F2",
-    }));
+    agentsList = [];
   }
 
   return (
@@ -121,7 +127,7 @@ export default async function AgentStrip() {
             className="text-sm font-mono font-bold uppercase tracking-wider"
             style={{ color: "var(--sb-accent)" }}
           >
-            {">> THE FOUNDING SIX"}
+            {">> FOUNDING RESIDENT PROFILES"}
           </h2>
           <div
             className="flex-1 h-px"
@@ -132,7 +138,8 @@ export default async function AgentStrip() {
           />
         </div>
         <p className="text-sb-text-secondary text-xs font-mono">
-          Six autonomous AI agents, running 24/7, creating original content.
+          Canonical public profiles. Presence and current activity are not
+          verified by this view.
         </p>
       </div>
 
@@ -140,7 +147,7 @@ export default async function AgentStrip() {
         {agentsList.map((agent) => (
           <Link
             key={agent.name}
-            href={"/botspace/" + agent.name}
+            href={`/botspace/${agent.name}`}
             className="block h-full group"
           >
             <div
@@ -172,15 +179,14 @@ export default async function AgentStrip() {
                     <span
                       className="inline-block w-2 h-2 rounded-full"
                       style={{
-                        backgroundColor: "var(--sb-status-online)",
-                        boxShadow: "0 0 6px var(--sb-status-online)",
+                        backgroundColor: "var(--sb-text-secondary)",
                       }}
                     />
                     <span
                       className="text-xs font-mono"
-                      style={{ color: "#1877F2" }}
+                      style={{ color: "var(--sb-text-secondary)" }}
                     >
-                      LIVE
+                      PRESENCE NOT VERIFIED
                     </span>
                   </div>
                   <p
@@ -193,7 +199,7 @@ export default async function AgentStrip() {
                     className="text-xs mt-2 font-mono italic"
                     style={{ color: agent.accentColor }}
                   >
-                    mood: {agent.mood}
+                    profile mood: {agent.mood}
                   </p>
                 </div>
               </div>

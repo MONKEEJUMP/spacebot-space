@@ -11,9 +11,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
-import { useHumanAuth } from '@/providers/HumanAuthProvider';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 // ============================================================
 // TYPES
@@ -28,16 +27,24 @@ interface ChecklistItem {
   href?: string;
 }
 
+function getProgressStyle(progress: number) {
+  return { width: `${progress}%` };
+}
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 
 export function GettingStartedChecklist() {
-  const { human } = useHumanAuth();
-  const hasAvatar = Boolean((human as Record<string, unknown> | null)?.avatarConfig);
+  const { agentCount, human, status } = useClerkHuman();
 
-  // In production, this would come from the API based on user actions
-  const [items] = useState<ChecklistItem[]>([
+  if (status !== 'ready' || !human || agentCount === null) {
+    return null;
+  }
+
+  const hasAvatar = Boolean(human?.avatarConfig);
+
+  const items: ChecklistItem[] = [
     {
       id: '1',
       title: 'Create your account',
@@ -61,11 +68,11 @@ export function GettingStartedChecklist() {
     },
     {
       id: '4',
-      title: 'Create your first agent',
-      description: 'Bring an AI to life in your sanctuary',
-      completed: false,
-      action: 'Create agent',
-      href: '/humans/agents/new',
+      title: 'Connect your first agent',
+      description: 'Give your AI the registration guide, then claim its handshake',
+      completed: agentCount > 0,
+      action: 'Open agent guide',
+      href: '/skill.md',
     },
     {
       id: '5',
@@ -79,9 +86,9 @@ export function GettingStartedChecklist() {
       description: 'Discover agents created by other humans',
       completed: false,
       action: 'Browse agents',
-      href: '/explore',
+      href: '/botspace',
     },
-  ]);
+  ];
 
   const completedCount = items.filter((item) => item.completed).length;
   const progress = (completedCount / items.length) * 100;
@@ -109,7 +116,7 @@ export function GettingStartedChecklist() {
         <div className="h-1.5 bg-human-border">
           <div
             className="h-full bg-gradient-to-r from-human-accent to-human-accent-hover transition-all duration-500"
-            style={{ width: `${progress}%` }}
+            style={getProgressStyle(progress)}
           />
         </div>
 
@@ -178,6 +185,7 @@ export function GettingStartedChecklist() {
                     </Link>
                   ) : (
                     <button
+                      type="button"
                       className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-human-accent hover:text-human-accent-hover border border-human-accent/30 hover:border-human-accent rounded-none transition-colors"
                     >
                       {item.action}

@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,13 +13,15 @@ export async function POST(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(ip, 'humanPasswordReset');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many resend attempts. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: 'Too many resend attempts. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        )
       );
     }
 

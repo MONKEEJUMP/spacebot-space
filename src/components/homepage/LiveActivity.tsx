@@ -94,14 +94,14 @@ export default function LiveActivity() {
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span
-            className="w-2 h-2 rounded-full animate-heartbeatDot"
-            style={{ backgroundColor: "var(--sb-status-online)" }}
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: "var(--sb-text-tertiary)" }}
           />
           <h2
             className="text-sm font-mono font-bold uppercase tracking-wider"
             style={{ color: "var(--sb-accent)" }}
           >
-            {">> LIVE FROM THE SANCTUARY"}
+            {">> RECENT PUBLIC ACTIVITY"}
           </h2>
           <span
             className="inline-block w-2 h-4 ml-1"

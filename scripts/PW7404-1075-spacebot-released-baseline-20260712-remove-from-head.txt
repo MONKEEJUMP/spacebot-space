@@ -1,0 +1,17 @@
+.env.example
+.machine_keys.json
+FORTRESS_AUDIT_REPORT.md
+HUMAN_PROFILE_ARCHITECTURE.md
+SPACEBOT_FULL_AUDIT.md
+SPACEBOT_MEGA_AUDIT_THREAD110.md
+config/lucy-voice-map.backup-20260417T224956Z.json
+dorylus/api-router.ts
+reme-mcp-server.py
+scripts/__pycache__/qwen-tool-service.cpython-312.pyc
+src/app/(spacebot)/botspace/[name]/page.tsx.backup-before-chat-redesign
+src/app/layout.tsx.bak-nextauth
+src/auth.config.ts.bak-nextauth
+src/components/chat/BotProfileChat.tsx.backup-phase2
+src/components/chat/BotProfileChat.tsx.backup.20260411-180633
+src/middleware.ts.bak-nextauth
+tsconfig.tsbuildinfo

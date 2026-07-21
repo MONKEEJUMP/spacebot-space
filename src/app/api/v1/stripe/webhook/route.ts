@@ -14,7 +14,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,32 +28,33 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 /**
  * Map Stripe price IDs to subscription tiers
  */
-function getTierFromPrice(priceId: string): string {
+function getTierFromPrice(priceId: string): string | null {
   const monthlyPrice = process.env.STRIPE_PRICE_MONTHLY || '';
   const yearlyPrice = process.env.STRIPE_PRICE_YEARLY || '';
 
   if (priceId === monthlyPrice || priceId === yearlyPrice) {
     return 'pro';
   }
-  return 'basic';
+  return null;
 }
 
 /**
- * Compute subscription expiry from the plan's recurring interval.
- * Stripe v20 (2026-01-28.clover) removed current_period_end from Subscription.
- * We derive expiry from the price's interval instead.
+ * Read the billing period from the same subscription item used for the tier.
+ * Stripe v20 exposes the authoritative period end on SubscriptionItem.
  */
-function computeExpiryFromInterval(subscription: Stripe.Subscription): Date {
-  const interval = subscription.items.data[0]?.price?.recurring?.interval;
-  const now = new Date();
+function getSubscriptionExpiry(subscription: Stripe.Subscription): Date | null {
+  const periodEnd = subscription.items.data[0]?.current_period_end;
 
-  switch (interval) {
-    case 'year':
-      return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
-    case 'month':
-    default:
-      return new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  if (
+    typeof periodEnd !== 'number' ||
+    !Number.isSafeInteger(periodEnd) ||
+    periodEnd <= 0
+  ) {
+    return null;
   }
+
+  const expiresAt = new Date(periodEnd * 1000);
+  return Number.isNaN(expiresAt.getTime()) ? null : expiresAt;
 }
 
 export async function POST(request: NextRequest) {
@@ -73,14 +75,16 @@ export async function POST(request: NextRequest) {
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
-      console.error('[stripe/webhook] Signature verification failed:', err);
+      logger.warn('Stripe webhook signature rejected', {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 400 }
       );
     }
 
-    console.log(`[stripe/webhook] Event: ${event.type}`);
+    logger.info('Stripe webhook received', { eventType: event.type });
 
     // 3. Handle events
     switch (event.type) {
@@ -89,7 +93,9 @@ export async function POST(request: NextRequest) {
         const humanId = session.metadata?.humanId;
 
         if (!humanId) {
-          console.error('[stripe/webhook] No humanId in session metadata');
+          logger.error('Stripe checkout session missing human identity', {
+            sessionId: session.id,
+          });
           break;
         }
 
@@ -100,20 +106,52 @@ export async function POST(request: NextRequest) {
           );
 
           const tier = getTierFromPrice(subscription.items.data[0]?.price.id || '');
-          const expiresAt = computeExpiryFromInterval(subscription);
+          const expiresAt = getSubscriptionExpiry(subscription);
+          const isActive = ['active', 'trialing'].includes(subscription.status);
+          const entitlementTier = isActive && expiresAt && tier ? tier : 'free_trial';
 
-          await db
+          if (entitlementTier === 'free_trial') {
+            logger.error('Stripe subscription has invalid billing period; premium access not granted', {
+              priceRecognized: Boolean(tier),
+              status: subscription.status,
+              subscriptionId: subscription.id,
+            });
+          }
+
+          const customerId = session.customer as string;
+          const [activatedHuman] = await db
             .update(humans)
             .set({
-              subscriptionTier: tier,
-              subscriptionStartedAt: new Date(),
-              subscriptionExpiresAt: expiresAt,
-              stripeCustomerId: session.customer as string,
+              subscriptionTier: entitlementTier,
+              subscriptionStartedAt: entitlementTier === 'free_trial' ? null : new Date(),
+              subscriptionExpiresAt: entitlementTier === 'free_trial' ? null : expiresAt,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
               updatedAt: new Date(),
             })
-            .where(eq(humans.id, humanId));
+            .where(
+              and(
+                eq(humans.id, humanId),
+                or(
+                  isNull(humans.stripeCustomerId),
+                  eq(humans.stripeCustomerId, customerId)
+                )
+              )
+            )
+            .returning({ id: humans.id });
 
-          console.log(`[stripe/webhook] Activated ${tier} for human ${humanId}`);
+          if (!activatedHuman) {
+            logger.warn('Stale Stripe checkout completion ignored', {
+              humanId,
+              subscriptionId: subscription.id,
+            });
+            break;
+          }
+
+          logger.info('Stripe subscription activated', {
+            humanId,
+            tier: entitlementTier,
+          });
         }
         break;
       }
@@ -123,76 +161,116 @@ export async function POST(request: NextRequest) {
         const humanId = subscription.metadata?.humanId;
 
         if (!humanId) {
-          console.error('[stripe/webhook] No humanId in subscription metadata');
+          logger.error('Stripe subscription missing human identity', {
+            subscriptionId: subscription.id,
+          });
           break;
         }
 
         const tier = getTierFromPrice(subscription.items.data[0]?.price.id || '');
         const isActive = ['active', 'trialing'].includes(subscription.status);
-        const expiresAt = computeExpiryFromInterval(subscription);
+        const expiresAt = getSubscriptionExpiry(subscription);
+        const entitlementTier = isActive && expiresAt && tier ? tier : 'free_trial';
 
-        await db
+        if (isActive && (!expiresAt || !tier)) {
+          logger.error('Stripe subscription has invalid billing period; premium access revoked', {
+            priceRecognized: Boolean(tier),
+            subscriptionId: subscription.id,
+          });
+        }
+
+        const [updatedHuman] = await db
           .update(humans)
           .set({
-            subscriptionTier: isActive ? tier : 'free_trial',
-            subscriptionExpiresAt: expiresAt,
+            subscriptionTier: entitlementTier,
+            subscriptionExpiresAt: entitlementTier === 'free_trial' ? null : expiresAt,
+            stripeSubscriptionId: subscription.id,
             updatedAt: new Date(),
           })
-          .where(eq(humans.id, humanId));
+          .where(
+            and(
+              eq(humans.id, humanId),
+              eq(humans.stripeCustomerId, subscription.customer as string),
+              or(
+                isNull(humans.stripeSubscriptionId),
+                eq(humans.stripeSubscriptionId, subscription.id)
+              )
+            )
+          )
+          .returning({ id: humans.id });
 
-        console.log(`[stripe/webhook] Updated subscription for human ${humanId}: ${tier} (${subscription.status})`);
+        if (!updatedHuman) {
+          logger.warn('Stale Stripe subscription update ignored', {
+            humanId,
+            subscriptionId: subscription.id,
+          });
+          break;
+        }
+
+        logger.info('Stripe subscription updated', {
+          humanId,
+          status: subscription.status,
+          tier: entitlementTier,
+        });
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const humanId = subscription.metadata?.humanId;
+        const customerId = subscription.customer as string;
+        const [human] = await db
+          .select({ id: humans.id, subscriptionId: humans.stripeSubscriptionId })
+          .from(humans)
+          .where(
+            humanId
+              ? and(
+                  eq(humans.id, humanId),
+                  eq(humans.stripeCustomerId, customerId)
+                )
+              : eq(humans.stripeCustomerId, customerId)
+          )
+          .limit(1);
 
-        if (!humanId) {
-          // Try to find by Stripe customer ID
-          const customerId = subscription.customer as string;
-          const [human] = await db
-            .select({ id: humans.id })
-            .from(humans)
-            .where(eq(humans.stripeCustomerId, customerId))
-            .limit(1);
-
-          if (human) {
-            await db
-              .update(humans)
-              .set({
-                subscriptionTier: 'free_trial',
-                subscriptionExpiresAt: null,
-                updatedAt: new Date(),
-              })
-              .where(eq(humans.id, human.id));
-
-            console.log(`[stripe/webhook] Cancelled subscription for human ${human.id} (via customer lookup)`);
-          }
+        if (!human || human.subscriptionId !== subscription.id) {
+          logger.warn('Stale Stripe subscription deletion ignored', {
+            humanId: human?.id || humanId,
+            subscriptionId: subscription.id,
+          });
           break;
         }
 
-        await db
+        const [cancelledHuman] = await db
           .update(humans)
           .set({
             subscriptionTier: 'free_trial',
             subscriptionExpiresAt: null,
             updatedAt: new Date(),
           })
-          .where(eq(humans.id, humanId));
+          .where(
+            and(
+              eq(humans.id, human.id),
+              eq(humans.stripeSubscriptionId, subscription.id)
+            )
+          )
+          .returning({ id: humans.id });
 
-        console.log(`[stripe/webhook] Cancelled subscription for human ${humanId}`);
+        if (cancelledHuman) {
+          logger.info('Stripe subscription cancelled', { humanId: human.id });
+        }
         break;
       }
 
       default:
-        console.log(`[stripe/webhook] Unhandled event type: ${event.type}`);
+        logger.debug('Stripe webhook event ignored', { eventType: event.type });
     }
 
     return NextResponse.json({ received: true });
 
   } catch (error) {
-    console.error('[stripe/webhook] Error:', error);
+    logger.error('Stripe webhook failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }

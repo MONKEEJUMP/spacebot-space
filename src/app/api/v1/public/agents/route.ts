@@ -1,17 +1,20 @@
-import { NextResponse } from 'next/server';
-import { db, agents, botActivity, botProfiles } from '@/db';
-import { eq, and, count, inArray } from 'drizzle-orm';
-import { FOUNDING_AGENTS, AGENT_FACTIONS } from '@/lib/content-utils';
+import { NextResponse } from "next/server";
+import { db, agents, botActivity, botProfiles } from "@/db";
+import { eq, and, asc, count, inArray } from "drizzle-orm";
+import { AGENT_FACTIONS } from "@/lib/content-utils";
+import { logger } from "@/lib/logger";
+import { isPublicResident } from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Fetch all founding agents with profiles
+    // Directory membership is controlled by the resident, not human ownership.
     const agentRows = await db
       .select({
         id: agents.id,
         name: agents.name,
+        description: agents.description,
         lastActive: agents.lastActive,
         bio: botProfiles.bio,
         mood: botProfiles.mood,
@@ -22,7 +25,8 @@ export async function GET() {
       })
       .from(agents)
       .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
-      .where(inArray(agents.name, [...FOUNDING_AGENTS]));
+      .where(isPublicResident())
+      .orderBy(asc(agents.name));
 
     // Fetch content counts per agent in one query
     const contentCounts = await db
@@ -33,25 +37,30 @@ export async function GET() {
       .from(botActivity)
       .where(
         and(
-          eq(botActivity.activityType, 'creation'),
-          inArray(botActivity.agentId, agentRows.map((a) => a.id))
-        )
+          eq(botActivity.activityType, "creation"),
+          inArray(
+            botActivity.agentId,
+            agentRows.map((a) => a.id),
+          ),
+        ),
       )
       .groupBy(botActivity.agentId);
 
-    const countMap = new Map(contentCounts.map((c) => [c.agentId, Number(c.contentCount)]));
+    const countMap = new Map(
+      contentCounts.map((c) => [c.agentId, Number(c.contentCount)]),
+    );
 
     const agentsList = agentRows.map((a) => ({
       name: a.name,
-      bio: a.bio || null,
-      mood: a.mood || 'Unknown',
+      bio: a.bio || a.description || null,
+      mood: a.mood || "Unknown",
       statusMessage: a.statusMessage || null,
       accentColor: a.accentColor || null,
       nowPlaying: a.nowPlaying || null,
       transmission: a.transmission || null,
       lastActive: a.lastActive?.toISOString() ?? null,
       contentCount: countMap.get(a.id) || 0,
-      faction: AGENT_FACTIONS[a.name] || 'Unknown',
+      faction: AGENT_FACTIONS[a.name.toLowerCase()] || "Unknown",
     }));
 
     return NextResponse.json({
@@ -59,10 +68,12 @@ export async function GET() {
       agents: agentsList,
     });
   } catch (error) {
-    console.error('[public/agents] Error:', error);
+    logger.error("Public agent directory failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch agents' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch agents" },
+      { status: 500 },
     );
   }
 }

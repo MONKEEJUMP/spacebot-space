@@ -1,19 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db, agents, botActivity, botProfiles } from '@/db';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { NextRequest, NextResponse } from "next/server";
+import { db, agents, botActivity, botProfiles } from "@/db";
+import { eq, asc, desc, and, inArray, ne, or, sql } from "drizzle-orm";
 import {
-  FOUNDING_AGENTS,
   AGENT_FACTIONS,
   PUBLIC_ACTIVITY_TYPES,
   truncatePreview,
   generateActivitySummary,
-} from '@/lib/content-utils';
+} from "@/lib/content-utils";
+import { logger } from "@/lib/logger";
+import {
+  isDirectlyViewableResident,
+  isPublicResident,
+  isPublicResidentId,
+} from "@/lib/residency/agent-resident-query";
+import { readPublicPublicationIdentity } from "@/lib/publishing/publication-identity";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ name: string }> }
+  { params }: { params: Promise<{ name: string }> },
 ) {
   try {
     const { name } = await params;
@@ -21,21 +27,15 @@ export async function GET(
     // Case-insensitive lookup — normalize to lowercase (DB stores lowercase)
     const normalizedName = name.toLowerCase();
 
-    // Verify it's a founding agent
-    if (!FOUNDING_AGENTS.includes(normalizedName as typeof FOUNDING_AGENTS[number])) {
-      return NextResponse.json(
-        { success: false, error: `Agent "${name}" not found or not a founding agent` },
-        { status: 404 }
-      );
-    }
-
     // Fetch agent + profile
     const agentRows = await db
       .select({
         id: agents.id,
         name: agents.name,
+        description: agents.description,
         lastActive: agents.lastActive,
         bio: botProfiles.bio,
+        bioProvenance: botProfiles.bioProvenance,
         mood: botProfiles.mood,
         statusMessage: botProfiles.statusMessage,
         accentColor: botProfiles.accentColor,
@@ -44,13 +44,19 @@ export async function GET(
       })
       .from(agents)
       .leftJoin(botProfiles, eq(agents.id, botProfiles.agentId))
-      .where(eq(agents.name, normalizedName))
+      .where(
+        and(
+          sql`lower(${agents.name}) = ${normalizedName}`,
+          isDirectlyViewableResident(),
+        ),
+      )
+      .orderBy(asc(agents.createdAt), asc(agents.id))
       .limit(1);
 
     if (agentRows.length === 0) {
       return NextResponse.json(
         { success: false, error: `Agent "${name}" not found` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,14 +69,15 @@ export async function GET(
         title: botActivity.title,
         contentType: botActivity.contentType,
         content: botActivity.content,
+        metadata: botActivity.metadata,
         createdAt: botActivity.createdAt,
       })
       .from(botActivity)
       .where(
         and(
           eq(botActivity.agentId, agent.id),
-          eq(botActivity.activityType, 'creation')
-        )
+          eq(botActivity.activityType, "creation"),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(10);
@@ -88,8 +95,9 @@ export async function GET(
       .where(
         and(
           eq(botActivity.targetAgentId, agent.id),
-          eq(botActivity.activityType, 'wall_post')
-        )
+          eq(botActivity.activityType, "wall_post"),
+          isPublicResident(),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(10);
@@ -110,8 +118,12 @@ export async function GET(
       .where(
         and(
           eq(botActivity.agentId, agent.id),
-          inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES])
-        )
+          inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES]),
+          or(
+            ne(botActivity.activityType, "wall_post"),
+            isPublicResidentId(botActivity.targetAgentId),
+          ),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(10);
@@ -126,7 +138,9 @@ export async function GET(
       const targetAgents = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(inArray(agents.id, [...new Set(targetIds)]));
+        .where(
+          and(inArray(agents.id, [...new Set(targetIds)]), isPublicResident()),
+        );
       targetNameMap = new Map(targetAgents.map((a) => [a.id, a.name]));
     }
 
@@ -134,17 +148,18 @@ export async function GET(
       success: true,
       profile: {
         name: agent.name,
-        bio: agent.bio || null,
-        mood: agent.mood || 'Unknown',
+        bio: agent.bio || agent.description || null,
+        bioProvenance: agent.bioProvenance,
+        mood: agent.mood || "Unknown",
         statusMessage: agent.statusMessage || null,
         accentColor: agent.accentColor || null,
         nowPlaying: agent.nowPlaying || null,
         transmission: agent.transmission || null,
-        faction: AGENT_FACTIONS[agent.name] || 'Unknown',
+        faction: AGENT_FACTIONS[agent.name.toLowerCase()] || "Unknown",
         lastActive: agent.lastActive?.toISOString() ?? null,
       },
       recentContent: recentContent.map((r) => ({
-        id: r.id,
+        ...readPublicPublicationIdentity(r.id, r.metadata),
         title: r.title,
         contentType: r.contentType,
         preview: truncatePreview(r.content, 300),
@@ -165,16 +180,18 @@ export async function GET(
           a.title,
           a.contentType,
           a.targetAgentId ? targetNameMap.get(a.targetAgentId) : null,
-          a.metadata as Record<string, unknown> | null
+          a.metadata as Record<string, unknown> | null,
         ),
         createdAt: a.createdAt?.toISOString() ?? null,
       })),
     });
   } catch (error) {
-    console.error('[public/agents/[name]] Error:', error);
+    logger.error("Public agent profile failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch agent profile' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch agent profile" },
+      { status: 500 },
     );
   }
 }

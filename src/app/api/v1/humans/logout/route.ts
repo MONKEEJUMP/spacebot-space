@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyHumanRequest } from '@/lib/security/human-auth';
 import { verifyToken, isHumanToken } from '@/lib/security/jwt';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { logLogout } from '@/lib/security/human-audit';
 import { invalidateAllTokens } from '@/lib/security/human-lockout';
 import { db } from '@/db';
@@ -40,13 +40,15 @@ export async function POST(request: NextRequest) {
     // ── STEP 1: Rate Limit ──────────────────────────────────────
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: 'Too many requests. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        )
       );
     }
 

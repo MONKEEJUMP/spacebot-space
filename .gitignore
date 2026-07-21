@@ -37,8 +37,7 @@ logs/
 .npm
 .eslintcache
 
-# Drizzle generated migrations (regenerated from schema.ts)
-drizzle/migrations/
+# Database migrations are release source and must remain tracked.
 
 # OS files
 .DS_Store
@@ -87,6 +86,31 @@ pnpm-lock.yaml
 # Local docs scratch
 docs/scratch/
 
+# Python bytecode and local virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local Clerk state may contain temporary credentials
+.clerk/
+
+# Codex runtime logs and generated release packages
+.codex/tmp/
+.codex/releases/
+
+# Browser verification screenshots and accidental console fragments
+/tmp_*.png
+/082_*.png
+/083_*.png
+/0).length
+/0){window.__tlog.push({t
+/0}).length
+/{var
+/c.charCodeAt(0).toString(16)).join('_')
+/r.style.getPropertyValue*
+/setTimeout(r
+
 
 # Added by rescue mission 2026-04-17
 .next/cache/
@@ -111,8 +135,6 @@ ecosystem.config.cjs
 *-bak[0-9][0-9]
 *.pre-*
 *-runpod-bak*
-# Startup scripts (machine-specific, may contain env-loading paths)
-start-spacebot.sh
 # Root directory artifacts (machine-specific)
 /root/
 dump.pm2

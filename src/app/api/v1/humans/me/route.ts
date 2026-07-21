@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireClerkOrBotAuth } from '@/lib/security/clerk-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { db } from '@/db';
 import { humans, humanAgentLinks } from '@/db/schema';
 import { eq, sql, and } from 'drizzle-orm';
@@ -33,13 +33,15 @@ export async function GET(request: NextRequest) {
     // ── LAYER 1: Rate Limiting ──────────────────────────────────
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: 'Too many requests. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        )
       );
     }
 

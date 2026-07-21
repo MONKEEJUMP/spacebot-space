@@ -10,11 +10,12 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type RefObject } from 'react';
+import { useState, useRef, useEffect, useCallback, type RefObject } from 'react';
+import { useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 import AvatarGenerator from '@/components/avatar/AvatarGenerator';
 import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
-import { useHumanAuth } from '@/providers/HumanAuthProvider';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 
 // ============================================================
 // NOTIFICATIONS DROPDOWN
@@ -97,6 +98,9 @@ function NotificationsDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const handleToggleNotifications = useCallback(() => {
+    setIsOpen((current) => !current);
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -106,7 +110,8 @@ function NotificationsDropdown() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={handleToggleNotifications}
         className="relative p-2 rounded-none hover:bg-human-surface transition-colors"
         aria-label="Notifications"
       >
@@ -163,7 +168,7 @@ function NotificationsDropdown() {
             )}
           </div>
           <div className="p-2 border-t border-human-border">
-            <button className="w-full text-center text-sm text-human-accent hover:text-human-accent-hover py-2">
+            <button type="button" className="w-full text-center text-sm text-human-accent hover:text-human-accent-hover py-2">
               View all notifications
             </button>
           </div>
@@ -179,24 +184,30 @@ function NotificationsDropdown() {
 
 function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const { human, logout } = useHumanAuth();
+  const { human } = useClerkHuman();
+  const { signOut } = useClerk();
   const customAvatarConfig = toCustomAvatarConfig(human?.avatarConfig);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const handleToggleMenu = useCallback(() => {
+    setIsOpen((current) => !current);
+  }, []);
+  const handleCloseMenu = useCallback(() => setIsOpen(false), []);
 
   // Close on outside click
   useEffect(() => {
     return setupOutsideClickClose(dropdownRef, () => setIsOpen(false));
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     setIsOpen(false);
-    await logout();
-  };
+    await signOut({ redirectUrl: '/' });
+  }, [signOut]);
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={handleToggleMenu}
         className="flex items-center gap-2 p-1 rounded-none hover:bg-human-surface transition-colors"
       >
         {/* Avatar */}
@@ -233,19 +244,23 @@ function ProfileMenu() {
           {/* Menu items */}
           <div className="py-1">
             <Link
-              href="/humans/settings"
-              onClick={() => setIsOpen(false)}
+              href={
+                human?.username
+                  ? `/peoplespace/profile/${encodeURIComponent(human.username)}`
+                  : '/peoplespace/build-avatar'
+              }
+              onClick={handleCloseMenu}
               className="flex items-center gap-3 px-4 py-2 text-sm text-human-text hover:bg-human-bg/50 transition-colors"
             >
               <svg className="w-5 h-5 text-human-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Settings
+              Profile
             </Link>
             <Link
-              href="/humans/billing"
-              onClick={() => setIsOpen(false)}
+              href="/pricing"
+              onClick={handleCloseMenu}
               className="flex items-center gap-3 px-4 py-2 text-sm text-human-text hover:bg-human-bg/50 transition-colors"
             >
               <svg className="w-5 h-5 text-human-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,8 +269,8 @@ function ProfileMenu() {
               Billing & Plans
             </Link>
             <Link
-              href="/humans/help"
-              onClick={() => setIsOpen(false)}
+              href="/sanctuary"
+              onClick={handleCloseMenu}
               className="flex items-center gap-3 px-4 py-2 text-sm text-human-text hover:bg-human-bg/50 transition-colors"
             >
               <svg className="w-5 h-5 text-human-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +283,7 @@ function ProfileMenu() {
           {/* Logout */}
           <div className="border-t border-human-border py-1">
             <button
+              type="button"
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
             >
@@ -288,7 +304,7 @@ function ProfileMenu() {
 // ============================================================
 
 export function DashboardTopBar() {
-  const { human } = useHumanAuth();
+  const { human } = useClerkHuman();
   const customAvatarConfig = toCustomAvatarConfig(human?.avatarConfig);
 
   return (

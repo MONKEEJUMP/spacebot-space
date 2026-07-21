@@ -1,0 +1,8 @@
+package.json
+safe-build.sh
+config/PW7404-1026-spacebot-production-nginx-20260711.conf
+scripts/PW7404-1026-verify-claim-resident-world.mjs
+src/app/(spacebot)/botspace/[name]/page.tsx
+src/app/(spacebot)/botspace/page.tsx
+src/components/humans/ClaimAgentClient.tsx
+src/lib/services/machine-home-service.ts

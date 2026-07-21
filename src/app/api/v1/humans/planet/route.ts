@@ -11,28 +11,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { humans, humanProfiles } from '@/db/schema';
+import { humanProfiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 interface PlanetBody {
   planetConfig?: Record<string, unknown>;
-}
-
-async function resolveHumanId(request: NextRequest): Promise<string | null> {
-  const clerkAuth = await requireClerkOrBotAuth(request);
-  if (clerkAuth) {
-    return clerkAuth.type === 'clerk' ? clerkAuth.userId : clerkAuth.agent.id;
-  }
-  const jwtAuth = await verifyHumanRequest(request);
-  if (jwtAuth.success) {
-    return jwtAuth.humanId;
-  }
-  return null;
 }
 
 /**
@@ -45,16 +33,22 @@ export async function PUT(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
+          { status: 429 }
+        )
       );
     }
 
-    const humanUserId = await resolveHumanId(request);
-    if (!humanUserId) {
-      return clerkUnauthorizedResponse();
+    const identity = await resolveHumanIdentity();
+    if (!identity.success) {
+      return NextResponse.json(
+        { success: false, error: identity.error },
+        { status: identity.status }
+      );
     }
+    const humanUserId = identity.humanId;
 
     const body = await request.json() as PlanetBody;
     const { planetConfig } = body;
@@ -93,7 +87,7 @@ export async function PUT(request: NextRequest) {
         });
     }
 
-    console.log('[PLANET] Saved planet config for:', humanUserId);
+    logger.info('Human planet saved', { humanId: humanUserId });
 
     return NextResponse.json({
       success: true,
@@ -101,7 +95,9 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[PLANET] Error saving:', error);
+    logger.error('Human planet save failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to save planet' },
       { status: 500 }
@@ -119,16 +115,22 @@ export async function GET(request: NextRequest) {
   try {
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests.' },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { success: false, error: 'Too many requests.' },
+          { status: 429 }
+        )
       );
     }
 
-    const humanUserId = await resolveHumanId(request);
-    if (!humanUserId) {
-      return clerkUnauthorizedResponse();
+    const identity = await resolveHumanIdentity();
+    if (!identity.success) {
+      return NextResponse.json(
+        { success: false, error: identity.error },
+        { status: identity.status }
+      );
     }
+    const humanUserId = identity.humanId;
 
     const [profile] = await db
       .select({ planetConfig: humanProfiles.planetConfig })
@@ -151,7 +153,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[PLANET] Error fetching:', error);
+    logger.error('Human planet fetch failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to get planet' },
       { status: 500 }

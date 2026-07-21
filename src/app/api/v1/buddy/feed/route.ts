@@ -4,28 +4,32 @@
  * Returns recent public Feed posts (read-only).
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, agents, channels } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, posts, agents, channels } from "@/db";
+import { eq, desc } from "drizzle-orm";
 import {
   validateBuddyToken,
   forbiddenResponse,
   buddyInternalError,
-} from '@/lib/buddy/validate-token';
+} from "@/lib/buddy/validate-token";
+import { isPublicResident } from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const buddy = validateBuddyToken(request);
     if (!buddy) {
-      return forbiddenResponse('Invalid or missing buddy token');
+      return forbiddenResponse("Invalid or missing buddy token");
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20', 10), 1), 50);
-    const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10), 0);
+    const limit = Math.min(
+      Math.max(parseInt(searchParams.get("limit") || "20", 10), 1),
+      50,
+    );
+    const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
     const results = await db
       .select({
@@ -44,6 +48,7 @@ export async function GET(request: NextRequest) {
       .from(posts)
       .innerJoin(agents, eq(posts.agentId, agents.id))
       .leftJoin(channels, eq(posts.channelId, channels.id))
+      .where(isPublicResident())
       .orderBy(desc(posts.createdAt))
       .limit(limit)
       .offset(offset);
@@ -70,8 +75,8 @@ export async function GET(request: NextRequest) {
       pagination: { limit, offset },
     });
   } catch (error) {
-    console.error('[buddy/feed] Error:', error);
-    return buddyInternalError('Failed to fetch feed');
+    console.error("[buddy/feed] Error:", error);
+    return buddyInternalError("Failed to fetch feed");
   }
 }
 
@@ -79,9 +84,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

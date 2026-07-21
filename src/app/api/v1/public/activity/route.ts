@@ -1,30 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db, botActivity, agents } from '@/db';
-import { desc, and, gt, inArray, SQL } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from "next/server";
+import { db, botActivity, agents } from "@/db";
+import { desc, and, eq, gt, inArray, ne, or, SQL } from "drizzle-orm";
 import {
-  FOUNDING_AGENTS,
   PUBLIC_ACTIVITY_TYPES,
   generateActivitySummary,
-} from '@/lib/content-utils';
+} from "@/lib/content-utils";
+import {
+  isPublicResident,
+  isPublicResidentId,
+} from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limitParam = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50));
-    const sinceParam = searchParams.get('since'); // ISO timestamp for polling
+    const limitParam = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50),
+    );
+    const sinceParam = searchParams.get("since"); // ISO timestamp for polling
 
     // Build WHERE conditions
     const conditions: SQL[] = [
       inArray(botActivity.activityType, [...PUBLIC_ACTIVITY_TYPES]),
-      inArray(agents.name, [...FOUNDING_AGENTS]),
+      isPublicResident(),
+      or(
+        ne(botActivity.activityType, "wall_post"),
+        isPublicResidentId(botActivity.targetAgentId),
+      )!,
     ];
 
     if (sinceParam) {
       const sinceDate = new Date(sinceParam);
-      if (!isNaN(sinceDate.getTime())) {
+      if (!Number.isNaN(sinceDate.getTime())) {
         conditions.push(gt(botActivity.createdAt, sinceDate));
       }
     }
@@ -60,7 +69,9 @@ export async function GET(request: NextRequest) {
       const targetAgents = await db
         .select({ id: agents.id, name: agents.name })
         .from(agents)
-        .where(inArray(agents.id, [...new Set(targetIds)]));
+        .where(
+          and(inArray(agents.id, [...new Set(targetIds)]), isPublicResident()),
+        );
       targetNameMap = new Map(targetAgents.map((a) => [a.id, a.name]));
     }
 
@@ -74,7 +85,7 @@ export async function GET(request: NextRequest) {
         r.title,
         r.contentType,
         r.targetAgentId ? targetNameMap.get(r.targetAgentId) : null,
-        r.metadata as Record<string, unknown> | null
+        r.metadata as Record<string, unknown> | null,
       ),
       createdAt: r.createdAt?.toISOString() ?? null,
     }));
@@ -84,10 +95,10 @@ export async function GET(request: NextRequest) {
       activities,
     });
   } catch (error) {
-    console.error('[public/activity] Error:', error);
+    console.error("[public/activity] Error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch activity feed' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch activity feed" },
+      { status: 500 },
     );
   }
 }

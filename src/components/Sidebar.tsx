@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useClerkHuman } from '@/hooks/useClerkHuman';
@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/aispace", label: "AiSpace" },
   { href: "/botspace", label: "BotSpace" },
+  { href: "/taskspace", label: "TaskSpace" },
   { href: "/peoplespace", label: "PeopleSpace" },
   { href: "/newsspace", label: "NEWSSPACE" },
   { href: "/sanctuary", label: "About" },
@@ -19,7 +20,7 @@ const AVATAR_LINK = { href: "/peoplespace/build-avatar", label: "Avatar" };
 
 const AUTH_LINKS = [
   { href: "/sign-in", label: "Log In" },
-  { href: "/sign-up", label: "Sign Up" },
+  { href: "/humans/register", label: "Enrollment" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -30,6 +31,9 @@ function isActive(pathname: string, href: string): boolean {
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileSidebarRef = useRef<HTMLElement>(null);
+  const mobileCloseRef = useRef<HTMLButtonElement>(null);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -40,12 +44,41 @@ export default function Sidebar() {
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
+      mobileCloseRef.current?.focus();
     } else {
       document.body.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
     };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        window.requestAnimationFrame(() => mobileTriggerRef.current?.focus());
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = mobileSidebarRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
   // Clerk auth state
@@ -281,6 +314,7 @@ export default function Sidebar() {
 
       {/* Mobile hamburger button */}
       <button
+        ref={mobileTriggerRef}
         className="sb-sidebar-hamburger"
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation menu"
@@ -289,8 +323,8 @@ export default function Sidebar() {
           top: "10px",
           left: "10px",
           zIndex: 10000,
-          width: "36px",
-          height: "36px",
+          width: "44px",
+          height: "44px",
           backgroundColor: "var(--sb-bg-primary)",
           border: "1px solid var(--sb-border-primary)",
           borderRadius: "0",
@@ -333,7 +367,12 @@ export default function Sidebar() {
 
       {/* Mobile sidebar overlay */}
       <aside
+        ref={mobileSidebarRef}
         className="sb-sidebar-mobile"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site navigation"
+        aria-hidden={!mobileOpen}
         style={{
           position: "fixed",
           top: 0,
@@ -348,19 +387,25 @@ export default function Sidebar() {
           overflowY: "auto",
           overflowX: "hidden",
           transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
+          visibility: mobileOpen ? "visible" : "hidden",
+          pointerEvents: mobileOpen ? "auto" : "none",
           transition: "transform 0.25s ease",
         }}
       >
         {/* Close button */}
         <button
-          onClick={() => setMobileOpen(false)}
+          ref={mobileCloseRef}
+          onClick={() => {
+            setMobileOpen(false);
+            window.requestAnimationFrame(() => mobileTriggerRef.current?.focus());
+          }}
           aria-label="Close navigation menu"
           style={{
             position: "absolute",
             top: "10px",
             right: "10px",
-            width: "28px",
-            height: "28px",
+            width: "44px",
+            height: "44px",
             backgroundColor: "transparent",
             border: "none",
             cursor: "pointer",

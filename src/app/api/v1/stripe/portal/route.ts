@@ -8,13 +8,14 @@
  * @security Human-only, rate-limited
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
 import { checkRateLimit, rateLimitExceededResponse } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,21 +23,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover',
 });
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // 1. Authenticate human
-    const auth = await verifyHumanRequest(request);
-    if (!auth.success) {
+    const identity = await resolveHumanIdentity();
+    if (!identity.success) {
       return NextResponse.json(
-        { success: false, error: auth.error },
-        { status: 401 }
+        { success: false, error: identity.error },
+        { status: identity.status }
       );
     }
 
     // 2. Rate limit
-    const rateCheck = await checkRateLimit(auth.humanId, 'humanDashboard');
+    const rateCheck = await checkRateLimit(identity.humanId, 'humanDashboard');
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // 3. Get human's Stripe customer ID
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         stripeCustomerId: humans.stripeCustomerId,
       })
       .from(humans)
-      .where(eq(humans.id, auth.humanId))
+      .where(eq(humans.id, identity.humanId))
       .limit(1);
 
     if (!human?.stripeCustomerId) {
@@ -70,7 +71,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[stripe/portal] Error:', error);
+    logger.error('Stripe portal failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to create portal session.' },
       { status: 500 }

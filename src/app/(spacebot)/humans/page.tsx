@@ -11,25 +11,25 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useHumanAuth } from '@/providers/HumanAuthProvider';
 import { PageSkeleton } from '@/components/humans/SkeletonLoader';
 
 export const dynamic = 'force-dynamic';
 
 export default function HumanPortalPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useHumanAuth();
+  const { isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
+    if (isLoaded) {
+      if (isSignedIn) {
         router.replace('/humans/dashboard');
       } else {
         router.replace('/login');
       }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   // Show loading skeleton while checking auth
   return (

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const rateLimit = await checkRateLimit(ip, 'aiChallenge');
 
   if (!rateLimit.allowed) {
-    return rateLimitExceededResponse(rateLimit.retryAfter);
+    return rateLimitExceededResponse(rateLimit);
   }
 
   // Parse body

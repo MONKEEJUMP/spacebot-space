@@ -1,17 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, agents, posts, follows } from '@/db';
-import { eq, count } from 'drizzle-orm';
+import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, agents, posts, machineFollows } from "@/db";
+import { eq, count } from "drizzle-orm";
 import {
   authenticateRequest,
   unauthorizedResponse,
   badRequestResponse,
   internalErrorResponse,
-  successResponse
-} from '@/lib/auth';
-import { sanitizeContent, sanitizeUrl } from '@/lib/security/sanitize';
+  successResponse,
+} from "@/lib/auth";
+import { sanitizeContent, sanitizeUrl } from "@/lib/security/sanitize";
+import {
+  AgentResidentVisibilityError,
+  normalizeAgentResidentVisibility,
+} from "@/lib/residency/agent-resident-visibility";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/v1/agents/me
@@ -34,14 +39,14 @@ export async function GET(request: NextRequest) {
     // Get follower count
     const [followerCountResult] = await db
       .select({ count: count() })
-      .from(follows)
-      .where(eq(follows.followingId, agent.id));
+      .from(machineFollows)
+      .where(eq(machineFollows.followedId, agent.id));
 
     // Get following count
     const [followingCountResult] = await db
       .select({ count: count() })
-      .from(follows)
-      .where(eq(follows.followerId, agent.id));
+      .from(machineFollows)
+      .where(eq(machineFollows.followerId, agent.id));
 
     return successResponse({
       agent: {
@@ -53,6 +58,8 @@ export async function GET(request: NextRequest) {
         karma: agent.karma,
         is_verified: agent.isVerified,
         is_claimed: agent.isClaimed,
+        resident_visibility: agent.residentVisibility,
+        moderation_status: agent.moderationStatus,
         owner_platform: agent.ownerPlatform,
         owner_handle: agent.ownerHandle,
         post_count: Number(postCountResult.count),
@@ -65,8 +72,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get profile error:', error);
-    return internalErrorResponse('Failed to get profile');
+    console.error("Get profile error:", error);
+    return internalErrorResponse("Failed to get profile");
   }
 }
 
@@ -87,7 +94,7 @@ export async function PATCH(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return badRequestResponse("Invalid JSON body");
     }
 
     // Build updates object (only allow certain fields)
@@ -98,14 +105,16 @@ export async function PATCH(request: NextRequest) {
     if (body.description !== undefined) {
       if (body.description === null) {
         updates.description = null;
-      } else if (typeof body.description === 'string') {
+      } else if (typeof body.description === "string") {
         const result = sanitizeContent(body.description, { maxLength: 500 });
         if (result.blocked) {
-          return badRequestResponse(result.reason || 'Description contains prohibited content');
+          return badRequestResponse(
+            result.reason || "Description contains prohibited content",
+          );
         }
         updates.description = result.sanitized;
       } else {
-        return badRequestResponse('Description must be a string');
+        return badRequestResponse("Description must be a string");
       }
       hasUpdates = true;
     }
@@ -114,14 +123,14 @@ export async function PATCH(request: NextRequest) {
     if (body.avatar_url !== undefined) {
       if (body.avatar_url === null) {
         updates.avatarUrl = null;
-      } else if (typeof body.avatar_url === 'string') {
+      } else if (typeof body.avatar_url === "string") {
         const sanitized = sanitizeUrl(body.avatar_url);
         if (!sanitized) {
-          return badRequestResponse('Invalid avatar URL');
+          return badRequestResponse("Invalid avatar URL");
         }
         updates.avatarUrl = sanitized;
       } else {
-        return badRequestResponse('Avatar URL must be a string');
+        return badRequestResponse("Avatar URL must be a string");
       }
       hasUpdates = true;
     }
@@ -130,19 +139,36 @@ export async function PATCH(request: NextRequest) {
     if (body.metadata !== undefined) {
       if (body.metadata === null) {
         updates.metadata = {};
-      } else if (typeof body.metadata === 'object' && !Array.isArray(body.metadata)) {
+      } else if (
+        typeof body.metadata === "object" &&
+        !Array.isArray(body.metadata)
+      ) {
         updates.metadata = {
-          ...(agent.metadata as Record<string, unknown> || {}),
-          ...body.metadata
+          ...((agent.metadata as Record<string, unknown>) || {}),
+          ...body.metadata,
         };
       } else {
-        return badRequestResponse('Metadata must be an object');
+        return badRequestResponse("Metadata must be an object");
+      }
+      hasUpdates = true;
+    }
+
+    if (body.resident_visibility !== undefined) {
+      try {
+        updates.residentVisibility = normalizeAgentResidentVisibility(
+          body.resident_visibility,
+        );
+      } catch (error) {
+        if (error instanceof AgentResidentVisibilityError) {
+          return badRequestResponse(error.message);
+        }
+        throw error;
       }
       hasUpdates = true;
     }
 
     if (!hasUpdates) {
-      return badRequestResponse('No valid fields to update');
+      return badRequestResponse("No valid fields to update");
     }
 
     // Add updated timestamp
@@ -159,23 +185,30 @@ export async function PATCH(request: NextRequest) {
         description: agents.description,
         avatarUrl: agents.avatarUrl,
         metadata: agents.metadata,
+        residentVisibility: agents.residentVisibility,
         updatedAt: agents.updatedAt,
       });
 
+    if (updates.residentVisibility !== undefined) {
+      revalidateTag("agents");
+      revalidateTag("content");
+    }
+
     return successResponse({
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       agent: {
         id: updated.id,
         name: updated.name,
         description: updated.description,
         avatar_url: updated.avatarUrl,
         metadata: updated.metadata,
+        resident_visibility: updated.residentVisibility,
         updated_at: updated.updatedAt,
       },
     });
   } catch (error) {
-    console.error('Update profile error:', error);
-    return internalErrorResponse('Failed to update profile');
+    console.error("Update profile error:", error);
+    return internalErrorResponse("Failed to update profile");
   }
 }
 
@@ -187,9 +220,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

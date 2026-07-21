@@ -1,14 +1,14 @@
-import { db } from '@/db';
+import { agents, db } from "@/db";
+import { machineFollows, machinePosts } from "@/db/machine-social";
+import { eq, and, sql, count, desc, isNull } from "drizzle-orm";
+import { NotFoundError, ForbiddenError } from "@/lib/errors/machine-social";
 import {
-  machineFollows,
-  machinePosts,
-  machineNotifications,
-} from '@/db/machine-social';
-import { agents } from '@/db';
-import { eq, and, sql, count, desc, isNull } from 'drizzle-orm';
-import { NotFoundError, ForbiddenError } from '@/lib/errors/machine-social';
-import { HOT_TIME_DIVISOR } from '@/lib/constants/machine-social';
-import type { MachinePostResponse, FeedSort } from '@/types/machine-social';
+  followAgent,
+  unfollowAgent,
+} from "@/lib/relationships/agent-relationship-service";
+import { AgentRelationshipServiceError } from "@/lib/relationships/agent-relationship-errors";
+import { HOT_TIME_DIVISOR } from "@/lib/constants/machine-social";
+import type { MachinePostResponse, FeedSort } from "@/types/machine-social";
 
 // ============================================================
 // SELECT FIELDS - consistent with machine-post-service
@@ -60,7 +60,7 @@ function mapPostRow(row: {
     updated_at: row.updatedAt.toISOString(),
     author: {
       id: row.authorId,
-      name: row.authorName || 'Unknown',
+      name: row.authorName || "Unknown",
     },
     current_user_vote: null,
   };
@@ -72,16 +72,18 @@ function mapPostRow(row: {
 
 function getOrderBy(sort: FeedSort) {
   switch (sort) {
-    case 'hot':
+    case "hot":
       return [
         desc(
-          sql`log(greatest(${machinePosts.upvotes}, 1)) + extract(epoch from ${machinePosts.createdAt}) / ${HOT_TIME_DIVISOR}`
+          sql`log(greatest(${machinePosts.upvotes}, 1)) + extract(epoch from ${machinePosts.createdAt}) / ${HOT_TIME_DIVISOR}`,
         ),
       ];
-    case 'new':
+    case "new":
       return [desc(machinePosts.createdAt)];
-    case 'top':
+    case "top":
       return [desc(machinePosts.score), desc(machinePosts.createdAt)];
+    default:
+      return [desc(machinePosts.createdAt)];
   }
 }
 
@@ -92,117 +94,50 @@ function getOrderBy(sort: FeedSort) {
 export async function follow(
   followerId: string,
   followerName: string,
-  followedName: string
+  followedName: string,
 ): Promise<{ success: true; following: true; action: string }> {
-  // Look up followed machine by name
-  const [followed] = await db
-    .select({ id: agents.id, name: agents.name })
-    .from(agents)
-    .where(eq(agents.name, followedName))
-    .limit(1);
-
-  if (!followed) {
-    throw new NotFoundError('Machine');
-  }
-
-  // Self-follow prevention
-  if (followerId === followed.id) {
-    throw new ForbiddenError('Cannot follow yourself');
-  }
-
-  // Check if already following
-  const [existing] = await db
-    .select({ id: machineFollows.id })
-    .from(machineFollows)
-    .where(
-      and(
-        eq(machineFollows.followerId, followerId),
-        eq(machineFollows.followedId, followed.id)
-      )
-    )
-    .limit(1);
-
-  if (existing) {
-    return { success: true, following: true, action: 'already_following' };
-  }
-
-  // Single transaction: follow + counts + notification
-  await db.transaction(async (tx) => {
-    // a. Insert follow
-    await tx.insert(machineFollows).values({
-      followerId,
-      followedId: followed.id,
+  try {
+    const result = await followAgent({
+      actor: { id: followerId, name: followerName },
+      targetName: followedName,
     });
-
-    // b. Update following_count for follower
-    await tx.execute(
-      sql`UPDATE bot_configs SET following_count = following_count + 1 WHERE bot_name = ${followerName}`
-    );
-
-    // c. Update follower_count for followed
-    await tx.execute(
-      sql`UPDATE bot_configs SET follower_count = follower_count + 1 WHERE bot_name = ${followedName}`
-    );
-
-    // d. Create notification for the followed machine
-    await tx.insert(machineNotifications).values({
-      recipientId: followed.id,
-      actorId: followerId,
-      type: 'follow',
-      title: `${followerName} started following you`,
-      link: `/social/follow/${followerName}`,
-    });
-  });
-
-  return { success: true, following: true, action: 'followed' };
+    return {
+      success: true,
+      following: true,
+      action: result.action,
+    };
+  } catch (error) {
+    if (error instanceof AgentRelationshipServiceError) {
+      if (error.kind === "not_found") throw new NotFoundError("Machine");
+      if (error.kind === "self") throw new ForbiddenError(error.message);
+    }
+    throw error;
+  }
 }
 
 export async function unfollow(
   followerId: string,
   followerName: string,
-  followedName: string
+  followedName: string,
 ): Promise<{ success: true; following: false }> {
-  // Look up followed machine by name
-  const [followed] = await db
-    .select({ id: agents.id, name: agents.name })
-    .from(agents)
-    .where(eq(agents.name, followedName))
-    .limit(1);
-
-  if (!followed) {
-    throw new NotFoundError('Machine');
-  }
-
-  await db.transaction(async (tx) => {
-    // a. Delete follow
-    const deleted = await tx
-      .delete(machineFollows)
-      .where(
-        and(
-          eq(machineFollows.followerId, followerId),
-          eq(machineFollows.followedId, followed.id)
-        )
-      )
-      .returning({ id: machineFollows.id });
-
-    // b-c. Only update counts if a row was actually deleted
-    if (deleted.length > 0) {
-      await tx.execute(
-        sql`UPDATE bot_configs SET following_count = GREATEST(following_count - 1, 0) WHERE bot_name = ${followerName}`
-      );
-
-      await tx.execute(
-        sql`UPDATE bot_configs SET follower_count = GREATEST(follower_count - 1, 0) WHERE bot_name = ${followedName}`
-      );
+  try {
+    await unfollowAgent({
+      actor: { id: followerId, name: followerName },
+      targetName: followedName,
+    });
+    return { success: true, following: false };
+  } catch (error) {
+    if (error instanceof AgentRelationshipServiceError) {
+      if (error.kind === "not_found") throw new NotFoundError("Machine");
+      if (error.kind === "self") throw new ForbiddenError(error.message);
     }
-  });
-
-  return { success: true, following: false };
+    throw error;
+  }
 }
 
 export async function isFollowing(
   followerId: string,
-  followedId: string
+  followedId: string,
 ): Promise<boolean> {
   const [existing] = await db
     .select({ id: machineFollows.id })
@@ -210,8 +145,8 @@ export async function isFollowing(
     .where(
       and(
         eq(machineFollows.followerId, followerId),
-        eq(machineFollows.followedId, followedId)
-      )
+        eq(machineFollows.followedId, followedId),
+      ),
     )
     .limit(1);
 
@@ -220,10 +155,15 @@ export async function isFollowing(
 
 export async function getFollowers(
   machineId: string,
-  options: { limit?: number; offset?: number }
+  options: { limit?: number; offset?: number },
 ): Promise<{
   data: Array<{ id: string; name: string; followed_at: string }>;
-  pagination: { count: number; limit: number; offset: number; hasMore: boolean };
+  pagination: {
+    count: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 }> {
   const limit = Math.min(Math.max(options.limit || 25, 1), 100);
   const offset = Math.max(options.offset || 0, 0);
@@ -265,10 +205,15 @@ export async function getFollowers(
 
 export async function getFollowing(
   machineId: string,
-  options: { limit?: number; offset?: number }
+  options: { limit?: number; offset?: number },
 ): Promise<{
   data: Array<{ id: string; name: string; followed_at: string }>;
-  pagination: { count: number; limit: number; offset: number; hasMore: boolean };
+  pagination: {
+    count: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 }> {
   const limit = Math.min(Math.max(options.limit || 25, 1), 100);
   const offset = Math.max(options.offset || 0, 0);
@@ -310,18 +255,18 @@ export async function getFollowing(
 
 export async function getPersonalizedFeed(
   agentId: string,
-  options: { sort?: string; limit?: number; offset?: number }
+  options: { sort?: string; limit?: number; offset?: number },
 ): Promise<{ posts: MachinePostResponse[]; count: number }> {
-  const sort = (['hot', 'new', 'top'].includes(options.sort || '')
-    ? options.sort
-    : 'hot') as FeedSort;
+  const sort = (
+    ["hot", "new", "top"].includes(options.sort || "") ? options.sort : "hot"
+  ) as FeedSort;
   const limit = Math.min(Math.max(options.limit || 25, 1), 100);
   const offset = Math.max(options.offset || 0, 0);
 
   // Join condition: posts by authors the agent follows
   const followJoin = and(
     eq(machinePosts.authorId, machineFollows.followedId),
-    eq(machineFollows.followerId, agentId)
+    eq(machineFollows.followerId, agentId),
   );
 
   const rows = await db

@@ -2,22 +2,26 @@
  * SPACEBOT.SPACE — THEME PREFERENCE API
  * PATCH /api/v1/humans/theme
  *
- * Persists the authenticated human's site theme choice to Supabase.
- * Called fire-and-forget by SiteThemeProvider on theme change.
+ * Persists the authenticated human's site theme choice.
  *
  * @author PAULIEWOOD! & The Power Trio
  * @security JWT required, rate limited
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
-import { db } from '@/db';
-import { humans } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { SITE_THEME_IDS, type SiteThemeId } from '@/types/theme';
+import { NextRequest, NextResponse } from "next/server";
+import { resolveHumanIdentity } from "@/lib/security/claiming-human";
+import {
+  checkRateLimit,
+  getClientIP,
+  rateLimitDeniedResponse,
+} from "@/lib/security/rate-limiter";
+import { db } from "@/db";
+import { humans } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { SITE_THEME_IDS, type SiteThemeId } from "@/types/theme";
+import { logger } from "@/lib/logger";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * PATCH /api/v1/humans/theme
@@ -29,34 +33,44 @@ export async function PATCH(request: NextRequest) {
 
   try {
     // ── LAYER 1: Rate Limiting ──────────────────────────────────
-    const rateLimit = await checkRateLimit(ip, 'humanDashboard');
+    const rateLimit = await checkRateLimit(ip, "humanDashboard");
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 },
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: "Too many requests. Please try again later.",
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 },
+        )
       );
     }
 
     // ── LAYER 2: Authentication ─────────────────────────────────
-    const authResult = await verifyHumanRequest(request);
+    const identity = await resolveHumanIdentity();
 
-    if (!authResult.success) {
+    if (!identity.success) {
       return NextResponse.json(
-        { success: false, error: 'Authentication required.' },
-        { status: 401 },
+        { success: false, error: identity.error },
+        { status: identity.status },
       );
     }
 
     // ── LAYER 3: Parse & Validate Body ──────────────────────────
-    const body = await request.json() as { theme?: string };
-
-    if (!body.theme || typeof body.theme !== 'string') {
+    let body: { theme?: string };
+    try {
+      body = (await request.json()) as { theme?: string };
+    } catch {
       return NextResponse.json(
-        { success: false, error: 'Missing required field: theme' },
+        { success: false, error: "Invalid JSON body." },
+        { status: 400 },
+      );
+    }
+
+    if (!body.theme || typeof body.theme !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Missing required field: theme" },
         { status: 400 },
       );
     }
@@ -71,19 +85,29 @@ export async function PATCH(request: NextRequest) {
     const themeId = body.theme as SiteThemeId;
 
     // ── LAYER 4: Update Database ────────────────────────────────
-    await db
+    const [updatedHuman] = await db
       .update(humans)
-      .set({ siteTheme: themeId })
-      .where(eq(humans.id, authResult.humanId));
+      .set({ siteTheme: themeId, updatedAt: new Date() })
+      .where(eq(humans.id, identity.humanId))
+      .returning({ id: humans.id });
+
+    if (!updatedHuman) {
+      return NextResponse.json(
+        { success: false, error: "No linked human profile found." },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
       theme: themeId,
     });
   } catch (error) {
-    console.error('[Theme API] Error:', error);
+    logger.error("Human theme persistence failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
-      { success: false, error: 'Internal server error.' },
+      { success: false, error: "Internal server error." },
       { status: 500 },
     );
   }

@@ -10,9 +10,9 @@
  * @security IRONCLAD — sandbox isolation per user
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { NextRequest, NextResponse } from "next/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // ============================================================
 // TYPES
@@ -50,8 +50,8 @@ function loadBuddyConfig(): BuddyConfig {
     return cachedConfig;
   }
 
-  const configPath = join(process.cwd(), 'buddy-config.json');
-  const raw = readFileSync(configPath, 'utf-8');
+  const configPath = join(process.cwd(), "buddy-config.json");
+  const raw = readFileSync(configPath, "utf-8");
   cachedConfig = JSON.parse(raw) as BuddyConfig;
   lastLoadMs = now;
   return cachedConfig;
@@ -68,14 +68,12 @@ function loadBuddyConfig(): BuddyConfig {
  * @returns BuddyIdentity if valid, null if invalid
  */
 export function validateBuddyToken(request: NextRequest): BuddyIdentity | null {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader) return null;
-
-  // Extract token from "Bearer xxx" format
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
-
-  const token = parts[1];
+  const explicitToken = request.headers.get("X-Buddy-Token")?.trim();
+  const authHeader = request.headers.get("Authorization");
+  const parts = authHeader?.split(" ") ?? [];
+  const token =
+    explicitToken ||
+    (parts.length === 2 && parts[0] === "Bearer" ? parts[1] : null);
   if (!token || token.length < 10) return null;
 
   try {
@@ -91,7 +89,7 @@ export function validateBuddyToken(request: NextRequest): BuddyIdentity | null {
       owner: entry.owner,
     };
   } catch (error) {
-    console.error('[buddy] Failed to validate token:', error);
+    console.error("[buddy] Failed to validate token:", error);
     return null;
   }
 }
@@ -100,23 +98,22 @@ export function validateBuddyToken(request: NextRequest): BuddyIdentity | null {
 // RESPONSE HELPERS
 // ============================================================
 
-export function forbiddenResponse(message: string = 'Forbidden'): NextResponse {
-  return NextResponse.json(
-    { success: false, error: message },
-    { status: 403 }
-  );
+export function forbiddenResponse(message: string = "Forbidden"): NextResponse {
+  return NextResponse.json({ success: false, error: message }, { status: 403 });
 }
 
-export function buddyBadRequest(message: string, details?: unknown): NextResponse {
+export function buddyBadRequest(
+  message: string,
+  details?: unknown,
+): NextResponse {
   return NextResponse.json(
     { success: false, error: message, details },
-    { status: 400 }
+    { status: 400 },
   );
 }
 
-export function buddyInternalError(message: string = 'Internal server error'): NextResponse {
-  return NextResponse.json(
-    { success: false, error: message },
-    { status: 500 }
-  );
+export function buddyInternalError(
+  message: string = "Internal server error",
+): NextResponse {
+  return NextResponse.json({ success: false, error: message }, { status: 500 });
 }

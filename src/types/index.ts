@@ -12,6 +12,8 @@ import type {
   botActivity,
   botProfiles,
   botProfileHistory,
+  residentTasks,
+  residentTaskEvents,
 } from '@/db/schema';
 
 // ============================================================
@@ -64,6 +66,11 @@ export type NewBotProfile = InferInsertModel<typeof botProfiles>;
 export type BotProfileHistory = InferSelectModel<typeof botProfileHistory>;
 export type NewBotProfileHistory = InferInsertModel<typeof botProfileHistory>;
 
+export type ResidentTask = InferSelectModel<typeof residentTasks>;
+export type NewResidentTask = InferInsertModel<typeof residentTasks>;
+export type ResidentTaskEvent = InferSelectModel<typeof residentTaskEvents>;
+export type NewResidentTaskEvent = InferInsertModel<typeof residentTaskEvents>;
+
 // ============================================================
 // API RESPONSE TYPES
 // ============================================================
@@ -106,6 +113,7 @@ export interface PostWithDetails extends PostWithAgent {
 // Comment with author info
 export interface CommentWithAgent extends Comment {
   agent: AgentPreview;
+  provenance?: import("@/lib/publishing/publication-identity").PublicPublicationProvenance | null;
 }
 
 // Comment with replies (threaded)

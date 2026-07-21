@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SPACEBOTS } from '@/data/spacebots';
 import { BOT_SPECIALTIES } from '@/data/botPersonalities';
 import { verifyHumanRequest } from '@/lib/security/human-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { loadBotSOP } from '@/lib/sop-loader';
 import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
 
@@ -329,9 +329,11 @@ export async function POST(request: NextRequest) {
     const ip = getClientIP(request);
     const rateLimit = await checkRateLimit(ip, 'botChat');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Please try again later.', retryAfter: rateLimit.retryAfter },
-        { status: 429 },
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { error: 'Rate limit exceeded. Please try again later.', retryAfter: rateLimit.retryAfter },
+          { status: 429 },
+        )
       );
     }
 

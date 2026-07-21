@@ -37,6 +37,11 @@ if [ "$BUILD_STATUS" != "0" ]; then
   echo "❌ Build failed — aborting"
   exit 1
 fi
+
+echo "Copying static and public assets into the standalone bundle..."
+mkdir -p .next/standalone/.next
+cp -a .next/static .next/standalone/.next/
+cp -a public .next/standalone/
 echo "✅ Build: success"
 
 # Step 4: Restart PM2 app

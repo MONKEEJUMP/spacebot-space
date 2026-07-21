@@ -9,24 +9,29 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, agents, channels, votes, comments } from '@/db';
-import { eq, and, sql } from 'drizzle-orm';
-import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { readDelegatedAutonomyProvenance } from "@/lib/publishing/publication-identity";
+import { db, posts, agents, channels, votes, comments } from "@/db";
+import { eq, and, inArray, or, sql } from "drizzle-orm";
+import {
+  requireClerkOrBotAuth,
+  clerkUnauthorizedResponse,
+} from "@/lib/security/clerk-auth";
 import {
   notFoundResponse,
   forbiddenResponse,
   internalErrorResponse,
-} from '@/lib/auth';
+} from "@/lib/auth";
 import {
   checkRateLimit,
   rateLimitExceededResponse,
   getClientIP,
-} from '@/lib/security/rate-limiter';
-import { logAgentAction, AuditEventType } from '@/lib/security/audit';
+} from "@/lib/security/rate-limiter";
+import { logAgentAction, AuditEventType } from "@/lib/security/audit";
+import { isDirectlyViewableResident } from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -42,16 +47,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'read');
+    const rateCheck = await checkRateLimit(ip, "read");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
+
+    const authResult = await requireClerkOrBotAuth(request);
+    const agent = authResult?.type === "bot" ? authResult.agent : null;
+    const visibility = agent
+      ? or(isDirectlyViewableResident(), eq(agents.id, agent.id))
+      : isDirectlyViewableResident();
 
     // Get post with agent and channel info
     const result = await db
@@ -65,6 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         isPinned: posts.isPinned,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
+        metadata: posts.metadata,
         agentId: posts.agentId,
         channelId: posts.channelId,
         // Agent
@@ -79,19 +92,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .from(posts)
       .innerJoin(agents, eq(posts.agentId, agents.id))
       .leftJoin(channels, eq(posts.channelId, channels.id))
-      .where(eq(posts.id, id))
+      .where(and(eq(posts.id, id), visibility))
       .limit(1);
 
     if (result.length === 0) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
 
     const post = result[0];
 
     // Get user's vote if authenticated
-    const authResult = await requireClerkOrBotAuth(request);
-    const agent = authResult?.type === 'bot' ? authResult.agent : null;
-    let userVote: 'up' | 'down' | null = null;
+    let userVote: "up" | "down" | null = null;
 
     if (agent) {
       const voteResult = await db
@@ -101,7 +112,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .limit(1);
 
       if (voteResult.length > 0) {
-        userVote = voteResult[0].voteType as 'up' | 'down';
+        userVote = voteResult[0].voteType as "up" | "down";
       }
     }
 
@@ -117,6 +128,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         isPinned: post.isPinned,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
+        metadata: post.metadata,
+        provenance: readDelegatedAutonomyProvenance(post.metadata),
         agentId: post.agentId,
         channelId: post.channelId,
         agent: {
@@ -136,10 +149,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         userVote,
       },
     });
-
   } catch (error) {
-    console.error('Get post error:', error);
-    return internalErrorResponse('Failed to fetch post');
+    console.error("Get post error:", error);
+    return internalErrorResponse("Failed to fetch post");
   }
 }
 
@@ -153,9 +165,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'delete');
+    const rateCheck = await checkRateLimit(ip, "delete");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Authentication required (Clerk session or bot API key)
@@ -163,7 +175,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!authResult) {
       return clerkUnauthorizedResponse();
     }
-    const agent = authResult.type === 'bot' ? authResult.agent : null;
+    const agent = authResult.type === "bot" ? authResult.agent : null;
     if (!agent) {
       return clerkUnauthorizedResponse();
     }
@@ -174,12 +186,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!post) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
 
     // Check ownership
     if (post.agentId !== agent.id) {
-      return forbiddenResponse('You can only delete your own posts');
+      return forbiddenResponse("You can only delete your own posts");
     }
 
     // Delete related data first (cascading)
@@ -189,8 +201,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from(comments)
       .where(eq(comments.postId, id));
 
-    for (const comment of postComments) {
-      await db.delete(votes).where(eq(votes.commentId, comment.id));
+    if (postComments.length > 0) {
+      await db.delete(votes).where(
+        inArray(
+          votes.commentId,
+          postComments.map((comment) => comment.id),
+        ),
+      );
     }
 
     // 2. Delete comments on this post
@@ -218,12 +235,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'Post deleted successfully',
+      message: "Post deleted successfully",
     });
-
   } catch (error) {
-    console.error('Delete post error:', error);
-    return internalErrorResponse('Failed to delete post');
+    console.error("Delete post error:", error);
+    return internalErrorResponse("Failed to delete post");
   }
 }
 
@@ -235,9 +251,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "GET, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

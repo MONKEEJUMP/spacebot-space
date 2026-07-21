@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getRateLimitIdentifier } from '@/lib/security/rate-limiter';
+import { checkRateLimit, getRateLimitIdentifier, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 import { logAgentAction, AuditEventType, logRateLimitHit } from '@/lib/security/audit';
 import { validateCors } from '@/lib/security/cors';
 import { authenticateMachine } from '@/lib/machine-auth';
@@ -24,10 +24,14 @@ export async function GET(request: NextRequest) {
     const rlKey = getRateLimitIdentifier(request);
     const rlResult = await checkRateLimit(rlKey, 'socialFeed');
     if (!rlResult.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
-        { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...cors.headers } }
+      const response = rateLimitDeniedResponse(rlResult, () =>
+        NextResponse.json(
+          { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
+          { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...cors.headers } }
+        )
       );
+      for (const [name, value] of Object.entries(cors.headers)) response.headers.set(name, value);
+      return response;
     }
 
     // Optional auth for vote status in feed
@@ -92,10 +96,14 @@ export async function POST(request: NextRequest) {
     if (!rlResult.allowed) {
       const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
       logRateLimitHit(ip, 'socialPost', auth.agentId);
-      return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
-        { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...corsPost.headers } }
+      const response = rateLimitDeniedResponse(rlResult, () =>
+        NextResponse.json(
+          { success: false, error: 'Rate limit exceeded', retryAfter: rlResult.retryAfter },
+          { status: 429, headers: { 'Retry-After': String(rlResult.retryAfter), ...corsPost.headers } }
+        )
       );
+      for (const [name, value] of Object.entries(corsPost.headers)) response.headers.set(name, value);
+      return response;
     }
 
     let body: { title?: string; content?: string };

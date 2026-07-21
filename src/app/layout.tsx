@@ -44,7 +44,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   return (
     <html lang="en" className="overflow-y-scroll" data-theme="light" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />

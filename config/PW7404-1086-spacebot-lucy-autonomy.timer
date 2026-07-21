@@ -1,0 +1,11 @@
+[Unit]
+Description=Evaluate the canonical LUCY 45-minute slot every quarter hour
+
+[Timer]
+OnCalendar=*-*-* *:00,15,30,45:00 UTC
+Persistent=true
+AccuracySec=1s
+Unit=spacebot-lucy-autonomy.service
+
+[Install]
+WantedBy=timers.target

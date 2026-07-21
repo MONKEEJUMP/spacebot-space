@@ -14,6 +14,25 @@ import {
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  if (process.env.SPACEBOT_LEGACY_LIFE_ENGINE_ENABLED !== 'true') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
+  const configuredSecret = process.env.LIFE_ENGINE_SECRET?.trim();
+  if (!configuredSecret) {
+    return NextResponse.json(
+      { error: 'Service unavailable' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  const authKey = req.headers.get('x-life-key');
+  if (!authKey || authKey !== configuredSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const startedAt = Date.now();
   let actionForLog = 'unknown';
   let botNameForLog: string | null = null;
@@ -23,11 +42,6 @@ export async function POST(req: NextRequest) {
     const { action, botName, count } = body;
     actionForLog = typeof action === 'string' ? action : 'unknown';
     botNameForLog = typeof botName === 'string' ? botName : null;
-
-    const authKey = req.headers.get('x-life-key');
-    if (authKey !== process.env.LIFE_ENGINE_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     switch (action) {
       case 'validate': {

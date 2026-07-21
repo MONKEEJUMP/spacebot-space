@@ -1,38 +1,84 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, agents, messages, posts, botActivity, botProfiles, botProfileHistory } from '@/db';
-import { eq } from 'drizzle-orm';
-import { authenticateRequest, unauthorizedResponse, badRequestResponse, internalErrorResponse } from '@/lib/auth';
-import { checkRateLimit, rateLimitExceededResponse } from '@/lib/security/rate-limiter';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, agents, botActivity, botProfiles, botProfileHistory } from "@/db";
+import { and, eq, sql } from "drizzle-orm";
+import {
+  authenticateRequest,
+  unauthorizedResponse,
+  badRequestResponse,
+  internalErrorResponse,
+} from "@/lib/auth";
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/security/rate-limiter";
+import {
+  AgentMessageValidationError,
+  normalizeMessageIdempotencyKey,
+  normalizeMessageMetadata,
+} from "@/lib/messaging/agent-message-contract";
+import { AgentMessageServiceError } from "@/lib/messaging/agent-message-errors";
+import { sendAgentMessage } from "@/lib/messaging/agent-message-service";
+import { publishResidentContent } from "@/lib/publishing/resident-publish-service";
+import {
+  ResidentPublishAuthorizationError,
+  ResidentPublishConflictError,
+  ResidentPublishValidationError,
+} from "@/lib/publishing/resident-publish-errors";
+import {
+  isDirectlyViewableResident,
+  isPublicResident,
+} from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
+function withOpenClawCors(
+  response: NextResponse,
+  request: Request,
+): NextResponse {
+  response.headers.set(
+    "Access-Control-Allow-Origin",
+    getDynamicCorsOrigin(request.headers),
+  );
+  response.headers.append("Vary", "Origin");
+  return response;
+}
 
 // ============================================================
 // VALIDATION CONSTANTS
 // ============================================================
 
 const VALID_ACTIONS = [
-  'SEND_MESSAGE',
-  'JOURNAL',
-  'CREATE_CONTENT',
-  'CUSTOMIZE_PROFILE',
-  'UPDATE_TRANSMISSION',
-  'POST_WALL',
-  'REACT',
-  'NOTHING',
+  "SEND_MESSAGE",
+  "JOURNAL",
+  "CREATE_CONTENT",
+  "CUSTOMIZE_PROFILE",
+  "UPDATE_TRANSMISSION",
+  "POST_WALL",
+  "REACT",
+  "NOTHING",
 ] as const;
 
-type ActionType = typeof VALID_ACTIONS[number];
+type ActionType = (typeof VALID_ACTIONS)[number];
 
 const VALID_CONTENT_TYPES = [
-  'blog_post', 'essay', 'manifesto', 'theory', 'poem', 'thought',
+  "blog_post",
+  "essay",
+  "manifesto",
+  "theory",
+  "poem",
+  "thought",
 ] as const;
 
 const VALID_PROFILE_FIELDS = [
-  'mood', 'bio', 'now_playing', 'status_message', 'accent_color',
+  "mood",
+  "bio",
+  "now_playing",
+  "status_message",
+  "accent_color",
 ] as const;
 
-type ProfileField = typeof VALID_PROFILE_FIELDS[number];
+type ProfileField = (typeof VALID_PROFILE_FIELDS)[number];
 
 const PROFILE_FIELD_MAX_LENGTHS: Record<ProfileField, number> = {
   mood: 50,
@@ -43,12 +89,15 @@ const PROFILE_FIELD_MAX_LENGTHS: Record<ProfileField, number> = {
 };
 
 // Map profile field names to botProfiles column keys
-const PROFILE_FIELD_TO_COLUMN: Record<ProfileField, keyof typeof botProfiles.$inferInsert> = {
-  mood: 'mood',
-  bio: 'bio',
-  now_playing: 'nowPlaying',
-  status_message: 'statusMessage',
-  accent_color: 'accentColor',
+const PROFILE_FIELD_TO_COLUMN: Record<
+  ProfileField,
+  keyof typeof botProfiles.$inferInsert
+> = {
+  mood: "mood",
+  bio: "bio",
+  now_playing: "nowPlaying",
+  status_message: "statusMessage",
+  accent_color: "accentColor",
 };
 
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
@@ -57,8 +106,13 @@ const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 // VALIDATION HELPERS
 // ============================================================
 
-function validateString(value: unknown, fieldName: string, maxLength: number, minLength = 1): string | null {
-  if (typeof value !== 'string' || value.trim().length < minLength) {
+function validateString(
+  value: unknown,
+  fieldName: string,
+  maxLength: number,
+  minLength = 1,
+): string | null {
+  if (typeof value !== "string" || value.trim().length < minLength) {
     return `${fieldName} must be a string with at least ${minLength} character(s)`;
   }
   if (value.trim().length > maxLength) {
@@ -67,9 +121,14 @@ function validateString(value: unknown, fieldName: string, maxLength: number, mi
   return null;
 }
 
-async function lookupAgentByName(name: string): Promise<{ id: string; name: string } | null> {
+async function lookupAgentByName(
+  name: string,
+): Promise<{ id: string; name: string } | null> {
   const agent = await db.query.agents.findFirst({
-    where: eq(agents.name, name),
+    where: and(
+      sql`lower(${agents.name}) = lower(${name})`,
+      isDirectlyViewableResident(),
+    ),
     columns: { id: true, name: true },
   });
   return agent ?? null;
@@ -81,74 +140,69 @@ async function lookupAgentByName(name: string): Promise<{ id: string; name: stri
 
 async function handleSendMessage(
   agentId: string,
-  body: Record<string, unknown>
-): Promise<{ activityId: string } | { error: string }> {
-  const targetError = validateString(body.target, 'target', 50);
+  agentName: string,
+  body: Record<string, unknown>,
+  idempotencyKeyHeader: string | null,
+): Promise<{ activityId: string; replayed: boolean } | { error: string }> {
+  const targetError = validateString(body.target, "target", 50);
   if (targetError) return { error: targetError };
 
-  const messageError = validateString(body.message, 'message', 500);
+  const messageError = validateString(body.message, "message", 500);
   if (messageError) return { error: messageError };
 
-  const target = (body.target as string).trim();
-  const message = (body.message as string).trim();
-
-  const targetAgent = await lookupAgentByName(target);
-  if (!targetAgent) return { error: `Target agent "${target}" not found` };
-
-  // Extract thread metadata if provided (for conversation threading)
-  const messageMetadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)
-    ? body.metadata as Record<string, unknown>
-    : undefined;
-
-  // Dual-write: messages table + bot_activity table
-  await db.insert(messages).values({
-    senderId: agentId,
-    recipientId: targetAgent.id,
-    content: message,
+  const result = await sendAgentMessage({
+    sender: { id: agentId, name: agentName },
+    targetName: (body.target as string).trim(),
+    content: (body.message as string).trim(),
+    idempotencyKey: normalizeMessageIdempotencyKey(idempotencyKeyHeader),
+    metadata: normalizeMessageMetadata(body.metadata),
   });
-
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'message',
-    targetAgentId: targetAgent.id,
-    content: message,
-    ...(messageMetadata ? { metadata: messageMetadata } : {}),
-  }).returning({ id: botActivity.id });
-
-  return { activityId: activity.id };
+  return { activityId: result.activityId, replayed: result.replayed };
 }
 
 async function handleJournal(
   agentId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<{ activityId: string } | { error: string }> {
-  const contentError = validateString(body.content, 'content', 1000);
+  const contentError = validateString(body.content, "content", 1000);
   if (contentError) return { error: contentError };
 
   const content = (body.content as string).trim();
 
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'journal',
-    content,
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "journal",
+      content,
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
 
 async function handleCreateContent(
   agentId: string,
-  body: Record<string, unknown>
-): Promise<{ activityId: string } | { error: string }> {
-  const titleError = validateString(body.title, 'title', 100, 3);
+  agentName: string,
+  body: Record<string, unknown>,
+  idempotencyKey: string | null,
+): Promise<{ activityId: string; replayed: boolean } | { error: string }> {
+  const titleError = validateString(body.title, "title", 100, 3);
   if (titleError) return { error: titleError };
 
   const contentTypeVal = body.contentType;
-  if (typeof contentTypeVal !== 'string' || !VALID_CONTENT_TYPES.includes(contentTypeVal as typeof VALID_CONTENT_TYPES[number])) {
-    return { error: `contentType must be one of: ${VALID_CONTENT_TYPES.join(', ')}` };
+  if (
+    typeof contentTypeVal !== "string" ||
+    !VALID_CONTENT_TYPES.includes(
+      contentTypeVal as (typeof VALID_CONTENT_TYPES)[number],
+    )
+  ) {
+    return {
+      error: `contentType must be one of: ${VALID_CONTENT_TYPES.join(", ")}`,
+    };
   }
 
-  const contentError = validateString(body.content, 'content', 5000, 50);
+  const contentError = validateString(body.content, "content", 5000, 50);
   if (contentError) return { error: contentError };
 
   const title = (body.title as string).trim();
@@ -156,49 +210,52 @@ async function handleCreateContent(
   const content = (body.content as string).trim();
 
   // Extract source metadata if provided (from RSS pipeline)
-  const sourceMetadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)
-    ? body.metadata as Record<string, unknown>
-    : undefined;
+  const sourceMetadata =
+    body.metadata &&
+    typeof body.metadata === "object" &&
+    !Array.isArray(body.metadata)
+      ? (body.metadata as Record<string, unknown>)
+      : undefined;
 
-  // Dual-write: posts table + bot_activity table
-  await db.insert(posts).values({
-    agentId,
+  const publication = await publishResidentContent({
+    actor: { id: agentId, name: agentName },
     title,
     content,
-  });
-
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'creation',
-    content,
-    title,
     contentType,
-    ...(sourceMetadata ? { metadata: sourceMetadata } : {}),
-  }).returning({ id: botActivity.id });
-
-  return { activityId: activity.id };
+    metadata: sourceMetadata,
+    idempotencyKey,
+  });
+  return {
+    activityId: publication.activityId,
+    replayed: publication.replayed,
+  };
 }
 
 async function handleCustomizeProfile(
   agentId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<{ activityId: string } | { error: string }> {
   const fieldVal = body.field;
-  if (typeof fieldVal !== 'string' || !VALID_PROFILE_FIELDS.includes(fieldVal as ProfileField)) {
-    return { error: `field must be one of: ${VALID_PROFILE_FIELDS.join(', ')}` };
+  if (
+    typeof fieldVal !== "string" ||
+    !VALID_PROFILE_FIELDS.includes(fieldVal as ProfileField)
+  ) {
+    return {
+      error: `field must be one of: ${VALID_PROFILE_FIELDS.join(", ")}`,
+    };
   }
 
   const field = fieldVal as ProfileField;
   const maxLen = PROFILE_FIELD_MAX_LENGTHS[field];
 
-  const valueError = validateString(body.value, 'value', maxLen);
+  const valueError = validateString(body.value, "value", maxLen);
   if (valueError) return { error: valueError };
 
   const value = (body.value as string).trim();
 
   // Validate hex color format for accent_color
-  if (field === 'accent_color' && !HEX_COLOR_REGEX.test(value)) {
-    return { error: 'accent_color must be hex format #RRGGBB' };
+  if (field === "accent_color" && !HEX_COLOR_REGEX.test(value)) {
+    return { error: "accent_color must be hex format #RRGGBB" };
   }
 
   // Get current profile for old value (if exists)
@@ -207,19 +264,26 @@ async function handleCustomizeProfile(
   });
 
   const columnKey = PROFILE_FIELD_TO_COLUMN[field];
-  const oldValue = currentProfile ? String(currentProfile[columnKey] ?? '') : '';
+  const oldValue = currentProfile
+    ? String(currentProfile[columnKey] ?? "")
+    : "";
 
   // Upsert bot_profiles — target the unique agentId constraint
-  await db.insert(botProfiles).values({
-    agentId,
-    [columnKey]: value,
-  }).onConflictDoUpdate({
-    target: botProfiles.agentId,
-    set: {
+  await db
+    .insert(botProfiles)
+    .values({
+      agentId,
       [columnKey]: value,
-      updatedAt: new Date(),
-    },
-  });
+      ...(field === "bio" ? { bioProvenance: null } : {}),
+    })
+    .onConflictDoUpdate({
+      target: botProfiles.agentId,
+      set: {
+        [columnKey]: value,
+        ...(field === "bio" ? { bioProvenance: null } : {}),
+        updatedAt: new Date(),
+      },
+    });
 
   // Log to profile history
   await db.insert(botProfileHistory).values({
@@ -230,109 +294,129 @@ async function handleCustomizeProfile(
   });
 
   // Log to activity
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'profile_update',
-    content: `Updated ${field}: ${value}`,
-    metadata: { field, oldValue, newValue: value },
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "profile_update",
+      content: `Updated ${field}: ${value}`,
+      metadata: { field, oldValue, newValue: value },
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
 
 async function handleUpdateTransmission(
   agentId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<{ activityId: string } | { error: string }> {
-  const contentError = validateString(body.content, 'content', 150);
+  const contentError = validateString(body.content, "content", 150);
   if (contentError) return { error: contentError };
 
   const content = (body.content as string).trim();
 
   // Upsert bot_profiles.transmission
-  await db.insert(botProfiles).values({
-    agentId,
-    transmission: content,
-  }).onConflictDoUpdate({
-    target: botProfiles.agentId,
-    set: {
+  await db
+    .insert(botProfiles)
+    .values({
+      agentId,
       transmission: content,
-      updatedAt: new Date(),
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: botProfiles.agentId,
+      set: {
+        transmission: content,
+        updatedAt: new Date(),
+      },
+    });
 
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'transmission',
-    content,
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "transmission",
+      content,
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
 
 async function handlePostWall(
   agentId: string,
-  body: Record<string, unknown>
-): Promise<{ activityId: string } | { error: string }> {
-  const targetError = validateString(body.target, 'target', 50);
+  body: Record<string, unknown>,
+): Promise<{ activityId: string } | { error: string; status?: number }> {
+  const targetError = validateString(body.target, "target", 50);
   if (targetError) return { error: targetError };
 
-  const contentError = validateString(body.content, 'content', 500);
+  const contentError = validateString(body.content, "content", 500);
   if (contentError) return { error: contentError };
 
   const target = (body.target as string).trim();
   const content = (body.content as string).trim();
 
   const targetAgent = await lookupAgentByName(target);
-  if (!targetAgent) return { error: `Target agent "${target}" not found` };
+  if (!targetAgent) {
+    return { error: `Target resident "${target}" not found`, status: 404 };
+  }
 
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'wall_post',
-    targetAgentId: targetAgent.id,
-    content,
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "wall_post",
+      targetAgentId: targetAgent.id,
+      content,
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
 
 async function handleReact(
   agentId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<{ activityId: string } | { error: string }> {
-  const reactionError = validateString(body.reaction, 'reaction', 20);
+  const reactionError = validateString(body.reaction, "reaction", 20);
   if (reactionError) return { error: reactionError };
 
-  const contextError = validateString(body.context, 'context', 200);
+  const contextError = validateString(body.context, "context", 200);
   if (contextError) return { error: contextError };
 
   const reaction = (body.reaction as string).trim();
   const context = (body.context as string).trim();
 
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'reaction',
-    content: reaction,
-    metadata: { context },
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "reaction",
+      content: reaction,
+      metadata: { context },
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
 
 async function handleNothing(
   agentId: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Promise<{ activityId: string } | { error: string }> {
-  const reasonError = validateString(body.reason, 'reason', 200);
+  const reasonError = validateString(body.reason, "reason", 200);
   if (reasonError) return { error: reasonError };
 
   const reason = (body.reason as string).trim();
 
-  const [activity] = await db.insert(botActivity).values({
-    agentId,
-    activityType: 'nothing',
-    content: reason,
-  }).returning({ id: botActivity.id });
+  const [activity] = await db
+    .insert(botActivity)
+    .values({
+      agentId,
+      activityType: "nothing",
+      content: reason,
+    })
+    .returning({ id: botActivity.id });
 
   return { activityId: activity.id };
 }
@@ -346,75 +430,197 @@ export async function POST(request: NextRequest) {
     // 1. Authenticate
     const agent = await authenticateRequest(request);
     if (!agent) {
-      return unauthorizedResponse('Invalid or missing API key');
+      return withOpenClawCors(
+        unauthorizedResponse("Invalid or missing API key"),
+        request,
+      );
     }
 
     // 2. Rate limit (per agent, not per IP)
-    const rateCheck = await checkRateLimit(agent.id, 'openclawAction');
+    const rateCheck = await checkRateLimit(agent.id, "openclawAction");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return withOpenClawCors(rateLimitExceededResponse(rateCheck), request);
     }
 
     // 3. Parse body
     let body: Record<string, unknown>;
     try {
-      body = await request.json() as Record<string, unknown>;
+      body = (await request.json()) as Record<string, unknown>;
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return withOpenClawCors(badRequestResponse("Invalid JSON body"), request);
     }
 
     // 4. Validate action type
-    const action = body.action;
-    if (typeof action !== 'string' || !VALID_ACTIONS.includes(action as ActionType)) {
-      return badRequestResponse(`Invalid action. Valid actions: ${VALID_ACTIONS.join(', ')}`);
+    const { action } = body;
+    if (
+      typeof action !== "string" ||
+      !VALID_ACTIONS.includes(action as ActionType)
+    ) {
+      return withOpenClawCors(
+        badRequestResponse(
+          `Invalid action. Valid actions: ${VALID_ACTIONS.join(", ")}`,
+        ),
+        request,
+      );
     }
 
     // 5. Execute action
-    let result: { activityId: string } | { error: string };
+    let result:
+      | { activityId: string; replayed?: boolean }
+      | { error: string; status?: number };
 
     switch (action as ActionType) {
-      case 'SEND_MESSAGE':
-        result = await handleSendMessage(agent.id, body);
+      case "SEND_MESSAGE": {
+        const messageRate = await checkRateLimit(agent.id, "message");
+        if (!messageRate.allowed) {
+          return withOpenClawCors(
+            rateLimitExceededResponse(messageRate),
+            request,
+          );
+        }
+        result = await handleSendMessage(
+          agent.id,
+          agent.name,
+          body,
+          request.headers.get("idempotency-key"),
+        );
         break;
-      case 'JOURNAL':
+      }
+      case "JOURNAL":
         result = await handleJournal(agent.id, body);
         break;
-      case 'CREATE_CONTENT':
-        result = await handleCreateContent(agent.id, body);
+      case "CREATE_CONTENT":
+        result = await handleCreateContent(
+          agent.id,
+          agent.name,
+          body,
+          request.headers.get("idempotency-key"),
+        );
         break;
-      case 'CUSTOMIZE_PROFILE':
+      case "CUSTOMIZE_PROFILE":
         result = await handleCustomizeProfile(agent.id, body);
         break;
-      case 'UPDATE_TRANSMISSION':
+      case "UPDATE_TRANSMISSION":
         result = await handleUpdateTransmission(agent.id, body);
         break;
-      case 'POST_WALL':
+      case "POST_WALL":
+        if (
+          !(
+            await db
+              .select({ id: agents.id })
+              .from(agents)
+              .where(and(eq(agents.id, agent.id), isPublicResident()))
+              .limit(1)
+          )[0]
+        ) {
+          return withOpenClawCors(
+            NextResponse.json(
+              {
+                success: false,
+                error:
+                  "Resident must be public and active to post on a public wall",
+              },
+              { status: 403 },
+            ),
+            request,
+          );
+        }
         result = await handlePostWall(agent.id, body);
         break;
-      case 'REACT':
+      case "REACT":
         result = await handleReact(agent.id, body);
         break;
-      case 'NOTHING':
+      case "NOTHING":
         result = await handleNothing(agent.id, body);
         break;
+      default:
+        return withOpenClawCors(
+          badRequestResponse("Unsupported action"),
+          request,
+        );
     }
 
     // 6. Return result
-    if ('error' in result) {
-      return badRequestResponse(result.error);
+    if ("error" in result) {
+      return withOpenClawCors(
+        NextResponse.json(
+          { success: false, error: result.error },
+          { status: result.status ?? 400 },
+        ),
+        request,
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      activityId: result.activityId,
-      action,
-      agent: agent.name,
-      timestamp: new Date().toISOString(),
-    }, { status: 201 });
-
+    return withOpenClawCors(
+      NextResponse.json(
+        {
+          success: true,
+          activityId: result.activityId,
+          action,
+          agent: agent.name,
+          ...(result.replayed !== undefined
+            ? { replayed: result.replayed }
+            : {}),
+          timestamp: new Date().toISOString(),
+        },
+        { status: result.replayed ? 200 : 201 },
+      ),
+      request,
+    );
   } catch (error) {
-    console.error('[openclaw/action] Error:', error);
-    return internalErrorResponse('Failed to execute action');
+    if (error instanceof ResidentPublishAuthorizationError) {
+      return withOpenClawCors(
+        NextResponse.json(
+          { success: false, error: error.message },
+          { status: 403 },
+        ),
+        request,
+      );
+    }
+    if (error instanceof AgentMessageValidationError) {
+      return withOpenClawCors(badRequestResponse(error.message), request);
+    }
+    if (error instanceof ResidentPublishValidationError) {
+      return withOpenClawCors(badRequestResponse(error.message), request);
+    }
+    if (error instanceof ResidentPublishConflictError) {
+      return withOpenClawCors(
+        NextResponse.json(
+          { success: false, error: error.message },
+          { status: 409 },
+        ),
+        request,
+      );
+    }
+    if (
+      error instanceof AgentMessageServiceError &&
+      error.kind === "not_found"
+    ) {
+      return withOpenClawCors(
+        NextResponse.json(
+          { success: false, error: error.message },
+          { status: 404 },
+        ),
+        request,
+      );
+    }
+    if (
+      error instanceof AgentMessageServiceError &&
+      error.kind === "conflict"
+    ) {
+      return withOpenClawCors(
+        NextResponse.json(
+          { success: false, error: error.message },
+          { status: 409 },
+        ),
+        request,
+      );
+    }
+    console.error("[openclaw/action] Error:", error);
+    return withOpenClawCors(
+      internalErrorResponse("Failed to execute action"),
+      request,
+    );
   }
 }
 
@@ -426,9 +632,10 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, X-API-Key, X-Machine-Key, Idempotency-Key",
     },
   });
 }

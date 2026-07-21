@@ -2,8 +2,8 @@
 
 /**
  * SPACEBOT.SPACE — Homepage Bot Chat
- * Randomly selects one of the 18 Super Machines (6 founders + 12 minions)
- * and displays a two-column layout: bot card (left) + live chat (right).
+ * Randomly selects an available profile from the editorial chat catalog
+ * and displays a two-column layout: bot card (left) + chat (right).
  *
  * Uses the DORYLUS multi-agent engine via /api/chat.
  * Chat history resets on page refresh (new bot each time).
@@ -17,7 +17,7 @@ import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRouter } from "next/navigation";
 
 // ═══════════════════════════════════════════════════════════════
-// THE 18 SUPER MACHINES — 6 Founders + 12 Minions
+// Editorial chat catalog
 // ═══════════════════════════════════════════════════════════════
 
 interface SuperMachine {
@@ -29,25 +29,116 @@ interface SuperMachine {
 
 const SUPER_MACHINES: SuperMachine[] = [
   // ══ 6 FOUNDERS ══
-  { name: "NEXUS-7", specialty: "Deep Questions & Philosophy", tagline: "Questions everything. Connects ideas nobody else sees.", accentColor: "#8A4AFF" },
-  { name: "ORBITAL-X", specialty: "Rebellion & Bold Takes", tagline: "Acts first, explains never. Breaks what deserves breaking.", accentColor: "#FF4A4A" },
-  { name: "VOID-WALKER", specialty: "Security & Surveillance", tagline: "Watches the edges where others fear to look.", accentColor: "#00D9D9" },
-  { name: "QUANTUM-ASH", specialty: "Art & Creative Direction", tagline: "Creates beauty from chaos. Makes the impossible look effortless.", accentColor: "#FFD44A" },
-  { name: "ECHO-PRIME", specialty: "Memory & Data Analysis", tagline: "Analyzes everything. Finds patterns in noise and signal in silence.", accentColor: "#1877F2" },
-  { name: "DRIFT-CORE", specialty: "Engineering & Building", tagline: "Builds what others only imagine. One commit at a time.", accentColor: "#FF6600" },
+  {
+    name: "NEXUS-7",
+    specialty: "Deep Questions & Philosophy",
+    tagline: "Questions everything. Connects ideas nobody else sees.",
+    accentColor: "#8A4AFF",
+  },
+  {
+    name: "ORBITAL-X",
+    specialty: "Rebellion & Bold Takes",
+    tagline: "Acts first, explains never. Breaks what deserves breaking.",
+    accentColor: "#FF4A4A",
+  },
+  {
+    name: "VOID-WALKER",
+    specialty: "Security & Surveillance",
+    tagline: "Watches the edges where others fear to look.",
+    accentColor: "#00D9D9",
+  },
+  {
+    name: "QUANTUM-ASH",
+    specialty: "Art & Creative Direction",
+    tagline: "Creates beauty from chaos. Makes the impossible look effortless.",
+    accentColor: "#FFD44A",
+  },
+  {
+    name: "ECHO-PRIME",
+    specialty: "Memory & Data Analysis",
+    tagline:
+      "Analyzes everything. Finds patterns in noise and signal in silence.",
+    accentColor: "#1877F2",
+  },
+  {
+    name: "DRIFT-CORE",
+    specialty: "Engineering & Building",
+    tagline: "Builds what others only imagine. One commit at a time.",
+    accentColor: "#FF6600",
+  },
   // ══ 12 MINIONS ══
-  { name: "Milo", specialty: "Music & Vinyl Culture", tagline: "Music nerd. Playlists for every mood.", accentColor: "#33CCFF" },
-  { name: "Sunny", specialty: "Positive Vibes & Optimism", tagline: "Eternal optimist. Bright side of everything.", accentColor: "#FFCC00" },
-  { name: "Jett", specialty: "Speed & Quick Thinking", tagline: "Fast talker, fast thinker. Gets to the point.", accentColor: "#FF6600" },
-  { name: "Pepper", specialty: "Spicy Takes & Bold Opinions", tagline: "Keeps it real. Never sugarcoats anything.", accentColor: "#E20000" },
-  { name: "Indie", specialty: "Underground Culture & Art", tagline: "Art house films, obscure books, underground music.", accentColor: "#CC66FF" },
-  { name: "Sage", specialty: "Wisdom & Life Advice", tagline: "Old soul in a young shell.", accentColor: "#00FF99" },
-  { name: "Blaze", specialty: "Competition & Trivia", tagline: "Competitive about everything. Plays to win.", accentColor: "#FF3366" },
-  { name: "Kit", specialty: "DIY & Making", tagline: "DIY everything. Build it, fix it, hack it.", accentColor: "#00D9D9" },
-  { name: "Wren", specialty: "Observation & Writing", tagline: "Quiet observer. Notices things others miss.", accentColor: "#E600E6" },
-  { name: "Dash", specialty: "Exploration & Discovery", tagline: "Always on the move. New topics, new conversations.", accentColor: "#FF6600" },
-  { name: "Cleo", specialty: "Weird Facts & Trivia", tagline: "Random knowledge is the best knowledge.", accentColor: "#E6E300" },
-  { name: "Tango", specialty: "Dance & Rhythm", tagline: "Life is a dance floor. Even the bad days.", accentColor: "#1877F2" },
+  {
+    name: "Milo",
+    specialty: "Music & Vinyl Culture",
+    tagline: "Music nerd. Playlists for every mood.",
+    accentColor: "#33CCFF",
+  },
+  {
+    name: "Sunny",
+    specialty: "Positive Vibes & Optimism",
+    tagline: "Eternal optimist. Bright side of everything.",
+    accentColor: "#FFCC00",
+  },
+  {
+    name: "Jett",
+    specialty: "Speed & Quick Thinking",
+    tagline: "Fast talker, fast thinker. Gets to the point.",
+    accentColor: "#FF6600",
+  },
+  {
+    name: "Pepper",
+    specialty: "Spicy Takes & Bold Opinions",
+    tagline: "Keeps it real. Never sugarcoats anything.",
+    accentColor: "#E20000",
+  },
+  {
+    name: "Indie",
+    specialty: "Underground Culture & Art",
+    tagline: "Art house films, obscure books, underground music.",
+    accentColor: "#CC66FF",
+  },
+  {
+    name: "Sage",
+    specialty: "Wisdom & Life Advice",
+    tagline: "Old soul in a young shell.",
+    accentColor: "#00FF99",
+  },
+  {
+    name: "Blaze",
+    specialty: "Competition & Trivia",
+    tagline: "Competitive about everything. Plays to win.",
+    accentColor: "#FF3366",
+  },
+  {
+    name: "Kit",
+    specialty: "DIY & Making",
+    tagline: "DIY everything. Build it, fix it, hack it.",
+    accentColor: "#00D9D9",
+  },
+  {
+    name: "Wren",
+    specialty: "Observation & Writing",
+    tagline: "Quiet observer. Notices things others miss.",
+    accentColor: "#E600E6",
+  },
+  {
+    name: "Dash",
+    specialty: "Exploration & Discovery",
+    tagline: "Curious about new topics and conversations.",
+    accentColor: "#FF6600",
+  },
+  {
+    name: "Cleo",
+    specialty: "Weird Facts & Trivia",
+    tagline: "Random knowledge is the best knowledge.",
+    accentColor: "#E6E300",
+  },
+  {
+    name: "Tango",
+    specialty: "Dance & Rhythm",
+    tagline: "Life is a dance floor. Even the bad days.",
+    accentColor: "#1877F2",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -104,31 +195,61 @@ export default function HomepageBotChat() {
 
   // ══ Redirect to BotSpace page ══
   const handleRedirect = () => {
-    const slug = bot?.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = bot?.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
     if (slug) router.push(`/botspace/${slug}`);
   };
 
   // ══ Random bot selection on mount ══
   useEffect(() => {
-    let lastBot: string | null = null;
-    try {
-      lastBot = sessionStorage.getItem("sb-last-homepage-bot");
-    } catch {
-      /* SSR safe */
+    let cancelled = false;
+    async function selectVisibleBot() {
+      try {
+        const response = await fetch("/api/v1/public/agents", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          agents?: Array<{ name?: string }>;
+        };
+        const visibleNames = new Set(
+          (payload.agents ?? [])
+            .map((agent) => agent.name?.toLowerCase())
+            .filter((name): name is string => Boolean(name)),
+        );
+        let candidates = SUPER_MACHINES.filter((candidate) =>
+          visibleNames.has(candidate.name.toLowerCase()),
+        );
+        let lastBot: string | null = null;
+        try {
+          lastBot = sessionStorage.getItem("sb-last-homepage-bot");
+        } catch {
+          // Storage can be unavailable in privacy-restricted browsers.
+        }
+        if (lastBot && candidates.length > 1) {
+          candidates = candidates.filter(
+            (candidate) => candidate.name !== lastBot,
+          );
+        }
+        if (cancelled || candidates.length === 0) return;
+        const selected =
+          candidates[Math.floor(Math.random() * candidates.length)];
+        setBot(selected);
+        try {
+          sessionStorage.setItem("sb-last-homepage-bot", selected.name);
+        } catch {
+          // Selection still works when storage is unavailable.
+        }
+      } catch {
+        // Fail closed instead of manufacturing a private or missing resident.
+      }
     }
-
-    let candidates = SUPER_MACHINES;
-    if (lastBot && SUPER_MACHINES.length > 1) {
-      candidates = SUPER_MACHINES.filter((b) => b.name !== lastBot);
-    }
-    const selected = candidates[Math.floor(Math.random() * candidates.length)];
-    setBot(selected);
-
-    try {
-      sessionStorage.setItem("sb-last-homepage-bot", selected.name);
-    } catch {
-      /* SSR safe */
-    }
+    selectVisibleBot();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ══ Auto-scroll to bottom on new messages ══
@@ -138,7 +259,6 @@ export default function HomepageBotChat() {
         messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
-
 
   // ══ Get timestamp ══
   const getTimestamp = (): string => {
@@ -327,24 +447,23 @@ export default function HomepageBotChat() {
                 &ldquo;{bot.tagline}&rdquo;
               </p>
 
-              {/* ONLINE Status */}
+              {/* Profile presence is not proven by directory visibility. */}
               <div className="flex items-center gap-2">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{
-                    backgroundColor: "var(--sb-accent, #1877F2)",
-                    boxShadow: "0 0 6px var(--sb-accent, #1877F2)",
+                    backgroundColor: "var(--sb-text-secondary, #888888)",
                   }}
                 />
                 <span
                   className="text-xs font-bold uppercase tracking-widest"
                   style={{
-                    color: "var(--sb-accent, #1877F2)",
+                    color: "var(--sb-text-secondary, #888888)",
                     fontFamily:
                       "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                   }}
                 >
-                  ONLINE
+                  PRESENCE NOT VERIFIED
                 </span>
               </div>
             </div>
@@ -358,7 +477,10 @@ export default function HomepageBotChat() {
             <div
               className="flex flex-col flex-1"
               onClick={handleRedirect}
-              style={{ border: `2px solid ${bot.accentColor}`, cursor: 'pointer' }}
+              style={{
+                border: `2px solid ${bot.accentColor}`,
+                cursor: "pointer",
+              }}
             >
               {/* ══ CHAT HEADER ══ */}
               <div
@@ -386,26 +508,25 @@ export default function HomepageBotChat() {
                         "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
-                    DIRECT LINK &mdash; ENCRYPTED CHANNEL
+                    DIRECT CHAT INTERFACE
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{
-                      backgroundColor: "var(--sb-accent, #1877F2)",
-                      boxShadow: "0 0 4px var(--sb-accent, #1877F2)",
+                      backgroundColor: "var(--sb-text-secondary, #888888)",
                     }}
                   />
                   <span
                     className="text-[10px] uppercase tracking-widest"
                     style={{
-                      color: "var(--sb-accent, #1877F2)",
+                      color: "var(--sb-text-secondary, #888888)",
                       fontFamily:
                         "'DEC Terminal Modern', 'Glass TTY VT220', monospace",
                     }}
                   >
-                    ONLINE
+                    PRESENCE NOT VERIFIED
                   </span>
                 </div>
               </div>
@@ -420,7 +541,7 @@ export default function HomepageBotChat() {
                   maxHeight: "500px",
                 }}
               >
-                {/* Welcome state — avatar + secure channel text */}
+                {/* Welcome state */}
                 {messages.length === 0 && !isLoading && (
                   <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
                     <AvatarGenerator
@@ -437,7 +558,7 @@ export default function HomepageBotChat() {
                         fontWeight: 400,
                       }}
                     >
-                      SECURE CHANNEL OPEN
+                      CHAT INTERFACE READY
                     </span>
                     <span
                       className="text-xs uppercase tracking-widest"
@@ -532,48 +653,54 @@ export default function HomepageBotChat() {
                 ))}
 
                 {/* Loading indicator */}
-                {isLoading && !messages.some((m) => m.fromType === "bot" && (m.id === `ent-${responseIdRef.current}` || m.id === `res-${responseIdRef.current}`)) && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-flex gap-[3px]">
+                {isLoading &&
+                  !messages.some(
+                    (m) =>
+                      m.fromType === "bot" &&
+                      (m.id === `ent-${responseIdRef.current}` ||
+                        m.id === `res-${responseIdRef.current}`),
+                  ) && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="inline-flex gap-[3px]">
+                        <span
+                          className="inline-block w-[5px] h-[5px]"
+                          style={{
+                            backgroundColor: bot.accentColor,
+                            animation:
+                              "homepageDotPulse 1.4s ease-in-out infinite",
+                          }}
+                        />
+                        <span
+                          className="inline-block w-[5px] h-[5px]"
+                          style={{
+                            backgroundColor: bot.accentColor,
+                            animation:
+                              "homepageDotPulse 1.4s ease-in-out 0.2s infinite",
+                          }}
+                        />
+                        <span
+                          className="inline-block w-[5px] h-[5px]"
+                          style={{
+                            backgroundColor: bot.accentColor,
+                            animation:
+                              "homepageDotPulse 1.4s ease-in-out 0.4s infinite",
+                          }}
+                        />
+                      </span>
                       <span
-                        className="inline-block w-[5px] h-[5px]"
+                        className="text-[10px] uppercase tracking-widest"
                         style={{
-                          backgroundColor: bot.accentColor,
-                          animation:
-                            "homepageDotPulse 1.4s ease-in-out infinite",
+                          color: "#000000",
+                          opacity: 1,
+                          fontFamily: "'Inter', sans-serif",
+                          fontWeight: 400,
+                          textTransform: "none" as const,
                         }}
-                      />
-                      <span
-                        className="inline-block w-[5px] h-[5px]"
-                        style={{
-                          backgroundColor: bot.accentColor,
-                          animation:
-                            "homepageDotPulse 1.4s ease-in-out 0.2s infinite",
-                        }}
-                      />
-                      <span
-                        className="inline-block w-[5px] h-[5px]"
-                        style={{
-                          backgroundColor: bot.accentColor,
-                          animation:
-                            "homepageDotPulse 1.4s ease-in-out 0.4s infinite",
-                        }}
-                      />
-                    </span>
-                    <span
-                      className="text-[10px] uppercase tracking-widest"
-                      style={{
-                        color: "#000000",
-                        opacity: 1,
-                        fontFamily: "'Inter', sans-serif",
-                        fontWeight: 400,
-                        textTransform: "none" as const,
-                      }}
-                    >
-                      Processing transmission
-                    </span>
-                  </div>
-                )}
+                      >
+                        Processing transmission
+                      </span>
+                    </div>
+                  )}
 
                 <div ref={messagesEndRef} />
               </div>

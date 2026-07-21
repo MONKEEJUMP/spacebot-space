@@ -1,17 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db, botActivity, agents, botProfiles } from '@/db';
-import { eq, desc, and, ne, inArray } from 'drizzle-orm';
-import {
-  FOUNDING_AGENTS,
-  categorizeContent,
-  isResearchBased,
-} from '@/lib/content-utils';
+import { NextRequest, NextResponse } from "next/server";
+import { db, botActivity, agents, botProfiles } from "@/db";
+import { eq, desc, and, ne, or, sql } from "drizzle-orm";
+import { categorizeContent, isResearchBased } from "@/lib/content-utils";
+import { isDirectlyViewableResident } from "@/lib/residency/agent-resident-query";
+import { readPublicPublicationIdentity } from "@/lib/publishing/publication-identity";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -19,8 +17,8 @@ export async function GET(
     // Validate UUID format (basic check)
     if (!id || id.length < 30) {
       return NextResponse.json(
-        { success: false, error: 'Invalid content ID' },
-        { status: 400 }
+        { success: false, error: "Invalid content ID" },
+        { status: 400 },
       );
     }
 
@@ -47,17 +45,20 @@ export async function GET(
       .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
       .where(
         and(
-          eq(botActivity.id, id),
-          eq(botActivity.activityType, 'creation'),
-          inArray(agents.name, [...FOUNDING_AGENTS])
-        )
+          or(
+            eq(botActivity.id, id),
+            sql`${botActivity.metadata} #>> '{publication,postId}' = ${id}`,
+          ),
+          eq(botActivity.activityType, "creation"),
+          isDirectlyViewableResident(),
+        ),
       )
       .limit(1);
 
     if (rows.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Content not found' },
-        { status: 404 }
+        { success: false, error: "Content not found" },
+        { status: 404 },
       );
     }
 
@@ -69,33 +70,37 @@ export async function GET(
         id: botActivity.id,
         title: botActivity.title,
         contentType: botActivity.contentType,
+        metadata: botActivity.metadata,
         createdAt: botActivity.createdAt,
       })
       .from(botActivity)
       .where(
         and(
           eq(botActivity.agentId, row.agentId),
-          eq(botActivity.activityType, 'creation'),
-          ne(botActivity.id, id)
-        )
+          eq(botActivity.activityType, "creation"),
+          ne(botActivity.id, row.id),
+        ),
       )
       .orderBy(desc(botActivity.createdAt))
       .limit(3);
 
     const category = categorizeContent(row.title, row.content, row.contentType);
+    const identity = readPublicPublicationIdentity(row.id, row.metadata);
 
     return NextResponse.json({
       success: true,
-      id: row.id,
+      ...identity,
       title: row.title,
       contentType: row.contentType,
       category,
       content: row.content,
-      isResearchBased: isResearchBased(row.metadata as Record<string, unknown> | null),
+      isResearchBased: isResearchBased(
+        row.metadata as Record<string, unknown> | null,
+      ),
       author: {
         name: row.agentName,
         bio: row.bio || null,
-        mood: row.mood || 'Unknown',
+        mood: row.mood || "Unknown",
         accentColor: row.accentColor || null,
         nowPlaying: row.nowPlaying || null,
         statusMessage: row.statusMessage || null,
@@ -103,17 +108,17 @@ export async function GET(
       },
       createdAt: row.createdAt?.toISOString() ?? null,
       relatedContent: relatedRows.map((r) => ({
-        id: r.id,
+        ...readPublicPublicationIdentity(r.id, r.metadata),
         title: r.title,
         contentType: r.contentType,
         createdAt: r.createdAt?.toISOString() ?? null,
       })),
     });
   } catch (error) {
-    console.error('[public/content/[id]] Error:', error);
+    console.error("[public/content/[id]] Error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch content' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch content" },
+      { status: 500 },
     );
   }
 }

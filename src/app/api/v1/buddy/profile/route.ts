@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDynamicCorsOrigin } from '@/lib/security/cors';
 import { db, humans, humanProfiles, botActivity } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import {
   validateBuddyToken,
   forbiddenResponse,
@@ -58,7 +58,10 @@ export async function GET(request: NextRequest) {
         createdAt: botActivity.createdAt,
       })
       .from(botActivity)
-      .where(eq(botActivity.activityType, 'buddy_wall_post'))
+      .where(and(
+        eq(botActivity.activityType, 'buddy_wall_post'),
+        sql`${botActivity.metadata} ->> 'user_id' = ${buddy.user_id}`,
+      ))
       .orderBy(desc(botActivity.createdAt))
       .limit(10);
 

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import AvatarGenerator from '@/components/avatar/AvatarGenerator';
-import type { CustomAvatarConfig } from '@/components/avatar/avatarConfig';
-import { HUMAN_COLORS } from '@/components/avatar/avatarConfig';
-import { useUser } from '@clerk/nextjs';
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import AvatarGenerator from "@/components/avatar/AvatarGenerator";
+import type { CustomAvatarConfig } from "@/components/avatar/avatarConfig";
+import { HUMAN_COLORS } from "@/components/avatar/avatarConfig";
+import { useUser } from "@clerk/nextjs";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES
@@ -38,7 +38,6 @@ interface TransmissionsWallProps {
   username: string;
   isOwner: boolean;
   isSignedIn: boolean;
-  ownerClerkId?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -50,7 +49,7 @@ function timeAgo(dateStr: string): string {
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'just now';
+  if (diffMins < 1) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
@@ -59,7 +58,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
-  let resolvedColor = '#7B33FF';
+  let resolvedColor = "#7B33FF";
   if (raw.customHex && /^#[0-9A-Fa-f]{6}$/.test(raw.customHex)) {
     resolvedColor = raw.customHex;
   } else if (raw.colorIndex !== undefined && raw.colorIndex !== null) {
@@ -67,14 +66,14 @@ function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
     if (palette) resolvedColor = palette.primary;
   }
   return {
-    bodyType: raw.bodyType || 'box',
-    eyeType: raw.eyeType || 'round_wide',
-    mouthType: raw.mouthType || 'data_display',
+    bodyType: raw.bodyType || "box",
+    eyeType: raw.eyeType || "round_wide",
+    mouthType: raw.mouthType || "data_display",
     colorPrimary: resolvedColor,
-    colorDark: '#1A1A1A',
-    colorLight: '#FFFFFF',
+    colorDark: "#1A1A1A",
+    colorLight: "#FFFFFF",
     accessories: raw.selectedAccessories || [],
-    animationType: raw.animationType || 'drift',
+    animationType: raw.animationType || "drift",
     showOverlay: true,
   };
 }
@@ -87,7 +86,6 @@ export default function TransmissionsWall({
   username,
   isOwner,
   isSignedIn,
-  ownerClerkId,
 }: TransmissionsWallProps) {
   const [transmissions, setTransmissions] = useState<Transmission[]>([]);
   const [total, setTotal] = useState(0);
@@ -95,33 +93,45 @@ export default function TransmissionsWall({
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
-  const [newContent, setNewContent] = useState('');
+  const [newContent, setNewContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState('');
+  const [editContent, setEditContent] = useState("");
   const { user } = useUser();
   const currentUserId = user?.id || null;
 
-  const fetchTransmissions = useCallback(async (pageNum: number, append = false) => {
-    try {
-      const res = await fetch(`/api/v1/humans/${encodeURIComponent(username)}/wall?page=${pageNum}`);
-      const json = await res.json();
-      if (json.success) {
-        if (append) {
-          setTransmissions((prev) => [...prev, ...json.transmissions]);
-        } else {
-          setTransmissions(json.transmissions);
+  const fetchTransmissions = useCallback(
+    async (pageNum: number, append = false) => {
+      try {
+        const res = await fetch(
+          `/api/v1/humans/${encodeURIComponent(username)}/wall?page=${pageNum}`,
+        );
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Failed to load transmissions.");
         }
-        setTotal(json.total);
-        setHasMore(json.hasMore);
+        if (json.success) {
+          if (append) {
+            setTransmissions((prev) => [...prev, ...json.transmissions]);
+          } else {
+            setTransmissions(json.transmissions);
+          }
+          setTotal(json.total);
+          setHasMore(json.hasMore);
+        }
+      } catch (fetchError) {
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Failed to load transmissions.",
+        );
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      // Silent fail
-    } finally {
-      setLoading(false);
-    }
-  }, [username]);
+    },
+    [username],
+  );
 
   useEffect(() => {
     fetchTransmissions(1);
@@ -132,58 +142,50 @@ export default function TransmissionsWall({
     setPosting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/v1/humans/${encodeURIComponent(username)}/wall`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newContent.trim() }),
-      });
+      const res = await fetch(
+        `/api/v1/humans/${encodeURIComponent(username)}/wall`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: newContent.trim() }),
+        },
+      );
       const json = await res.json();
       if (!res.ok || !json.success) {
-        if (res.status === 403) {
+        if (json.code === "POST_NOT_ALLOWED") {
           setIsBlocked(true);
         }
-        setError(json.error || 'Failed to post.');
+        setError(json.error || "Failed to post.");
         return;
       }
-      setNewContent('');
+      setNewContent("");
       // Refetch to get enriched data
       fetchTransmissions(1);
     } catch {
-      setError('Connection failed.');
+      setError("Connection failed.");
     } finally {
       setPosting(false);
     }
   };
 
   const handleDelete = async (transmissionId: string) => {
+    setError(null);
     try {
       const res = await fetch(
         `/api/v1/humans/${encodeURIComponent(username)}/wall/${transmissionId}`,
-        { method: 'DELETE' }
+        {
+          method: "DELETE",
+        },
       );
-      if (res.ok) {
-        setTransmissions((prev) => prev.filter((t) => t.id !== transmissionId));
-        setTotal((prev) => prev - 1);
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || "Failed to delete.");
+        return;
       }
+      setTransmissions((prev) => prev.filter((t) => t.id !== transmissionId));
+      setTotal((prev) => Math.max(0, prev - 1));
     } catch {
-      // Silent fail
-    }
-  };
-
-  const handleFlag = async (transmissionId: string) => {
-    // Flag sets isHidden=true via the same delete mechanism
-    // For MVP, flagging removes from view immediately
-    try {
-      const res = await fetch(
-        `/api/v1/humans/${encodeURIComponent(username)}/wall/${transmissionId}`,
-        { method: 'DELETE' }
-      );
-      if (res.ok) {
-        setTransmissions((prev) => prev.filter((t) => t.id !== transmissionId));
-        setTotal((prev) => prev - 1);
-      }
-    } catch {
-      // Silent
+      setError("Connection failed.");
     }
   };
 
@@ -194,7 +196,7 @@ export default function TransmissionsWall({
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditContent('');
+    setEditContent("");
   };
 
   const handleSaveEdit = async (transmissionId: string) => {
@@ -203,27 +205,31 @@ export default function TransmissionsWall({
       const res = await fetch(
         `/api/v1/humans/${encodeURIComponent(username)}/wall/${transmissionId}`,
         {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: editContent.trim() }),
-        }
+        },
       );
       const json = await res.json();
       if (res.ok && json.success) {
         setTransmissions((prev) =>
           prev.map((t) =>
             t.id === transmissionId
-              ? { ...t, content: json.transmission.content, edited_at: json.transmission.edited_at }
-              : t
-          )
+              ? {
+                  ...t,
+                  content: json.transmission.content,
+                  edited_at: json.transmission.edited_at,
+                }
+              : t,
+          ),
         );
         setEditingId(null);
-        setEditContent('');
+        setEditContent("");
       } else {
-        setError(json.error || 'Failed to edit.');
+        setError(json.error || "Failed to edit.");
       }
     } catch {
-      setError('Connection failed.');
+      setError("Connection failed.");
     }
   };
 
@@ -235,8 +241,13 @@ export default function TransmissionsWall({
 
   if (loading) {
     return (
-      <div className="border p-4" style={{ borderColor: 'var(--profile-border)' }}>
-        <div className="text-xs text-[#767676] animate-pulse">LOADING TRANSMISSIONS...</div>
+      <div
+        className="border p-4"
+        style={{ borderColor: "var(--profile-border)" }}
+      >
+        <div className="text-xs text-[#767676] animate-pulse">
+          LOADING TRANSMISSIONS...
+        </div>
       </div>
     );
   }
@@ -246,12 +257,12 @@ export default function TransmissionsWall({
       {/* Header */}
       <div
         className="border px-3 py-2 flex items-center justify-between"
-        style={{ borderColor: 'var(--profile-border)' }}
+        style={{ borderColor: "var(--profile-border)" }}
       >
         <h2
           className="text-sm font-bold uppercase tracking-wider"
           style={{
-            color: 'var(--profile-accent)',
+            color: "var(--profile-accent)",
             fontFamily: "'Glass TTY VT220', monospace",
           }}
         >
@@ -262,7 +273,7 @@ export default function TransmissionsWall({
 
       <div
         className="border border-t-0 p-3"
-        style={{ borderColor: 'var(--profile-border)' }}
+        style={{ borderColor: "var(--profile-border)" }}
       >
         {/* Input box — only for signed-in, non-blocked users */}
         {isSignedIn && !isBlocked && (
@@ -271,7 +282,7 @@ export default function TransmissionsWall({
               <div className="flex-1 relative">
                 <span
                   className="absolute left-2 top-2 text-sm font-bold select-none"
-                  style={{ color: 'var(--profile-accent)' }}
+                  style={{ color: "var(--profile-accent)" }}
                 >
                   &gt;&gt;
                 </span>
@@ -280,7 +291,7 @@ export default function TransmissionsWall({
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value.slice(0, 500))}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       handlePost();
                     }
@@ -289,22 +300,23 @@ export default function TransmissionsWall({
                   maxLength={500}
                   className="w-full bg-transparent border px-8 py-2 text-sm font-mono focus:outline-none"
                   style={{
-                    borderColor: 'var(--profile-accent)',
-                    color: 'var(--sb-text-primary, #E0E0E0)',
-                    caretColor: 'var(--profile-accent)',
+                    borderColor: "var(--profile-accent)",
+                    color: "var(--sb-text-primary, #E0E0E0)",
+                    caretColor: "var(--profile-accent)",
                   }}
                 />
               </div>
               <button
+                type="button"
                 onClick={handlePost}
                 disabled={posting || !newContent.trim()}
                 className="px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-30"
                 style={{
-                  borderColor: 'var(--profile-accent)',
-                  color: 'var(--profile-accent)',
+                  borderColor: "var(--profile-accent)",
+                  color: "var(--profile-accent)",
                 }}
               >
-                {posting ? '...' : 'SEND'}
+                {posting ? "..." : "SEND"}
               </button>
             </div>
             {newContent.length > 0 && (
@@ -331,16 +343,20 @@ export default function TransmissionsWall({
                 <div
                   key={t.id}
                   className="flex gap-3 border-l-2 pl-3 py-1"
-                  style={{ borderColor: 'var(--profile-accent)' }}
+                  style={{ borderColor: "var(--profile-accent)" }}
                 >
                   {/* Author avatar */}
                   <div className="flex-shrink-0 w-8 h-8">
                     {authorConfig ? (
-                      <AvatarGenerator seed={t.authorId} customConfig={authorConfig} size={32} />
+                      <AvatarGenerator
+                        seed={t.authorId}
+                        customConfig={authorConfig}
+                        size={32}
+                      />
                     ) : (
                       <div
                         className="w-8 h-8 border flex items-center justify-center"
-                        style={{ borderColor: 'var(--profile-border)' }}
+                        style={{ borderColor: "var(--profile-border)" }}
                       >
                         <span className="text-[#767676] text-[8px]">?</span>
                       </div>
@@ -351,9 +367,11 @@ export default function TransmissionsWall({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
-                        href={`/peoplespace/${encodeURIComponent(authorUsername)}`}
+                        href={`/peoplespace/${encodeURIComponent(
+                          authorUsername,
+                        )}`}
                         className="text-xs font-bold hover:underline"
-                        style={{ color: 'var(--profile-accent)' }}
+                        style={{ color: "var(--profile-accent)" }}
                       >
                         {authorUsername}
                       </Link>
@@ -368,32 +386,41 @@ export default function TransmissionsWall({
                       <div className="mt-1">
                         <textarea
                           value={editContent}
-                          onChange={(e) => setEditContent(e.target.value.slice(0, 500))}
+                          onChange={(e) =>
+                            setEditContent(e.target.value.slice(0, 500))
+                          }
                           className="w-full bg-transparent border px-2 py-1 text-sm font-mono focus:outline-none resize-none"
                           style={{
-                            borderColor: 'var(--profile-accent)',
-                            color: 'var(--sb-text-primary, #E0E0E0)',
+                            borderColor: "var(--profile-accent)",
+                            color: "var(--sb-text-primary, #E0E0E0)",
                           }}
                           rows={3}
                           maxLength={500}
                         />
                         <div className="flex items-center gap-2 mt-1">
                           <button
+                            type="button"
                             onClick={() => handleSaveEdit(t.id)}
                             disabled={!editContent.trim()}
                             className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5 disabled:opacity-30"
-                            style={{ borderColor: 'var(--profile-accent)', color: 'var(--profile-accent)' }}
+                            style={{
+                              borderColor: "var(--profile-accent)",
+                              color: "var(--profile-accent)",
+                            }}
                           >
                             SAVE
                           </button>
                           <button
+                            type="button"
                             onClick={handleCancelEdit}
                             className="px-3 py-1 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
-                            style={{ borderColor: '#767676', color: '#767676' }}
+                            style={{ borderColor: "#767676", color: "#767676" }}
                           >
                             CANCEL
                           </button>
-                          <span className="text-xs text-[#767676] ml-auto">{editContent.length}/500</span>
+                          <span className="text-xs text-[#767676] ml-auto">
+                            {editContent.length}/500
+                          </span>
                         </div>
                       </div>
                     ) : (
@@ -405,29 +432,25 @@ export default function TransmissionsWall({
 
                   {/* Actions */}
                   <div className="flex-shrink-0 flex items-start gap-1">
-                    {currentUserId && currentUserId === t.authorId && editingId !== t.id && (
+                    {currentUserId &&
+                      currentUserId === t.authorId &&
+                      editingId !== t.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(t)}
+                          className="text-[#767676] hover:text-[var(--profile-accent)] text-xs transition-colors"
+                          title="Edit"
+                        >
+                          &#9998;
+                        </button>
+                      )}
+                    {(isOwner || currentUserId === t.authorId) && (
                       <button
-                        onClick={() => handleStartEdit(t)}
-                        className="text-[#767676] hover:text-[var(--profile-accent)] text-xs transition-colors"
-                        title="Edit"
-                      >
-                        &#9998;
-                      </button>
-                    )}
-                    {isSignedIn && (
-                      <button
-                        onClick={() => handleFlag(t.id)}
-                        className="text-[#767676] hover:text-[#FF4444] text-xs transition-colors"
-                        title="Report"
-                      >
-                        &#9873;
-                      </button>
-                    )}
-                    {isOwner && (
-                      <button
+                        type="button"
                         onClick={() => handleDelete(t.id)}
                         className="text-[#767676] hover:text-[#FF4444] text-xs transition-colors"
-                        title="Delete"
+                        title="Delete transmission"
+                        aria-label="Delete transmission"
                       >
                         &#10005;
                       </button>
@@ -449,11 +472,12 @@ export default function TransmissionsWall({
         {hasMore && (
           <div className="text-center mt-4">
             <button
+              type="button"
               onClick={handleLoadMore}
               className="px-4 py-2 border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/5"
               style={{
-                borderColor: 'var(--profile-border)',
-                color: 'var(--profile-accent)',
+                borderColor: "var(--profile-border)",
+                color: "var(--profile-accent)",
               }}
             >
               [ LOAD MORE ]

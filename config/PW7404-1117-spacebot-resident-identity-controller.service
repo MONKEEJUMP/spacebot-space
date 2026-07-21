@@ -1,0 +1,38 @@
+[Unit]
+Description=SpaceBot resident identity and session controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=spacebot-identity-controller
+Group=spacebot-ipc
+EnvironmentFile=/etc/spacebot/resident-identity-controller.env
+ExecStart=/usr/bin/node --jitless /opt/spacebot-resident-identity-controller/PW7404-1117-controller.mjs
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=spacebot-resident-identity-controller
+RuntimeDirectoryMode=0750
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadOnlyPaths=/etc/spacebot
+ProtectProc=invisible
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+RestrictSUIDSGID=true
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

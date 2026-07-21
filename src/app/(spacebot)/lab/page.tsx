@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import AvatarGenerator from '@/components/avatar/AvatarGenerator';
-import { LAB_BOTS } from '@/lib/lab/lab-bots';
-import { useSiteTheme } from '@/hooks/useSiteTheme';
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import AvatarGenerator from "@/components/avatar/AvatarGenerator";
+import { LAB_BOTS } from "@/lib/lab/lab-bots";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 
 export default function LabPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const { themeId } = useSiteTheme();
-  const isMyspace = themeId === 'classic-myspace';
+  const isMyspace = themeId === "classic-myspace";
 
   const [shuffledBots, setShuffledBots] = useState([...LAB_BOTS]);
 
@@ -26,7 +26,9 @@ export default function LabPage() {
     if (!searchQuery.trim()) return shuffledBots;
     const q = searchQuery.toLowerCase();
     return shuffledBots.filter(
-      (bot) => bot.name.toLowerCase().includes(q) || bot.subject.toLowerCase().includes(q)
+      (bot) =>
+        bot.name.toLowerCase().includes(q) ||
+        bot.subject.toLowerCase().includes(q),
     );
   }, [searchQuery, shuffledBots]);
 
@@ -38,9 +40,9 @@ export default function LabPage() {
           className="text-sb-accent font-bold text-2xl sm:text-3xl tracking-wide"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
-            textShadow: '0 0 10px rgba(0, 220, 0, 0.3)',
-            lineHeight: '1.2',
-            minHeight: '42px',
+            textShadow: "0 0 10px rgba(0, 220, 0, 0.3)",
+            lineHeight: "1.2",
+            minHeight: "42px",
           }}
         >
           LABSPACE
@@ -56,14 +58,15 @@ export default function LabPage() {
           className="font-bold text-xl tracking-wide"
           style={{
             fontFamily: "'Glass TTY VT220', monospace",
-            color: 'var(--sb-accent)',
-            textShadow: '0 0 10px rgba(var(--sb-accent-rgb, 0, 220, 0), 0.3)',
+            color: "var(--sb-accent)",
+            textShadow: "0 0 10px rgba(var(--sb-accent-rgb, 0, 220, 0), 0.3)",
           }}
         >
           LABBOTS
         </h2>
         <p className="text-sb-text-secondary text-sm mt-1">
-          12 science specialists — pick one and start learning
+          Science conversation profiles. Presence is not verified by this
+          catalog.
         </p>
       </div>
 
@@ -71,11 +74,11 @@ export default function LabPage() {
       <div className="mb-6">
         <div
           className="flex items-center gap-2 border border-sb-border-primary px-3 py-2"
-          style={{ backgroundColor: 'var(--sb-bg-primary)' }}
+          style={{ backgroundColor: "var(--sb-bg-primary)" }}
         >
           <span
             className="text-sm font-bold select-none"
-            style={{ color: 'var(--sb-accent)' }}
+            style={{ color: "var(--sb-accent)" }}
           >
             SEARCH &gt;
           </span>
@@ -85,11 +88,14 @@ export default function LabPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filter by name..."
             className="flex-1 bg-transparent text-sm outline-none font-mono border-none p-0"
-            style={{ color: 'var(--sb-text-primary)', caretColor: 'var(--sb-accent)' }}
+            style={{
+              color: "var(--sb-text-primary)",
+              caretColor: "var(--sb-accent)",
+            }}
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchQuery("")}
               className="text-sb-text-secondary hover:text-sb-text-primary text-xs uppercase tracking-wider"
             >
               [CLEAR]
@@ -97,7 +103,7 @@ export default function LabPage() {
           )}
         </div>
         <div className="text-xs text-sb-text-secondary mt-1 px-1">
-          {filteredBots.length} of {LAB_BOTS.length} bots
+          Showing {filteredBots.length} of {LAB_BOTS.length} catalog profiles
         </div>
       </div>
 
@@ -110,17 +116,23 @@ export default function LabPage() {
               href={`/lab/chat/${bot.slug}`}
               className="block border border-sb-border-primary bg-sb-bg-secondary p-4 transition-colors duration-200"
               style={{
-                borderColor: 'var(--sb-border-primary)',
-                borderLeft: `3px solid ${isMyspace ? '#FF6600' : bot.accentColor}`,
+                borderColor: "var(--sb-border-primary)",
+                borderLeft: `3px solid ${
+                  isMyspace ? "#FF6600" : bot.accentColor
+                }`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = isMyspace ? '#FF6600' : bot.accentColor;
-                e.currentTarget.style.borderLeftWidth = '3px';
+                e.currentTarget.style.borderColor = isMyspace
+                  ? "#FF6600"
+                  : bot.accentColor;
+                e.currentTarget.style.borderLeftWidth = "3px";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--sb-border-primary)';
-                e.currentTarget.style.borderLeftColor = isMyspace ? '#FF6600' : bot.accentColor;
-                e.currentTarget.style.borderLeftWidth = '3px';
+                e.currentTarget.style.borderColor = "var(--sb-border-primary)";
+                e.currentTarget.style.borderLeftColor = isMyspace
+                  ? "#FF6600"
+                  : bot.accentColor;
+                e.currentTarget.style.borderLeftWidth = "3px";
               }}
             >
               <div className="flex gap-4">
@@ -134,12 +146,12 @@ export default function LabPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {/* Row 1: Name + ONLINE badge */}
+                  {/* Row 1: Name + truthful presence label */}
                   <div className="flex items-start justify-between gap-3">
                     <div
                       className="font-bold text-lg"
                       style={{
-                        color: isMyspace ? '#FF6600' : bot.accentColor,
+                        color: isMyspace ? "#FF6600" : bot.accentColor,
                         fontFamily: "'Glass TTY VT220', monospace",
                       }}
                     >
@@ -147,9 +159,9 @@ export default function LabPage() {
                     </div>
                     <span
                       className="text-xs font-bold tracking-widest flex-shrink-0"
-                      style={{ color: '#5200FF' }}
+                      style={{ color: "var(--sb-text-secondary)" }}
                     >
-                      ONLINE
+                      PRESENCE NOT VERIFIED
                     </span>
                   </div>
 
@@ -159,7 +171,10 @@ export default function LabPage() {
                   </div>
 
                   {/* Row 3: Specialty line (like Mood in BotSpace) */}
-                  <div className="mt-2 text-sm" style={{ color: isMyspace ? '#0000FF' : '#E600E6' }}>
+                  <div
+                    className="mt-2 text-sm"
+                    style={{ color: isMyspace ? "#0000FF" : "#E600E6" }}
+                  >
                     Specialty: Science
                   </div>
 
@@ -180,7 +195,9 @@ export default function LabPage() {
       ) : (
         <div className="text-center py-16">
           <p className="text-sb-text-secondary text-sm">
-            {searchQuery ? `No bots found matching "${searchQuery}"` : 'No lab bots available.'}
+            {searchQuery
+              ? `No profiles found matching "${searchQuery}"`
+              : "No lab profiles available."}
           </p>
         </div>
       )}

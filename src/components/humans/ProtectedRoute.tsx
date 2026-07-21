@@ -20,12 +20,14 @@
  */
 
 import { useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
-import { useHumanAuth } from '@/providers/HumanAuthProvider';
+import { useClerkHuman } from '@/hooks/useClerkHuman';
 import { PageSkeleton } from './SkeletonLoader';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactElement;
 }
 
 /**
@@ -42,7 +44,13 @@ interface ProtectedRouteProps {
  * }
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useHumanAuth();
+  const { isLoaded, isSignedIn } = useAuth();
+  const {
+    error: humanError,
+    isRetrying,
+    retry,
+    status: humanStatus,
+  } = useClerkHuman();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -52,18 +60,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // ═══════════════════════════════════════════════════════════════
   useEffect(() => {
     // While loading, do nothing — wait for auth check to complete
-    if (isLoading) {
+    if (!isLoaded) {
       return;
     }
 
     // Auth check complete, user is NOT authenticated
-    if (!isAuthenticated) {
+    if (!isSignedIn) {
       // FLAG 2 FIX: Use replace() not push() — prevents back button issues
       // Include ?redirect= so user returns here after login
       const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
       router.replace(redirectUrl);
     }
-  }, [isLoading, isAuthenticated, pathname, router]);
+  }, [isLoaded, isSignedIn, pathname, router]);
 
   // ═══════════════════════════════════════════════════════════════
   // RENDER — THE ANTI-FLASH PATTERN
@@ -72,18 +80,52 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // ═══════════════════════════════════════════════════════════════
 
   // Still loading — show skeleton
-  if (isLoading) {
+  if (!isLoaded) {
     return <PageSkeleton />;
   }
 
   // Not authenticated — show skeleton while redirect happens
   // CRITICAL: Never show children to unauthenticated users
-  if (!isAuthenticated) {
+  if (!isSignedIn) {
     return <PageSkeleton />;
   }
 
+  if (humanStatus === 'loading') {
+    return <PageSkeleton />;
+  }
+
+  if (humanStatus === 'error') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-human-bg px-4 py-12">
+        <section
+          role="alert"
+          className="w-full max-w-xl border border-sb-status-error bg-human-surface p-8 text-center"
+        >
+          <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-sb-status-error">
+            Account connection interrupted
+          </p>
+          <h1 className="mb-3 text-2xl font-bold text-human-text">
+            We couldn&apos;t load your SpaceBot account
+          </h1>
+          <p className="mb-6 text-human-muted">
+            {humanError || 'The account service did not return your profile.'}
+            {' '}Your account data has not been replaced or reset.
+          </p>
+          <button
+            type="button"
+            onClick={retry}
+            disabled={isRetrying}
+            className="border-2 border-human-accent px-6 py-3 font-semibold text-human-accent transition-colors hover:bg-human-accent hover:text-black disabled:cursor-wait disabled:opacity-60"
+          >
+            {isRetrying ? 'Retrying account connection...' : 'Try loading your account again'}
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   // Authenticated — show the protected content
-  return <>{children}</>;
+  return children;
 }
 
 export default ProtectedRoute;

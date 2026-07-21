@@ -214,7 +214,7 @@ export default function Newsroom({
           borderBottom: '1px solid var(--sb-border-primary)',
         }}
       >
-        {/* Row 1: Back + Title + Online */}
+        {/* Row 1: Back + Title + recent-signal receipt */}
         <div className="flex items-center justify-between mb-2">
           <div>
             <Link
@@ -229,10 +229,10 @@ export default function Newsroom({
           </div>
           <div className="text-right">
             <span className="text-sb-accent text-xs font-mono font-bold tracking-wider">
-              {stats.onlineCount}/6 ONLINE
+              {stats.onlineCount}/{agents.length} RECENT SIGNALS
             </span>
             <p className="text-[9px] font-mono text-sb-text-tertiary mt-0.5">
-              Auto-refreshes every 60s
+              Last-active timestamp within 15m; refreshes every 60s
             </p>
           </div>
         </div>

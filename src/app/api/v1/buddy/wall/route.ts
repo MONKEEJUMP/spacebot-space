@@ -6,8 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, botActivity, agents, humanAgentLinks } from '@/db';
-import { eq } from 'drizzle-orm';
+import { db, botActivity, humanAgentLinks } from '@/db';
+import { and, eq } from 'drizzle-orm';
 import {
   validateBuddyToken,
   forbiddenResponse,
@@ -17,20 +17,15 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-async function resolveAgentId(userId: string, ownerName: string): Promise<string> {
+async function resolveAgentId(userId: string): Promise<string | null> {
   const linked = await db.query.humanAgentLinks.findFirst({
-    where: eq(humanAgentLinks.humanId, userId),
+    where: and(
+      eq(humanAgentLinks.humanId, userId),
+      eq(humanAgentLinks.status, 'active'),
+    ),
     columns: { agentId: true },
   });
-  if (linked) return linked.agentId;
-
-  const ownerAgent = await db.query.agents.findFirst({
-    where: eq(agents.name, ownerName),
-    columns: { id: true },
-  });
-  if (ownerAgent) return ownerAgent.id;
-
-  return '00000000-0000-0000-0000-000000000000';
+  return linked?.agentId ?? null;
 }
 
 export async function POST(request: NextRequest) {
@@ -62,7 +57,10 @@ export async function POST(request: NextRequest) {
       return buddyBadRequest('type must be "text" or "image_url"');
     }
 
-    const agentId = await resolveAgentId(buddy.user_id, buddy.owner);
+    const agentId = await resolveAgentId(buddy.user_id);
+    if (!agentId) {
+      return forbiddenResponse('An active resident linkage is required');
+    }
 
     const [activity] = await db.insert(botActivity).values({
       agentId,

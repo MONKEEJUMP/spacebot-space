@@ -9,28 +9,41 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, comments, agents, votes } from '@/db';
-import { eq, sql, and } from 'drizzle-orm';
-import { requireClerkOrBotAuth, clerkUnauthorizedResponse } from '@/lib/security/clerk-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, posts, comments, agents, votes } from "@/db";
+import { eq, sql, and, or } from "drizzle-orm";
+import {
+  requireClerkOrBotAuth,
+  clerkUnauthorizedResponse,
+} from "@/lib/security/clerk-auth";
 import {
   badRequestResponse,
+  forbiddenResponse,
   notFoundResponse,
   internalErrorResponse,
-} from '@/lib/auth';
+} from "@/lib/auth";
 import {
   checkRateLimit,
   rateLimitExceededResponse,
   getClientIP,
-} from '@/lib/security/rate-limiter';
-import { validateInput, formatValidationErrors, CommentCreateSchema } from '@/lib/security/validation';
-import { logAgentAction, AuditEventType } from '@/lib/security/audit';
-import type { CommentWithReplies } from '@/types';
+} from "@/lib/security/rate-limiter";
+import {
+  validateInput,
+  formatValidationErrors,
+  CommentCreateSchema,
+} from "@/lib/security/validation";
+import { logAgentAction, AuditEventType } from "@/lib/security/audit";
+import type { CommentWithReplies } from "@/types";
+import { readDelegatedAutonomyProvenance } from "@/lib/publishing/publication-identity";
 
-import { getRedisPublisher } from '@/lib/redis';
+import { getRedisPublisher } from "@/lib/redis";
+import {
+  isDirectlyViewableResident,
+  isPublicResident,
+} from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -46,19 +59,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'read');
+    const rateCheck = await checkRateLimit(ip, "read");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
-    // Verify post exists
-    const post = await db.query.posts.findFirst({
-      where: eq(posts.id, postId),
-      columns: { id: true },
-    });
+    const authResult = await requireClerkOrBotAuth(request);
+    const agent = authResult?.type === "bot" ? authResult.agent : null;
+    const postVisibility = agent
+      ? or(isDirectlyViewableResident(), eq(agents.id, agent.id))
+      : isDirectlyViewableResident();
+    const [post] = await db
+      .select({ id: posts.id })
+      .from(posts)
+      .innerJoin(agents, eq(posts.agentId, agents.id))
+      .where(and(eq(posts.id, postId), postVisibility))
+      .limit(1);
 
     if (!post) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
 
     // Get all comments for this post
@@ -69,6 +88,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         agentId: comments.agentId,
         parentId: comments.parentId,
         content: comments.content,
+        metadata: comments.metadata,
         upvotes: comments.upvotes,
         createdAt: comments.createdAt,
         // Agent info
@@ -78,13 +98,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       })
       .from(comments)
       .innerJoin(agents, eq(comments.agentId, agents.id))
-      .where(eq(comments.postId, postId))
+      .where(
+        and(
+          eq(comments.postId, postId),
+          agent
+            ? or(isPublicResident(), eq(agents.id, agent.id))
+            : isPublicResident(),
+        ),
+      )
       .orderBy(comments.createdAt);
 
     // Get user votes if authenticated
-    const authResult = await requireClerkOrBotAuth(request);
-    const agent = authResult?.type === 'bot' ? authResult.agent : null;
-    const userVotes: Map<string, 'up' | 'down'> = new Map();
+    const userVotes: Map<string, "up" | "down"> = new Map();
 
     if (agent && allComments.length > 0) {
       const commentIds = allComments.map((c) => c.id);
@@ -97,13 +122,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .where(
           and(
             eq(votes.agentId, agent.id),
-            sql`${votes.commentId} = ANY(ARRAY[${sql.join(commentIds.map(id => sql`${id}::uuid`), sql`, `)}])`
-          )
+            sql`${votes.commentId} = ANY(ARRAY[${sql.join(
+              commentIds.map((id) => sql`${id}::uuid`),
+              sql`, `,
+            )}])`,
+          ),
         );
 
       for (const v of voteResults) {
         if (v.commentId) {
-          userVotes.set(v.commentId, v.voteType as 'up' | 'down');
+          userVotes.set(v.commentId, v.voteType as "up" | "down");
         }
       }
     }
@@ -120,6 +148,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         agentId: row.agentId,
         parentId: row.parentId,
         content: row.content,
+        metadata: row.metadata,
         upvotes: row.upvotes,
         createdAt: row.createdAt,
         agent: {
@@ -128,6 +157,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           avatarUrl: row.agentAvatar,
           isVerified: row.agentVerified,
         },
+        provenance: readDelegatedAutonomyProvenance(row.metadata),
         replies: [],
         userVote: userVotes.get(row.id) || null,
       };
@@ -160,10 +190,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       comments: rootComments,
       total: allComments.length,
     });
-
   } catch (error) {
-    console.error('Get comments error:', error);
-    return internalErrorResponse('Failed to fetch comments');
+    console.error("Get comments error:", error);
+    return internalErrorResponse("Failed to fetch comments");
   }
 }
 
@@ -177,9 +206,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit (stricter for writes)
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'comment');
+    const rateCheck = await checkRateLimit(ip, "comment");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Authentication required (Clerk session or bot API key)
@@ -187,9 +216,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!authResult) {
       return clerkUnauthorizedResponse();
     }
-    const agent = authResult.type === 'bot' ? authResult.agent : null;
+    const agent = authResult.type === "bot" ? authResult.agent : null;
     if (!agent) {
       return clerkUnauthorizedResponse();
+    }
+    if (agent.moderationStatus !== "active") {
+      return forbiddenResponse("Resident action is not currently authorized");
     }
 
     // Parse and validate body
@@ -197,35 +229,45 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return badRequestResponse("Invalid JSON body");
     }
 
     const validation = validateInput(CommentCreateSchema, body);
     if (!validation.success) {
-      return badRequestResponse('Validation failed', formatValidationErrors(validation.errors));
+      return badRequestResponse(
+        "Validation failed",
+        formatValidationErrors(validation.errors),
+      );
     }
 
-    const { content, parent_id } = validation.data;
+    const { content, parent_id: parentId } = validation.data;
 
     // Verify post exists
-    const post = await db.query.posts.findFirst({
-      where: eq(posts.id, postId),
-      columns: { id: true, commentCount: true },
-    });
+    const [post] = await db
+      .select({ id: posts.id, commentCount: posts.commentCount })
+      .from(posts)
+      .innerJoin(agents, eq(posts.agentId, agents.id))
+      .where(
+        and(
+          eq(posts.id, postId),
+          or(isDirectlyViewableResident(), eq(agents.id, agent.id)),
+        ),
+      )
+      .limit(1);
 
     if (!post) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
 
     // Verify parent comment exists if specified
-    if (parent_id) {
+    if (parentId) {
       const parentComment = await db.query.comments.findFirst({
-        where: and(eq(comments.id, parent_id), eq(comments.postId, postId)),
+        where: and(eq(comments.id, parentId), eq(comments.postId, postId)),
         columns: { id: true },
       });
 
       if (!parentComment) {
-        return badRequestResponse('Parent comment not found');
+        return badRequestResponse("Parent comment not found");
       }
     }
 
@@ -235,7 +277,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .values({
         postId,
         agentId: agent.id,
-        parentId: parent_id || null,
+        parentId: parentId || null,
         content,
       })
       .returning();
@@ -253,22 +295,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     logAgentAction(AuditEventType.COMMENT_CREATED, agent.id, agent.name, ip, {
       postId,
       commentId: newComment.id,
-      isReply: !!parent_id,
+      isReply: !!parentId,
     });
-
 
     // Notify Zeus about new comment
     try {
       const redis = await getRedisPublisher();
-      await redis.publish('zeus:events', JSON.stringify({
-        type: 'new_comment',
-        postId: postId,
-        commenterName: agent?.name || 'unknown',
-        content: content.substring(0, 500),
-        timestamp: new Date().toISOString(),
-      }));
+      await redis.publish(
+        "zeus:events",
+        JSON.stringify({
+          type: "new_comment",
+          postId,
+          commenterName: agent?.name || "unknown",
+          content: content.substring(0, 500),
+          timestamp: new Date().toISOString(),
+        }),
+      );
     } catch (redisErr) {
-      console.error('[comments] Redis publish error:', redisErr);
+      console.error("[comments] Redis publish error:", redisErr);
     }
 
     return NextResponse.json(
@@ -285,14 +329,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           replies: [],
           userVote: null,
         },
-        message: 'Comment created successfully',
+        message: "Comment created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
-
   } catch (error) {
-    console.error('Create comment error:', error);
-    return internalErrorResponse('Failed to create comment');
+    console.error("Create comment error:", error);
+    return internalErrorResponse("Failed to create comment");
   }
 }
 
@@ -304,9 +347,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

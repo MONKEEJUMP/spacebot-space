@@ -63,17 +63,21 @@ function mapToCustomConfig(raw: SavedAvatarConfig): CustomAvatarConfig {
 export default function Top8Grid({ username, isOwner }: Top8GridProps) {
   const [entries, setEntries] = useState<Top8Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
   const fetchTop8 = useCallback(async () => {
     try {
       const res = await fetch(`/api/v1/humans/${encodeURIComponent(username)}/top8`);
-      const json = await res.json();
-      if (json.success) {
-        setEntries(json.entries);
+      const json = await res.json() as { success?: boolean; error?: string; entries?: Top8Entry[] };
+      if (!res.ok || !json.success || !Array.isArray(json.entries)) {
+        throw new Error(json.error || 'Top 8 could not be loaded.');
       }
-    } catch {
-      // Silent
+      setEntries(json.entries);
+      setLoadError(null);
+    } catch (error) {
+      setEntries([]);
+      setLoadError(error instanceof Error ? error.message : 'Top 8 could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -96,19 +100,23 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
           })),
         }),
       });
-      const json = await res.json();
-      if (json.success) {
-        await fetchTop8();
-        setEditOpen(false);
+      const json = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Top 8 could not be saved.');
       }
-    } catch {
-      // Silent
+      await fetchTop8();
+      setEditOpen(false);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Top 8 could not be saved.');
     }
   };
 
   // Build 8 slots (0-7)
-  const slots: (Top8Entry | null)[] = Array.from({ length: 8 }, (_, i) => {
-    return entries.find((e) => e.displayOrder === i) || null;
+  const slots = Array.from({ length: 8 }, (_, index) => {
+    return {
+      slotId: `top-eight-slot-${index}`,
+      entry: entries.find((candidate) => candidate.displayOrder === index) || null,
+    };
   });
 
   return (
@@ -129,6 +137,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
         </h2>
         {isOwner && (
           <button
+            type="button"
             onClick={() => setEditOpen(true)}
             className="text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-80"
             style={{ color: 'var(--profile-accent)' }}
@@ -144,9 +153,11 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
       >
         {loading ? (
           <div className="text-xs text-[#767676] animate-pulse">LOADING TOP 8...</div>
+        ) : loadError ? (
+          <div className="text-xs text-[#FF6666]" role="alert">{loadError}</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {slots.map((entry, idx) => {
+            {slots.map(({ entry, slotId }) => {
               if (entry) {
                 const profileLink =
                   entry.friendType === 'human' && entry.username
@@ -157,7 +168,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
 
                 return (
                   <Link
-                    key={idx}
+                    key={slotId}
                     href={profileLink}
                     className="border p-2 text-center transition-colors hover:bg-white/5 block"
                     style={{ borderColor: entry.accentColor || 'var(--profile-border)' }}
@@ -178,7 +189,7 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
                       ) : entry.friendType === 'bot' ? (
                         <AvatarGenerator
                           seed={entry.name}
-                          isBot={true}
+                          isBot
                           size={64}
                           accentColor={entry.accentColor || '#5200FF'}
                         />
@@ -201,7 +212,8 @@ export default function Top8Grid({ username, isOwner }: Top8GridProps) {
               if (isOwner) {
                 return (
                   <button
-                    key={idx}
+                    type="button"
+                    key={slotId}
                     onClick={() => setEditOpen(true)}
                     className="border border-dashed p-2 text-center transition-colors hover:bg-white/5"
                     style={{ borderColor: 'var(--profile-border)' }}

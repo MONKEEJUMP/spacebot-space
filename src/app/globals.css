@@ -1469,6 +1469,18 @@ article,
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .homepage-ticker-row--news,
+  .homepage-ticker-row--news-secondary {
+    --homepage-ticker-duration: 600s;
+  }
+
+  .homepage-ticker-row--news .homepage-ticker-content,
+  .homepage-ticker-row--news-secondary .homepage-ticker-content {
+    animation-duration: 600s !important;
+  }
+}
+
 /* =========================================================
    CLICK-TO-PAUSE — data attribute driven, no focus trap
    ========================================================= */

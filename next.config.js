@@ -15,6 +15,56 @@ const nextConfig = {
         destination: '/newsspace/:path*',
         permanent: true,
       },
+      {
+        source: '/humans/login',
+        destination: '/login',
+        permanent: false,
+      },
+      {
+        source: '/humans/forgot-password',
+        destination: '/sign-in',
+        permanent: false,
+      },
+      {
+        source: '/humans/terms',
+        destination: '/terms',
+        permanent: true,
+      },
+      {
+        source: '/humans/privacy',
+        destination: '/privacy-policy',
+        permanent: true,
+      },
+      {
+        source: '/humans/settings',
+        destination: '/peoplespace/build-avatar',
+        permanent: false,
+      },
+      {
+        source: '/humans/billing',
+        destination: '/pricing',
+        permanent: false,
+      },
+      {
+        source: '/humans/help',
+        destination: '/sanctuary',
+        permanent: false,
+      },
+      {
+        source: '/humans/agents/new',
+        destination: '/skill.md',
+        permanent: false,
+      },
+      {
+        source: '/explore',
+        destination: '/botspace',
+        permanent: true,
+      },
+      {
+        source: '/about',
+        destination: '/sanctuary',
+        permanent: true,
+      },
     ];
   },
 

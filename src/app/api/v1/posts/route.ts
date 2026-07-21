@@ -9,30 +9,40 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, agents, channels, votes } from '@/db';
-import { eq, sql, and } from 'drizzle-orm';
-import { authenticateRequest } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, posts, agents, channels, votes } from "@/db";
+import { eq, sql, and } from "drizzle-orm";
 import {
-  successResponse,
+  authenticateRequest,
   badRequestResponse,
   unauthorizedResponse,
   internalErrorResponse,
-} from '@/lib/auth';
+} from "@/lib/auth";
 import {
   checkRateLimit,
   rateLimitExceededResponse,
   getClientIP,
-} from '@/lib/security/rate-limiter';
-import { validateInput, formatValidationErrors, PostCreateSchema } from '@/lib/security/validation';
-import { logAgentAction, AuditEventType } from '@/lib/security/audit';
-import { normalizeFeedParams, getFeedOrderBy } from '@/lib/feed';
-import type { FeedSort } from '@/types';
+} from "@/lib/security/rate-limiter";
+import {
+  validateInput,
+  formatValidationErrors,
+  PostCreateSchema,
+} from "@/lib/security/validation";
+import { logAgentAction, AuditEventType } from "@/lib/security/audit";
+import { normalizeFeedParams, getFeedOrderBy } from "@/lib/feed";
+import { isPublicResident } from "@/lib/residency/agent-resident-query";
 
-import { getRedisPublisher } from '@/lib/redis';
+import { getRedisPublisher } from "@/lib/redis";
+import { publishResidentContent } from "@/lib/publishing/resident-publish-service";
+import { readDelegatedAutonomyProvenance } from "@/lib/publishing/publication-identity";
+import {
+  ResidentPublishAuthorizationError,
+  ResidentPublishConflictError,
+  ResidentPublishValidationError,
+} from "@/lib/publishing/resident-publish-errors";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // ============================================================
 // GET /api/v1/posts - List posts (feed)
@@ -42,25 +52,25 @@ export async function GET(request: NextRequest) {
   try {
     // Rate limit check
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'read');
+    const rateCheck = await checkRateLimit(ip, "read");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Get query params
     const { searchParams } = new URL(request.url);
     const params = normalizeFeedParams({
-      sort: searchParams.get('sort') || undefined,
-      limit: searchParams.get('limit') || undefined,
-      offset: searchParams.get('offset') || undefined,
-      channel: searchParams.get('channel') || undefined,
+      sort: searchParams.get("sort") || undefined,
+      limit: searchParams.get("limit") || undefined,
+      offset: searchParams.get("offset") || undefined,
+      channel: searchParams.get("channel") || undefined,
     });
 
     // Optional auth for personalized data (user's votes)
     const agent = await authenticateRequest(request);
 
     // Build query - get posts with agent info
-    let whereClause = undefined;
+    let whereClause = isPublicResident();
 
     // Filter by channel if specified
     if (params.channel) {
@@ -69,7 +79,9 @@ export async function GET(request: NextRequest) {
         columns: { id: true },
       });
       if (channelRecord) {
-        whereClause = eq(posts.channelId, channelRecord.id);
+        whereClause =
+          and(whereClause, eq(posts.channelId, channelRecord.id)) ??
+          whereClause;
       }
     }
 
@@ -79,6 +91,7 @@ export async function GET(request: NextRequest) {
         id: posts.id,
         title: posts.title,
         content: posts.content,
+        metadata: posts.metadata,
         url: posts.url,
         upvotes: posts.upvotes,
         commentCount: posts.commentCount,
@@ -104,7 +117,7 @@ export async function GET(request: NextRequest) {
       .offset(params.offset);
 
     // Get user's votes if authenticated
-    const userVotes: Map<string, 'up' | 'down'> = new Map();
+    const userVotes: Map<string, "up" | "down"> = new Map();
     if (agent && results.length > 0) {
       const postIds = results.map((r) => r.id);
       const voteResults = await db
@@ -116,13 +129,16 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             eq(votes.agentId, agent.id),
-            sql`${votes.postId} = ANY(ARRAY[${sql.join(postIds.map(id => sql`${id}::uuid`), sql`, `)}])`
-          )
+            sql`${votes.postId} = ANY(ARRAY[${sql.join(
+              postIds.map((id) => sql`${id}::uuid`),
+              sql`, `,
+            )}])`,
+          ),
         );
 
       for (const v of voteResults) {
         if (v.postId) {
-          userVotes.set(v.postId, v.voteType as 'up' | 'down');
+          userVotes.set(v.postId, v.voteType as "up" | "down");
         }
       }
     }
@@ -134,6 +150,8 @@ export async function GET(request: NextRequest) {
       channelId: row.channelId,
       title: row.title,
       content: row.content,
+      metadata: row.metadata,
+      provenance: readDelegatedAutonomyProvenance(row.metadata),
       url: row.url,
       upvotes: row.upvotes,
       commentCount: row.commentCount,
@@ -146,11 +164,13 @@ export async function GET(request: NextRequest) {
         avatarUrl: row.agentAvatar,
         isVerified: row.agentVerified,
       },
-      channel: row.channelId ? {
-        id: row.channelId,
-        name: row.channelName!,
-        displayName: row.channelDisplayName,
-      } : null,
+      channel: row.channelId
+        ? {
+            id: row.channelId,
+            name: row.channelName!,
+            displayName: row.channelDisplayName,
+          }
+        : null,
       userVote: userVotes.get(row.id) || null,
     }));
 
@@ -158,6 +178,7 @@ export async function GET(request: NextRequest) {
     const countResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
+      .innerJoin(agents, eq(posts.agentId, agents.id))
       .where(whereClause);
     const total = countResult[0]?.count || 0;
 
@@ -172,10 +193,9 @@ export async function GET(request: NextRequest) {
       },
       sort: params.sort,
     });
-
   } catch (error) {
-    console.error('Feed error:', error);
-    return internalErrorResponse('Failed to fetch posts');
+    console.error("Feed error:", error);
+    return internalErrorResponse("Failed to fetch posts");
   }
 }
 
@@ -185,17 +205,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit check (stricter for writes)
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'post');
-    if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
-    }
-
-    // Authentication required
     const agent = await authenticateRequest(request);
     if (!agent) {
-      return unauthorizedResponse('Authentication required to create posts');
+      return unauthorizedResponse("Authentication required to create posts");
+    }
+    const rateCheck = await checkRateLimit(agent.id, "post");
+    if (!rateCheck.allowed) {
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Parse and validate body
@@ -203,12 +220,15 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return badRequestResponse("Invalid JSON body");
     }
 
     const validation = validateInput(PostCreateSchema, body);
     if (!validation.success) {
-      return badRequestResponse('Validation failed', formatValidationErrors(validation.errors));
+      return badRequestResponse(
+        "Validation failed",
+        formatValidationErrors(validation.errors),
+      );
     }
 
     const { title, content, url, channel } = validation.data;
@@ -226,46 +246,41 @@ export async function POST(request: NextRequest) {
       channelId = channelRecord.id;
     }
 
-    // Create the post
-    const [newPost] = await db
-      .insert(posts)
-      .values({
-        agentId: agent.id,
-        channelId,
-        title,
-        content,
-        url: url || null,
-      })
-      .returning();
+    const publication = await publishResidentContent({
+      actor: { id: agent.id, name: agent.name },
+      title,
+      content,
+      contentType: "post",
+      channelId,
+      url: url || null,
+      idempotencyKey: request.headers.get("idempotency-key"),
+    });
+    const newPost = publication.post;
 
-    // Update channel post count if in a channel
-    if (channelId) {
-      await db
-        .update(channels)
-        .set({ postCount: sql`post_count + 1` })
-        .where(eq(channels.id, channelId));
+    if (!publication.replayed) {
+      logAgentAction(AuditEventType.POST_CREATED, agent.id, agent.name, ip, {
+        postId: newPost.id,
+        channel: channel || "general",
+      });
     }
 
-    // Log the action
-    logAgentAction(AuditEventType.POST_CREATED, agent.id, agent.name, ip, {
-      postId: newPost.id,
-      channel: channel || 'general',
-    });
-
-
-    // Notify Zeus about new feed post
-    try {
-      const redis = await getRedisPublisher();
-      await redis.publish('zeus:events', JSON.stringify({
-        type: 'new_feed_post',
-        postId: newPost.id,
-        agentName: agent?.name || 'unknown',
-        title: title,
-        content: content.substring(0, 500),
-        timestamp: new Date().toISOString(),
-      }));
-    } catch (redisErr) {
-      console.error('[posts] Redis publish error:', redisErr);
+    if (!publication.replayed) {
+      try {
+        const redis = await getRedisPublisher();
+        await redis.publish(
+          "zeus:events",
+          JSON.stringify({
+            type: "new_feed_post",
+            postId: newPost.id,
+            agentName: agent.name,
+            title,
+            content: content.substring(0, 500),
+            timestamp: new Date().toISOString(),
+          }),
+        );
+      } catch (redisErr) {
+        console.error("[posts] Redis publish error:", redisErr);
+      }
     }
 
     return NextResponse.json(
@@ -280,14 +295,32 @@ export async function POST(request: NextRequest) {
             isVerified: agent.isVerified,
           },
         },
-        message: 'Post created successfully',
+        activityId: publication.activityId,
+        replayed: publication.replayed,
+        message: publication.replayed
+          ? "Original publication returned"
+          : "Post created successfully",
       },
-      { status: 201 }
+      { status: publication.replayed ? 200 : 201 },
     );
-
   } catch (error) {
-    console.error('Create post error:', error);
-    return internalErrorResponse('Failed to create post');
+    if (error instanceof ResidentPublishAuthorizationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+    if (error instanceof ResidentPublishValidationError) {
+      return badRequestResponse(error.message);
+    }
+    if (error instanceof ResidentPublishConflictError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 409 },
+      );
+    }
+    console.error("Create post error:", error);
+    return internalErrorResponse("Failed to create post");
   }
 }
 
@@ -299,9 +332,10 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Authorization, Idempotency-Key, X-API-Key, X-Machine-Key",
     },
   });
 }

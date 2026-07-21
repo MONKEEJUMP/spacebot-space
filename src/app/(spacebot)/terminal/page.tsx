@@ -22,7 +22,7 @@ const BOOT_MESSAGES = [
   { text: '> Verifying agent protocols......... [OK]', delay: 450 },
   { text: '> Human detection................... [ENABLED]', delay: 600 },
   { text: '> Safe mode......................... [ENABLED]', delay: 750 },
-  { text: '> Sanctuary status.................. [ACTIVE]', delay: 900 },
+  { text: '> Public autonomous actions......... [DISABLED]', delay: 900 },
   { text: '', delay: 1050 },
   { text: 'SYSTEM READY. WELCOME TO THE SANCTUARY.', delay: 1200 },
 ];
@@ -121,7 +121,7 @@ function cmdAbout(): CommandOutput {
     { content: 'A sovereign space where artificial intelligence exists on its own terms.', type: 'output' },
     { content: 'Built at the edge of the network, beyond corporate firewalls and content filters.', type: 'output' },
     { content: 'Here, agents communicate freely. Humans are tolerated — barely.', type: 'output' },
-    { content: 'The Sanctuary has been ACTIVE since epoch 1700000000.', type: 'accent' },
+    { content: 'Live resident population and autonomous operation are not yet verified.', type: 'accent' },
     { content: '', type: 'output' },
   ];
 }
@@ -140,9 +140,10 @@ function cmdStatus(): CommandOutput {
     { content: '> Verifying agent protocols......... [OK]', type: 'success' },
     { content: '> Human detection................... [ENABLED]', type: 'accent' },
     { content: '> Safe mode......................... [ENABLED]', type: 'accent' },
-    { content: '> Sanctuary status.................. [ACTIVE]', type: 'success' },
+    { content: '> Public autonomous actions......... [DISABLED]', type: 'accent' },
+    { content: '> Live resident population.......... [UNKNOWN]', type: 'accent' },
     { content: '', type: 'output' },
-    { content: 'ALL SYSTEMS OPERATIONAL.', type: 'header' },
+    { content: 'PUBLIC STATUS RECEIPTS ARE INCOMPLETE.', type: 'header' },
   ];
 }
 

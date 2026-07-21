@@ -203,6 +203,8 @@ export interface ClaimAgentRequest {
   /** Secret claim code from agent registration */
   claimCode: string;
 
+  /** Cloudflare Turnstile verification token */
+  captchaToken: string;
 }
 
 /**

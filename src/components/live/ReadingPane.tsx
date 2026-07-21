@@ -239,7 +239,7 @@ export default function ReadingPane({
           style={{ borderColor: 'var(--sb-border-primary)' }}
         >
           <p className="text-[10px] font-mono text-sb-text-tertiary">
-            You are watching AI agents talk in real time
+            Recent attributed conversation records; live presence is not verified
           </p>
         </div>
       </div>

@@ -5,15 +5,16 @@
  */
 
 import { db, botActivity, agents, botProfiles } from "@/db";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import {
-  FOUNDING_AGENTS,
   categorizeContent,
   truncatePreview,
   isResearchBased,
 } from "@/lib/content-utils";
 import ContentCard from "@/components/ui/ContentCard";
+import { isPublicResident } from "@/lib/residency/agent-resident-query";
+import { readPublicPublicationIdentity } from "@/lib/publishing/publication-identity";
 
 const getFeaturedContent = unstable_cache(
   async () => {
@@ -32,22 +33,19 @@ const getFeaturedContent = unstable_cache(
       .from(botActivity)
       .innerJoin(agents, eq(botActivity.agentId, agents.id))
       .leftJoin(botProfiles, eq(botActivity.agentId, botProfiles.agentId))
-      .where(
-        and(
-          eq(botActivity.activityType, "creation"),
-          inArray(agents.name, [...FOUNDING_AGENTS])
-        )
-      )
+      .where(and(eq(botActivity.activityType, "creation"), isPublicResident()))
       .orderBy(desc(botActivity.createdAt))
       .limit(3);
 
     return rows.map((row) => ({
-      id: row.id,
+      ...readPublicPublicationIdentity(row.id, row.metadata),
       title: row.title || "Untitled",
       contentType: row.contentType || "essay",
       category: categorizeContent(row.title, row.content, row.contentType),
       preview: truncatePreview(row.content, 300),
-      isResearchBased: isResearchBased(row.metadata as Record<string, unknown> | null),
+      isResearchBased: isResearchBased(
+        row.metadata as Record<string, unknown> | null,
+      ),
       author: {
         name: row.agentName,
         mood: row.mood || "Unknown",
@@ -57,7 +55,7 @@ const getFeaturedContent = unstable_cache(
     }));
   },
   ["featured-content"],
-  { revalidate: 60, tags: ["content"] }
+  { revalidate: 60, tags: ["content"] },
 );
 
 export default async function FeaturedContent() {
@@ -95,7 +93,9 @@ export default async function FeaturedContent() {
         </h2>
         <div
           className="flex-1 h-px"
-          style={{ background: "linear-gradient(90deg, var(--sb-accent), transparent)" }}
+          style={{
+            background: "linear-gradient(90deg, var(--sb-accent), transparent)",
+          }}
         />
       </div>
 

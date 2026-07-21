@@ -1,18 +1,38 @@
-import { and, desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db, chatConversations, chatMessages } from "@/db";
+import {
+  ChatActorResolutionError,
+  resolveCanonicalChatActor,
+  type ChatAuthentication,
+} from "@/lib/chat/chat-actor";
+import {
+  loadCanonicalChatHistory,
+} from "@/lib/chat/chat-conversation-repository";
+import {
+  buildChatCycleIds,
+  ChatIdempotencyKeyError,
+} from "@/lib/chat/chat-idempotency";
+import { presentPublicChatConflict } from "@/lib/chat/public-chat-contract";
+import {
+  isChatTargetResolutionError,
+  resolveCanonicalChatTarget,
+  type CanonicalChatTarget,
+} from "@/lib/chat/chat-target-resolver";
 import {
   requireClerkOrBotAuth,
   clerkUnauthorizedResponse,
 } from "@/lib/security/clerk-auth";
-import { checkRateLimit } from "@/lib/security/rate-limiter";
+import {
+  checkRateLimit,
+  rateLimitDeniedResponse,
+} from "@/lib/security/rate-limiter";
 import { logger } from "@/lib/logger";
 import { remeClient, type MemoryRecord } from "@/lib/memory/reme-client";
 import {
   buildWorkspaceId,
   isDeepResearchEnabled,
   isMemoryEnabled,
-  isExperienceLoopEnabled,
 } from "@/lib/memory/workspace";
 import {
   buildPersonalityPrompt,
@@ -27,38 +47,40 @@ import {
   type DeepResearchEvent,
 } from "@/lib/deepresearch/client";
 import {
-  readExperiences,
-  writeExperience,
-  checkDuplicate as checkExperienceDuplicate,
-} from "@/lib/experience/reme-experience";
-import { buildExperienceContext } from "@/lib/experience/context";
-import { evaluateConversation } from "@/lib/experience/evaluator";
-import type { SourceMechanism } from "@/lib/experience/schema";
+  buildPromptWithinExperienceQuarantine,
+  establishPublicChatExperienceQuarantine,
+} from "@/lib/experience/public-chat-quarantine";
 import { scoreResponse } from "@/lib/openjudge/client";
 import { saveScore } from "@/lib/openjudge/store";
-import { getBotSystemPrompt } from '../../../../../dorylus/personality';
-import { executeDorylusCycle } from '../../../../../dorylus';
-import { sanitizeBotResponse } from '../../../../../dorylus/sanitize';
+import {
+  LUCY_CYCLE_LIMITS,
+  type LucyCycleOutput,
+} from "@/lib/lucy/cycle-contract";
+import {
+  beginReservedExternalLucyCycle,
+  completeExternalLucyCycle,
+  executeReservedLucyCycle,
+  failExternalLucyCycle,
+  LucyUserMessagePersistenceError,
+  startExternalLucyCycleLeaseHeartbeat,
+  type ExternalLucyCycleLease,
+  type LucyCycleLeaseHeartbeat,
+} from "@/lib/lucy/cycle-coordinator";
+import { LucyCycleConflictError } from "@/lib/lucy/cycle-repository";
+import { admitPublicLucyCycle } from "@/lib/lucy/public-cycle-admission";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const MAX_MESSAGE_LENGTH = 100000;
-const MAX_HISTORY_ITEMS = 20;
 const MEMORY_TOP_K = 5;
 const MEMORY_READ_TIMEOUT_MS = 1500;
-const EXPERIENCE_TOP_K = 3;
 const DEEPRESEARCH_COMMAND = "/research";
 
 interface StreamRouteBody {
   botName?: unknown;
   message?: unknown;
   sessionId?: unknown;
-}
-
-interface PersistedHistoryMessage {
-  role: "user" | "assistant";
-  content: string;
 }
 
 interface BotStreamEvent {
@@ -78,92 +100,6 @@ function extractDeepResearchQuery(message: string): string | null {
 
   const query = trimmed.slice(DEEPRESEARCH_COMMAND.length).trim();
   return query.length > 0 ? query : null;
-}
-
-function normalizeBotKey(botName: string): string {
-  return botName.trim().toLowerCase();
-}
-
-async function getOrCreateConversation(
-  authUserId: string,
-  botName: string,
-): Promise<{ id: string; botKey: string }> {
-  const botKey = normalizeBotKey(botName);
-  const existing = await db
-    .select({ id: chatConversations.id })
-    .from(chatConversations)
-    .where(
-      and(
-        eq(chatConversations.authUserId, authUserId),
-        eq(chatConversations.botKey, botKey),
-      ),
-    )
-    .limit(1);
-
-  if (existing[0]) {
-    return { id: existing[0].id, botKey };
-  }
-
-  try {
-    const [created] = await db
-      .insert(chatConversations)
-      .values({
-        authUserId,
-        botKey,
-        botName,
-        title: `${botName} Chat`,
-        lastMessageAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning({ id: chatConversations.id });
-
-    return { id: created.id, botKey };
-  } catch (error) {
-    const fallback = await db
-      .select({ id: chatConversations.id })
-      .from(chatConversations)
-      .where(
-        and(
-          eq(chatConversations.authUserId, authUserId),
-          eq(chatConversations.botKey, botKey),
-        ),
-      )
-      .limit(1);
-
-    if (fallback[0]) {
-      return { id: fallback[0].id, botKey };
-    }
-
-    throw error;
-  }
-}
-
-async function loadRecentHistory(
-  conversationId: string,
-  limit = MAX_HISTORY_ITEMS,
-): Promise<PersistedHistoryMessage[]> {
-  const rows = await db
-    .select({
-      role: chatMessages.role,
-      content: chatMessages.content,
-    })
-    .from(chatMessages)
-    .where(eq(chatMessages.conversationId, conversationId))
-    .orderBy(desc(chatMessages.createdAt))
-    .limit(limit);
-
-  return [...rows]
-    .reverse()
-    .filter(
-      (row): row is PersistedHistoryMessage =>
-        (row.role === "user" || row.role === "assistant") &&
-        typeof row.content === "string" &&
-        row.content.trim().length > 0,
-    )
-    .map((row) => ({
-      role: row.role,
-      content: row.content,
-    }));
 }
 
 async function touchConversation(conversationId: string): Promise<void> {
@@ -266,66 +202,6 @@ function fireAndForgetMemoryWrite(
   });
 }
 
-async function readExperiencesIfEnabled(
-  botSlug: string,
-  query: string,
-) {
-  if (!isExperienceLoopEnabled()) return [];
-  return readExperiences(botSlug, query, EXPERIENCE_TOP_K);
-}
-
-function fireAndForgetExperienceEval(opts: {
-  botSlug: string;
-  botName: string;
-  personality: BotPersonality | null;
-  userMessage: string;
-  assistantResponse: string;
-  conversationId: string;
-  userId: string;
-  engine: string;
-  sourceMechanism: SourceMechanism;
-}): void {
-  if (!isExperienceLoopEnabled()) return;
-  if (!opts.assistantResponse || !opts.assistantResponse.trim()) return;
-  void (async () => {
-    try {
-      const entry = await evaluateConversation({
-        botSlug: opts.botSlug,
-        botName: opts.botName,
-        botDisplayName: opts.personality?.displayName || opts.botName,
-        botPersonality:
-          opts.personality?.personality ||
-          opts.personality?.systemPrompt ||
-          "",
-        userMessage: opts.userMessage,
-        assistantResponse: opts.assistantResponse,
-        conversationId: opts.conversationId,
-        userId: opts.userId,
-        sourceMechanism: opts.sourceMechanism,
-        modelUsed: opts.engine,
-      });
-      if (!entry) return;
-      const dedupKey = entry.lesson_learned || entry.critique || opts.userMessage;
-      const isDup = await checkExperienceDuplicate(opts.botSlug, dedupKey);
-      if (isDup) {
-        logger.info("Experience duplicate suppressed", {
-          phase: "chat.stream.route.experience.dedup",
-          botSlug: opts.botSlug,
-          score: entry.score,
-        });
-        return;
-      }
-      writeExperience(entry);
-    } catch (error) {
-      logger.warn("Experience eval failed", {
-        phase: "chat.stream.route.experience.eval",
-        botSlug: opts.botSlug,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  })();
-}
-
 function fireAndForgetOpenJudge(botId: string, query: string, response: string): void {
   void scoreResponse(botId, query, response).then((scores) => {
     if (scores) void saveScore(botId, query, response, scores).catch(() => {});
@@ -336,8 +212,6 @@ async function relayAgentScopeStream(options: {
   upstream: Response;
   conversationId: string;
   botName: string;
-  botSlug: string;
-  personality: BotPersonality | null;
   userId: string;
   workspaceId: string;
   trimmedMessage: string;
@@ -347,8 +221,6 @@ async function relayAgentScopeStream(options: {
     upstream,
     conversationId,
     botName,
-    botSlug,
-    personality,
     userId,
     workspaceId,
     trimmedMessage,
@@ -453,18 +325,6 @@ async function relayAgentScopeStream(options: {
                   },
                 );
 
-                fireAndForgetExperienceEval({
-                  botSlug,
-                  botName,
-                  personality,
-                  userMessage: trimmedMessage,
-                  assistantResponse: accumulated,
-                  conversationId,
-                  userId,
-                  engine: "agentscope",
-                  sourceMechanism: "self_navigating",
-                });
-
                 fireAndForgetOpenJudge(botName, trimmedMessage, accumulated);
                 savedAssistant = true;
               }
@@ -525,18 +385,6 @@ async function relayAgentScopeStream(options: {
             },
           );
 
-          fireAndForgetExperienceEval({
-            botSlug,
-            botName,
-            personality,
-            userMessage: trimmedMessage,
-            assistantResponse: accumulated,
-            conversationId,
-            userId,
-            engine: "agentscope",
-            sourceMechanism: "self_navigating",
-          });
-
           fireAndForgetOpenJudge(botName, trimmedMessage, accumulated);
           emit({
             type: "done",
@@ -589,9 +437,9 @@ async function relayDeepResearchStream(options: {
   upstream: Response;
   conversationId: string;
   botName: string;
-  botSlug: string;
   userId: string;
-  workspaceId: string;
+  cycleLease: ExternalLucyCycleLease;
+  leaseHeartbeat: LucyCycleLeaseHeartbeat;
   trimmedMessage: string;
   researchQuery: string;
   startedAt: number;
@@ -600,9 +448,9 @@ async function relayDeepResearchStream(options: {
     upstream,
     conversationId,
     botName,
-    botSlug,
     userId,
-    workspaceId,
+    cycleLease,
+    leaseHeartbeat,
     trimmedMessage,
     researchQuery,
     startedAt,
@@ -617,9 +465,9 @@ async function relayDeepResearchStream(options: {
       let accumulated = "";
       let savedAssistant = false;
       let sawErrorEvent = false;
+      let cycleTerminal = false;
       let finalLatencyMs: number | null = null;
       let finalSources: string[] = [];
-      let memoryWritten = false;
 
       const emit = (payload: Record<string, unknown>): void => {
         controller.enqueue(
@@ -683,11 +531,16 @@ async function relayDeepResearchStream(options: {
 
             if (data.type === "error") {
               sawErrorEvent = true;
+              if (!cycleTerminal) {
+                await failExternalLucyCycle(cycleLease);
+                cycleTerminal = true;
+              }
               emit({
                 type: "error",
                 message: data.message || "DeepResearch error",
               });
-              continue;
+              await reader.cancel();
+              return;
             }
 
             if (data.type === "done" && !savedAssistant) {
@@ -697,7 +550,6 @@ async function relayDeepResearchStream(options: {
               finalSources = Array.isArray(data.sources)
                 ? data.sources.filter((item): item is string => typeof item === "string")
                 : [];
-              memoryWritten = data.memory_written === true;
 
               const finalText =
                 typeof data.full_response === "string" &&
@@ -705,69 +557,37 @@ async function relayDeepResearchStream(options: {
                   ? data.full_response
                   : accumulated;
 
-              if (finalText.trim().length > 0) {
-                try {
-                  await saveAssistantMessage({
-                    conversationId,
-                    content: finalText,
-                    modelUsed: "deepresearch",
-                    latencyMs: finalLatencyMs,
-                    toolsUsed: ["deepresearch"],
-                    metadata: {
-                      engine: "deepresearch",
-                      streamed: true,
-                      research: true,
-                      researchQuery,
-                      sources: finalSources,
-                      sessionId: conversationId,
-                      botName,
-                    },
-                  });
-                } catch (persistError) {
-                  logger.error("Failed to persist deepresearch response", {
-                    userId,
-                    botName,
-                    conversationId,
-                    phase: "chat.stream.route.deepresearch.persist.assistant",
-                    error: persistError instanceof Error
-                      ? persistError.message
-                      : String(persistError),
-                  });
-                }
-
-                if (!memoryWritten) {
-                  fireAndForgetMemoryWrite(
-                    workspaceId,
-                    trimmedMessage,
-                    finalText,
-                    {
-                      engine: "deepresearch",
-                      streamed: true,
-                      research: true,
-                      researchQuery,
-                      sources: finalSources,
-                      conversationId,
-                      botName,
-                    },
-                  );
-                }
-
-                fireAndForgetExperienceEval({
-                  botSlug,
-                  botName,
-                  personality: null,
-                  userMessage: trimmedMessage,
-                  assistantResponse: finalText,
-                  conversationId,
-                  userId,
-                  engine: "deepresearch",
-                  sourceMechanism: "self_navigating",
+              if (finalText.trim().length === 0) {
+                await failExternalLucyCycle(cycleLease);
+                cycleTerminal = true;
+                sawErrorEvent = true;
+                emit({
+                  type: "error",
+                  message: "DeepResearch completed without a response.",
                 });
-
-                fireAndForgetOpenJudge(botName, trimmedMessage, finalText);
-                savedAssistant = true;
+                await reader.cancel();
+                return;
               }
 
+              await completeExternalLucyCycle({
+                lease: cycleLease,
+                engineName: "deepresearch",
+                queryId: `deepresearch:${cycleLease.cycleId}`,
+                message: finalText,
+                durationMs: finalLatencyMs,
+                sources: finalSources,
+                metadata: {
+                  streamed: true,
+                  research: true,
+                  researchQuery,
+                  sources: finalSources,
+                  sessionId: conversationId,
+                  botName,
+                },
+              });
+              cycleTerminal = true;
+              savedAssistant = true;
+              fireAndForgetOpenJudge(botName, trimmedMessage, finalText);
               emit({
                 type: "done",
                 full_response: finalText,
@@ -780,71 +600,38 @@ async function relayDeepResearchStream(options: {
 
         if (!savedAssistant && !sawErrorEvent && accumulated.trim().length > 0) {
           finalLatencyMs = finalLatencyMs ?? Date.now() - startedAt;
-          try {
-            await saveAssistantMessage({
-              conversationId,
-              content: accumulated,
-              modelUsed: "deepresearch",
-              latencyMs: finalLatencyMs,
-              toolsUsed: ["deepresearch"],
-              metadata: {
-                engine: "deepresearch",
-                streamed: true,
-                research: true,
-                researchQuery,
-                sources: finalSources,
-                sessionId: conversationId,
-                botName,
-                completedWithoutDone: true,
-              },
-            });
-          } catch (persistError) {
-            logger.error("Failed to persist deepresearch fallback response", {
-              userId,
+          await completeExternalLucyCycle({
+            lease: cycleLease,
+            engineName: "deepresearch",
+            queryId: `deepresearch:${cycleLease.cycleId}`,
+            message: accumulated,
+            durationMs: finalLatencyMs,
+            sources: finalSources,
+            metadata: {
+              streamed: true,
+              research: true,
+              researchQuery,
+              sources: finalSources,
+              sessionId: conversationId,
               botName,
-              conversationId,
-              phase: "chat.stream.route.deepresearch.persist.assistant.fallback",
-              error: persistError instanceof Error
-                ? persistError.message
-                : String(persistError),
-            });
-          }
-
-          if (!memoryWritten) {
-            fireAndForgetMemoryWrite(
-              workspaceId,
-              trimmedMessage,
-              accumulated,
-              {
-                engine: "deepresearch",
-                streamed: true,
-                research: true,
-                researchQuery,
-                sources: finalSources,
-                conversationId,
-                botName,
-                completedWithoutDone: true,
-              },
-            );
-          }
-
-          fireAndForgetExperienceEval({
-            botSlug,
-            botName,
-            personality: null,
-            userMessage: trimmedMessage,
-            assistantResponse: accumulated,
-            conversationId,
-            userId,
-            engine: "deepresearch",
-            sourceMechanism: "self_navigating",
+              completedWithoutDone: true,
+            },
           });
+          cycleTerminal = true;
 
           fireAndForgetOpenJudge(botName, trimmedMessage, accumulated);
           emit({
             type: "done",
             full_response: accumulated,
             latency_ms: finalLatencyMs,
+          });
+        }
+        if (!cycleTerminal) {
+          await failExternalLucyCycle(cycleLease);
+          cycleTerminal = true;
+          emit({
+            type: "error",
+            message: "DeepResearch ended before producing a response.",
           });
         }
       } catch (relayError) {
@@ -860,6 +647,15 @@ async function relayDeepResearchStream(options: {
           stack: relayError instanceof Error ? relayError.stack : undefined,
         });
 
+        if (!cycleTerminal) {
+          try {
+            await failExternalLucyCycle(cycleLease);
+            cycleTerminal = true;
+          } catch {
+            // The server log above is the primary failure receipt.
+          }
+        }
+
         try {
           emit({
             type: "error",
@@ -869,6 +665,7 @@ async function relayDeepResearchStream(options: {
           // Ignore secondary relay errors while shutting down the stream.
         }
       } finally {
+        await leaseHeartbeat.stop();
         reader.releaseLock();
         controller.close();
       }
@@ -888,6 +685,46 @@ async function relayDeepResearchStream(options: {
   });
 }
 
+function cycleOutputStreamResponse(
+  output: LucyCycleOutput,
+  conversationId: string,
+  engine: string,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const emit = (event: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+      if (output.status === "completed") {
+        emit({ type: "token", text: output.message });
+        emit({
+          type: "done",
+          full_response: output.message,
+          latency_ms: output.usage.duration_ms,
+        });
+      } else {
+        emit({
+          type: "error",
+          message: output.errors[0]?.safe_message ?? output.message,
+        });
+      }
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+      "X-Conversation-Id": conversationId,
+      "X-Engine": engine,
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
   let userIdForLog = "unknown";
@@ -899,35 +736,31 @@ export async function POST(request: NextRequest) {
       return clerkUnauthorizedResponse();
     }
 
-    let userId: string;
-    if (authResult.type === "clerk") {
-      userId = authResult.userId;
-    } else {
-      const agent = (authResult as {
-        agent?: { botName?: string; id?: string };
-      }).agent;
-      userId = `bot:${agent?.botName || agent?.id || "unknown"}`;
-    }
-    userIdForLog = userId;
+    const rateLimitKey = authResult.type === "clerk"
+      ? authResult.userId
+      : `bot:${authResult.agent.id}`;
+    userIdForLog = rateLimitKey;
 
-    const rlResult = await checkRateLimit(userId, "botChat");
+    const rlResult = await checkRateLimit(rateLimitKey, "botChat");
     if (!rlResult.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Rate limited. Please wait ${rlResult.retryAfter} seconds before sending another message.`,
-          retryAfter: rlResult.retryAfter,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(rlResult.retryAfter),
-            "X-RateLimit-Remaining": String(rlResult.remaining),
-            "X-RateLimit-Reset": String(
-              Math.ceil(Date.now() / 1000) + rlResult.resetIn,
-            ),
+      return rateLimitDeniedResponse(rlResult, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: `Rate limited. Please wait ${rlResult.retryAfter} seconds before sending another message.`,
+            retryAfter: rlResult.retryAfter,
           },
-        },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(rlResult.retryAfter),
+              "X-RateLimit-Remaining": String(rlResult.remaining),
+              "X-RateLimit-Reset": String(
+                Math.ceil(Date.now() / 1000) + rlResult.resetIn,
+              ),
+            },
+          },
+        ),
       );
     }
 
@@ -963,33 +796,109 @@ export async function POST(request: NextRequest) {
     messageLengthForLog = message.length;
     const trimmedMessage = message.slice(0, MAX_MESSAGE_LENGTH);
     const researchQuery = extractDeepResearchQuery(trimmedMessage);
-    const conversation = await getOrCreateConversation(userId, botName);
-    const recentHistory = await loadRecentHistory(conversation.id);
-
-    const workspaceId = buildWorkspaceId(botName, userId);
-    const botSlugForExperience = normalizeBotKey(botName);
-
+    let target: CanonicalChatTarget;
     try {
-      await saveUserMessage(conversation.id, trimmedMessage);
+      target = await resolveCanonicalChatTarget(botName);
     } catch (error) {
-      logger.error("Failed to persist streaming chat user message", {
-        userId,
-        botName,
-        conversationId: conversation.id,
-        phase: "chat.stream.route.persist.user",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      if (!isChatTargetResolutionError(error)) throw error;
       return NextResponse.json(
-        { success: false, error: "Unable to save your message right now." },
-        { status: 500 },
+        {
+          success: false,
+          error: error.status === 404
+            ? "Bot not found or inactive"
+            : error.publicMessage,
+        },
+        { status: error.status },
       );
     }
+    let actor;
+    try {
+      actor = await resolveCanonicalChatActor(authResult as ChatAuthentication);
+    } catch (error) {
+      if (error instanceof ChatActorResolutionError) {
+        return NextResponse.json(
+          { success: false, error: error.safeMessage },
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+    const userId = actor.legacyAuthUserId;
+    userIdForLog = `${actor.principalType}:${actor.principalId}`;
+    let cycleIds;
+    try {
+      cycleIds = buildChatCycleIds({
+        idempotencyKey: request.headers.get("idempotency-key"),
+        actorPrincipalType: actor.principalType,
+        actorPrincipalId: actor.principalId,
+      });
+    } catch (error) {
+      if (error instanceof ChatIdempotencyKeyError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+    const admission = await admitPublicLucyCycle({
+      requestId: cycleIds.requestId,
+      turnId: cycleIds.turnId,
+      actor,
+      target,
+      message: trimmedMessage,
+      deadlineMs: LUCY_CYCLE_LIMITS.deadlineMilliseconds.max,
+    });
+    if (admission.kind === "replay") {
+      return cycleOutputStreamResponse(
+        admission.output,
+        admission.conversationId,
+        admission.output.engine.name,
+      );
+    }
+    const { conversation } = admission;
+    const recentHistory = await loadCanonicalChatHistory(
+      conversation.id,
+      LUCY_CYCLE_LIMITS.historyEntries,
+      admission.input.turn_id,
+    );
+    const cycleInput = {
+      ...admission.input,
+      history: recentHistory.map((item) => ({
+        turn_id: item.turnId,
+        role: item.role,
+        message: item.content.slice(
+          0,
+          LUCY_CYCLE_LIMITS.historyMessageCharacters,
+        ),
+      })),
+    };
+
+    const workspaceId = buildWorkspaceId(target.normalizedName, userId);
+    const botSlug = target.normalizedName;
+    const experienceBoundary = establishPublicChatExperienceQuarantine(
+      "chat-stream",
+    );
+    logger.info("Public chat shared experience quarantine enforced", {
+      phase: "chat.stream.route.experience.quarantine",
+      route: experienceBoundary.route,
+      mode: experienceBoundary.mode,
+      sharedReadEnabled: experienceBoundary.sharedReadEnabled,
+      sharedWriteEnabled: experienceBoundary.sharedWriteEnabled,
+    });
 
     if (researchQuery && isDeepResearchEnabled()) {
+      const externalCycle = await beginReservedExternalLucyCycle(
+        cycleInput,
+        admission.reservation,
+      );
+      const cycleLease = externalCycle.lease;
+      const leaseHeartbeat = startExternalLucyCycleLeaseHeartbeat(cycleLease);
+      let heartbeatTransferred = false;
       try {
         const upstream = await callDeepResearchStream(
           researchQuery,
-          botSlugForExperience,
+          botSlug,
           userId,
           conversation.id,
         );
@@ -1004,60 +913,51 @@ export async function POST(request: NextRequest) {
             phase: "chat.stream.route.deepresearch",
           });
 
-          return await relayDeepResearchStream({
+          const relayResponse = await relayDeepResearchStream({
             upstream,
             conversationId: conversation.id,
             botName,
-            botSlug: botSlugForExperience,
             userId,
-            workspaceId,
+            cycleLease,
+            leaseHeartbeat,
             trimmedMessage,
             researchQuery,
             startedAt,
           });
+          heartbeatTransferred = true;
+          return relayResponse;
         }
 
-        logger.warn("DeepResearch unavailable, falling back to existing chat path", {
+        logger.warn("DeepResearch unavailable; research cycle failed closed", {
           userId,
           botName,
           conversationId: conversation.id,
-          phase: "chat.stream.route.deepresearch.fallback",
+          phase: "chat.stream.route.deepresearch.unavailable",
         });
+        const failed = await failExternalLucyCycle(cycleLease);
+        return cycleOutputStreamResponse(
+          failed,
+          conversation.id,
+          "deepresearch",
+        );
       } catch (deepResearchError) {
-        logger.warn("DeepResearch path threw, falling back to existing chat path", {
+        logger.warn("DeepResearch path threw; research cycle failed closed", {
           userId,
           botName,
           conversationId: conversation.id,
-          phase: "chat.stream.route.deepresearch.fallback",
+          phase: "chat.stream.route.deepresearch.failed",
           error: deepResearchError instanceof Error
             ? deepResearchError.message
             : String(deepResearchError),
         });
-      }
-    }
-
-    const [memories, experiences] = await Promise.all([
-      readMemoriesIfEnabled(workspaceId, trimmedMessage),
-      readExperiencesIfEnabled(botSlugForExperience, trimmedMessage),
-    ]);
-    const experienceBlock = buildExperienceContext(experiences);
-    const memoryAugmented = augmentWithMemories(trimmedMessage, memories);
-    const agentMessage = experienceBlock
-      ? `${experienceBlock}\n\n${memoryAugmented}`
-      : memoryAugmented;
-
-    let sharedPersonality: BotPersonality | null = null;
-    if (isExperienceLoopEnabled()) {
-      try {
-        sharedPersonality = await fetchBotPersonality(botName);
-      } catch (personalityError) {
-        logger.warn("Failed to fetch personality", {
-          botName,
-          phase: "chat.stream.lucy-primary.personality",
-          error: personalityError instanceof Error
-            ? personalityError.message
-            : String(personalityError),
-        });
+        const failed = await failExternalLucyCycle(cycleLease);
+        return cycleOutputStreamResponse(
+          failed,
+          conversation.id,
+          "deepresearch",
+        );
+      } finally {
+        if (!heartbeatTransferred) await leaseHeartbeat.stop();
       }
     }
 
@@ -1065,33 +965,6 @@ export async function POST(request: NextRequest) {
     // LUCY PRIMARY ENGINE — NO FALLBACK
     // ═══════════════════════════════════════════════
     {
-      const botData = await getBotSystemPrompt(botName);
-      if (!botData) {
-        const encoder = new TextEncoder();
-        const errStream = new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(encoder.encode(
-              `data: ${JSON.stringify({
-                type: "error",
-                message: "Bot not found or inactive"
-              })}\n\n`,
-            ));
-            controller.close();
-          },
-        });
-        return new Response(errStream, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-            "X-Conversation-Id": conversation.id,
-            "X-Engine": "dorylus",
-          },
-        });
-      }
-
       const encoder = new TextEncoder();
       const lucyStream = new ReadableStream<Uint8Array>({
         async start(controller) {
@@ -1120,81 +993,38 @@ export async function POST(request: NextRequest) {
               } catch {}
             }, 15000);
 
-            const lucyResult = await executeDorylusCycle({
-              userId,
-              botName,
-              botSpace: botData.config?.space || 'botspace',
-              originalQuery: agentMessage,
-              botSystemPrompt: botData.systemPrompt,
-              temperature: botData.config?.temperature || 0.3,
-            });
+            const cycleOutput = await executeReservedLucyCycle(
+              cycleInput,
+              admission.reservation,
+              { signal: request.signal },
+            );
+            const lucyText = cycleOutput.message;
+            const lucyLatencyMs = cycleOutput.usage.duration_ms;
 
-            const lucyText = sanitizeBotResponse(lucyResult.finalResponse || "");
-            const lucyLatencyMs = lucyResult.totalCycleMs;
-
-            if (lucyResult.status === "error" || !lucyText.trim()) {
-              logger.error("LUCY returned error or empty", {
-                userId, botName,
-                status: lucyResult.status,
-                errorMessage: lucyResult.errorMessage,
+            if (cycleOutput.status !== "completed" || !lucyText.trim()) {
+              logger.warn("LUCY canonical stream returned a non-completed state", {
+                userId,
+                botName: target.config.botName,
+                status: cycleOutput.status,
+                cycleId: cycleOutput.cycle_id,
+                queryId: cycleOutput.engine.query_id,
                 phase: "chat.stream.lucy-primary",
               });
               emit({
                 type: "error",
-                message: lucyResult.errorMessage || "LUCY returned empty response. No fallback.",
+                message:
+                  cycleOutput.errors[0]?.safe_message ||
+                  "LUCY returned empty response. No fallback.",
               });
               controller.close();
               return;
             }
 
-            try {
-              await saveAssistantMessage({
-                conversationId: conversation.id,
-                content: lucyText,
-                modelUsed: "dorylus",
-                latencyMs: lucyLatencyMs,
-                metadata: {
-                  engine: "dorylus",
-                  queryId: lucyResult.queryId,
-                  status: lucyResult.status,
-                  totalTokens: lucyResult.totalTokens,
-                  wingmenCompleted: lucyResult.wingmanResults.filter(
-                    (w) => w.status === "complete",
-                  ).length,
-                  streamed: true,
-                  sessionId: conversation.id,
-                  botName,
-                },
-              });
-            } catch (persistErr) {
-              logger.error("Failed to persist LUCY response", {
-                userId, botName,
-                conversationId: conversation.id,
-                error: persistErr instanceof Error ? persistErr.message : String(persistErr),
-                phase: "chat.stream.lucy-primary.persist",
-              });
-            }
-
-            fireAndForgetMemoryWrite(workspaceId, trimmedMessage, lucyText, {
-              engine: "dorylus",
-              queryId: lucyResult.queryId,
-              conversationId: conversation.id,
-              streamed: true,
-              sessionId: conversation.id,
-              botName,
-            });
-            fireAndForgetExperienceEval({
-              botSlug: botSlugForExperience,
-              botName,
-              personality: sharedPersonality,
-              userMessage: trimmedMessage,
-              assistantResponse: lucyText,
-              conversationId: conversation.id,
-              userId,
-              engine: "dorylus",
-              sourceMechanism: "self_navigating",
-            });
-            fireAndForgetOpenJudge(botName, trimmedMessage, lucyText);
+            fireAndForgetOpenJudge(
+              target.config.botName,
+              trimmedMessage,
+              lucyText,
+            );
 
             emit({ type: "tool_result", tool: "lucy", message: "LUCY RESPONSE READY" });
             emit({ type: "token", text: lucyText });
@@ -1207,7 +1037,13 @@ export async function POST(request: NextRequest) {
               error: outerErr instanceof Error ? outerErr.message : String(outerErr),
             });
             try {
-              emit({ type: "error", message: "LUCY engine error. No fallback." });
+              emit({
+                type: "error",
+                message:
+                  outerErr instanceof LucyUserMessagePersistenceError
+                    ? outerErr.message
+                    : "LUCY engine error. No fallback.",
+              });
               controller.close();
             } catch {}
           } finally {
@@ -1234,6 +1070,14 @@ export async function POST(request: NextRequest) {
     // LUCY PRIMARY ENGINE RETURNS BEFORE THIS POINT
     // AgentScope and qwen-agent paths preserved for reference
     // ═══════════════════════════════════════════════
+    const memories = await readMemoriesIfEnabled(workspaceId, trimmedMessage);
+    const memoryAugmented = augmentWithMemories(trimmedMessage, memories);
+    const agentMessage = buildPromptWithinExperienceQuarantine(
+      experienceBoundary,
+      memoryAugmented,
+    );
+    let sharedPersonality: BotPersonality | null = null;
+
     if (isAgentScopeEnabled()) {
       try {
         sharedPersonality = await fetchBotPersonality(botName);
@@ -1257,7 +1101,8 @@ export async function POST(request: NextRequest) {
             durationMs: Date.now() - startedAt,
             phase: "chat.stream.route.agentscope",
             memoriesInjected: memories.length,
-            experiencesInjected: experiences.length,
+            sharedExperiencesInjected: 0,
+            sharedExperienceMode: experienceBoundary.mode,
             hasPersonality: Boolean(sharedPersonality),
           });
 
@@ -1265,8 +1110,6 @@ export async function POST(request: NextRequest) {
             upstream: _asUp as Response,
             conversationId: conversation.id,
             botName,
-            botSlug: botSlugForExperience,
-            personality: sharedPersonality,
             userId,
             workspaceId,
             trimmedMessage,
@@ -1439,18 +1282,6 @@ export async function POST(request: NextRequest) {
                     },
                   );
 
-                  fireAndForgetExperienceEval({
-                    botSlug: botSlugForExperience,
-                    botName,
-                    personality: sharedPersonality,
-                    userMessage: trimmedMessage,
-                    assistantResponse: finalText,
-                    conversationId: conversation.id,
-                    userId,
-                    engine: "qwen-agent",
-                    sourceMechanism: "self_navigating",
-                  });
-
                   fireAndForgetOpenJudge(botName, trimmedMessage, finalText);
                   savedAssistant = true;
                 }
@@ -1499,18 +1330,6 @@ export async function POST(request: NextRequest) {
               },
             );
 
-            fireAndForgetExperienceEval({
-              botSlug: botSlugForExperience,
-              botName,
-              personality: sharedPersonality,
-              userMessage: trimmedMessage,
-              assistantResponse: accumulated,
-              conversationId: conversation.id,
-              userId,
-              engine: "qwen-agent",
-              sourceMechanism: "self_navigating",
-            });
-
             fireAndForgetOpenJudge(botName, trimmedMessage, accumulated);
           }
         } catch (relayError) {
@@ -1555,6 +1374,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof LucyCycleConflictError) {
+      const presented = presentPublicChatConflict(error.safeMessage);
+      return NextResponse.json(
+        presented.body,
+        { status: presented.status },
+      );
+    }
     logger.error("Bot stream proxy unexpected error", {
       userId: userIdForLog,
       messageLength: messageLengthForLog,

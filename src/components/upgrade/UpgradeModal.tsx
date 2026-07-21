@@ -7,8 +7,14 @@
  */
 
 import { useState, useCallback } from 'react';
-import { SUBSCRIPTION_PRICES, FREE_FEATURES, PREMIUM_FEATURES } from '@/lib/subscription';
+import { SUBSCRIPTION_PRICES, PREMIUM_FEATURES } from '@/lib/subscription';
 
+const BACKDROP_STYLE = { backgroundColor: 'rgba(0, 0, 0, 0.8)' };
+const MODAL_STYLE = {
+  backgroundColor: 'var(--sb-bg-primary)',
+  borderColor: 'var(--sb-border-primary)',
+};
+const BORDER_STYLE = { borderColor: 'var(--sb-border-primary)' };
 // ═══════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════
@@ -32,11 +38,13 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
   const [error, setError] = useState<string | null>(null);
 
   const price = SUBSCRIPTION_PRICES[plan];
+  const handleMonthlyPlan = useCallback(() => setPlan('monthly'), []);
+  const handleYearlyPlan = useCallback(() => setPlan('yearly'), []);
 
   const handleSubscribe = useCallback(async () => {
     if (!isAuthenticated) {
       // Redirect to login with return URL
-      window.location.href = '/login?redirect=/pricing';
+      window.location.href = '/sign-in?redirect_url=%2Fpricing';
       return;
     }
 
@@ -68,32 +76,30 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      style={BACKDROP_STYLE}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upgrade-modal-title"
         className="w-full max-w-md border"
-        style={{
-          backgroundColor: 'var(--sb-bg-primary)',
-          borderColor: 'var(--sb-border-primary)',
-        }}
+        style={MODAL_STYLE}
       >
         {/* Header */}
         <div
           className="px-6 py-4 border-b flex items-center justify-between"
-          style={{ borderColor: 'var(--sb-border-primary)' }}
+          style={BORDER_STYLE}
         >
           <div>
             <p className="text-[10px] font-mono text-sb-text-tertiary uppercase tracking-wider mb-1">
               Premium Feature
             </p>
-            <h2 className="text-sm font-mono font-bold text-sb-text-primary">
+            <h2 id="upgrade-modal-title" className="text-sm font-mono font-bold text-sb-text-primary">
               Unlock {feature}
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-sb-text-tertiary text-lg font-mono hover:text-sb-text-primary transition-colors"
           >
@@ -103,9 +109,10 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
 
         {/* Plan Toggle */}
         <div className="px-6 pt-4">
-          <div className="flex border" style={{ borderColor: 'var(--sb-border-primary)' }}>
+          <div className="flex border" style={BORDER_STYLE}>
             <button
-              onClick={() => setPlan('monthly')}
+              type="button"
+              onClick={handleMonthlyPlan}
               className={`flex-1 py-2 text-xs font-mono transition-all ${
                 plan === 'monthly'
                   ? 'text-sb-accent bg-sb-bg-secondary'
@@ -115,13 +122,14 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
               Monthly
             </button>
             <button
-              onClick={() => setPlan('yearly')}
+              type="button"
+              onClick={handleYearlyPlan}
               className={`flex-1 py-2 text-xs font-mono transition-all border-l ${
                 plan === 'yearly'
                   ? 'text-sb-accent bg-sb-bg-secondary'
                   : 'text-sb-text-tertiary hover:text-sb-text-secondary'
               }`}
-              style={{ borderColor: 'var(--sb-border-primary)' }}
+              style={BORDER_STYLE}
             >
               Yearly
               <span className="text-[9px] ml-1 opacity-70">
@@ -147,8 +155,8 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
             What you get
           </p>
           <ul className="space-y-1.5">
-            {PREMIUM_FEATURES.map((feat, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs font-mono">
+            {PREMIUM_FEATURES.map((feat) => (
+              <li key={feat} className="flex items-start gap-2 text-xs font-mono">
                 <span className="text-sb-accent flex-shrink-0 mt-0.5">&#10003;</span>
                 <span className="text-sb-text-secondary">{feat}</span>
               </li>
@@ -166,25 +174,13 @@ export default function UpgradeModal({ feature, onClose, isAuthenticated }: Upgr
         {/* CTA */}
         <div
           className="px-6 py-4 border-t"
-          style={{ borderColor: 'var(--sb-border-primary)' }}
+          style={BORDER_STYLE}
         >
           <button
+            type="button"
             onClick={handleSubscribe}
             disabled={isLoading}
-            className="w-full py-2.5 text-sm font-mono font-bold tracking-wider border transition-all disabled:opacity-50"
-            style={{
-              borderColor: 'var(--sb-accent)',
-              color: 'var(--sb-accent)',
-              backgroundColor: 'transparent',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--sb-accent)';
-              e.currentTarget.style.color = 'var(--sb-bg-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--sb-accent)';
-            }}
+            className="w-full border border-sb-accent bg-transparent py-2.5 text-sm font-mono font-bold tracking-wider text-sb-accent transition-all hover:bg-sb-accent hover:text-sb-bg-primary disabled:opacity-50"
           >
             {isLoading ? 'LOADING...' : isAuthenticated ? 'SUBSCRIBE NOW' : 'LOG IN TO SUBSCRIBE'}
           </button>

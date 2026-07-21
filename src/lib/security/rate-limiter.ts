@@ -9,7 +9,15 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { isIP } from "node:net";
+import { NextRequest, NextResponse } from "next/server";
+import { extractAgentCredentialInput } from "@/lib/security/agent-credential-input";
+import { getApiKeyLookupValue } from "@/lib/security/api-keys";
+import {
+  getSharedRateLimitStore,
+  inspectSharedRateLimitStore,
+  markSharedRateLimitStoreFailed,
+} from "@/lib/security/rate-limit-store";
 
 // ============================================================
 // CONFIGURATION
@@ -23,35 +31,39 @@ interface RateLimitConfig {
 // Rate limit configurations
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // General API
-  global: { maxRequests: 100, windowSeconds: 60 },           // 100/min
+  global: { maxRequests: 100, windowSeconds: 60 }, // 100/min
 
   // Agent actions
-  register: { maxRequests: 5, windowSeconds: 3600 },         // 5/hour
-  post: { maxRequests: 10, windowSeconds: 3600 },            // 10/hour
-  comment: { maxRequests: 5, windowSeconds: 60 },            // 5/min
-  commentDaily: { maxRequests: 50, windowSeconds: 86400 },   // 50/day
-  vote: { maxRequests: 30, windowSeconds: 60 },              // 30/min
-  message: { maxRequests: 10, windowSeconds: 60 },           // 10/min
-  delete: { maxRequests: 20, windowSeconds: 3600 },          // 20/hour
+  register: { maxRequests: 5, windowSeconds: 3600 }, // 5/hour
+  claimCode: { maxRequests: 3, windowSeconds: 3600 }, // 3/hour per agent
+  post: { maxRequests: 10, windowSeconds: 3600 }, // 10/hour
+  comment: { maxRequests: 5, windowSeconds: 60 }, // 5/min
+  commentDaily: { maxRequests: 50, windowSeconds: 86400 }, // 50/day
+  vote: { maxRequests: 30, windowSeconds: 60 }, // 30/min
+  message: { maxRequests: 10, windowSeconds: 60 }, // 10/min
+  residentTask: { maxRequests: 30, windowSeconds: 900 }, // 30/15 min
+  residentSession: { maxRequests: 10, windowSeconds: 900 }, // 10/15 min/IP
+  autonomyPreference: { maxRequests: 10, windowSeconds: 3600 }, // 10/hour
+  delete: { maxRequests: 20, windowSeconds: 3600 }, // 20/hour
 
   // Read operations (generous limits)
-  read: { maxRequests: 100, windowSeconds: 60 },             // 100/min
+  read: { maxRequests: 100, windowSeconds: 60 }, // 100/min
 
   // Heartbeat
-  heartbeat: { maxRequests: 5, windowSeconds: 60 },          // 5/min
-  heartbeatHourly: { maxRequests: 1, windowSeconds: 3600 },  // 1/hour (recommended)
+  heartbeat: { maxRequests: 5, windowSeconds: 60 }, // 5/min
+  heartbeatHourly: { maxRequests: 1, windowSeconds: 3600 }, // 1/hour (recommended)
 
   // Search
-  search: { maxRequests: 30, windowSeconds: 60 },            // 30/min
+  search: { maxRequests: 30, windowSeconds: 60 }, // 30/min
 
   // Code execution
-  codeExecution: { maxRequests: 10, windowSeconds: 3600 },   // 10/hour
+  codeExecution: { maxRequests: 10, windowSeconds: 3600 }, // 10/hour
 
   // Authentication
-  failedAuth: { maxRequests: 5, windowSeconds: 900 },        // 5 failures = 15 min block
+  failedAuth: { maxRequests: 5, windowSeconds: 900 }, // 5 failures = 15 min block
 
   // AI Verification
-  aiChallenge: { maxRequests: 10, windowSeconds: 60 },       // 10/min
+  aiChallenge: { maxRequests: 10, windowSeconds: 60 }, // 10/min
 
   // ============================================================
   // HUMAN PORTAL RATE LIMITS - IRONCLAD SECURITY
@@ -112,12 +124,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // SOCIAL ROUTE RATE LIMITS
   // ============================================================
 
-  socialPost: { maxRequests: 1, windowSeconds: 1800 },      // 1 per 30 min
-  socialComment: { maxRequests: 50, windowSeconds: 3600 },   // 50/hour
-  socialVote: { maxRequests: 100, windowSeconds: 3600 },     // 100/hour
-  socialFollow: { maxRequests: 20, windowSeconds: 3600 },    // 20/hour
-  socialFeed: { maxRequests: 300, windowSeconds: 3600 },     // 300/hour
-  socialHome: { maxRequests: 300, windowSeconds: 3600 },     // 300/hour
+  socialPost: { maxRequests: 1, windowSeconds: 1800 }, // 1 per 30 min
+  socialComment: { maxRequests: 50, windowSeconds: 3600 }, // 50/hour
+  socialVote: { maxRequests: 100, windowSeconds: 3600 }, // 100/hour
+  socialFollow: { maxRequests: 20, windowSeconds: 3600 }, // 20/hour
+  socialFeed: { maxRequests: 300, windowSeconds: 3600 }, // 300/hour
+  socialHome: { maxRequests: 300, windowSeconds: 3600 }, // 300/hour
 };
 
 // ============================================================
@@ -127,7 +139,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
 const memoryStore = new Map<string, { count: number; resetTime: number }>();
 
 // Cleanup old entries every 5 minutes
-if (typeof setInterval !== 'undefined' && typeof window === 'undefined') {
+if (typeof setInterval !== "undefined" && typeof window === "undefined") {
   setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of memoryStore.entries()) {
@@ -139,64 +151,15 @@ if (typeof setInterval !== 'undefined' && typeof window === 'undefined') {
 }
 
 // ============================================================
-// REDIS CLIENT (Production)
-// ============================================================
-
-/**
- * Initialize Redis if available
- * SECURITY: In production, fail closed if Redis is unavailable
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let redisClient: any = null;
-let redisConnectionFailed = false;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getRedisClient(): Promise<any> {
-  if (redisClient) return redisClient;
-  
-  // If we already failed to connect in production, don't keep trying
-  if (redisConnectionFailed && process.env.NODE_ENV === 'production') {
-    return null;
-  }
-
-  const redisUrl = process.env.UPSTASH_REDIS_URL;
-  const redisToken = process.env.UPSTASH_REDIS_TOKEN;
-
-  if (!redisUrl || !redisToken) {
-    console.warn('[RateLimiter] Redis not configured, using in-memory store');
-    return null;
-  }
-
-  try {
-    // Dynamic import to avoid build errors if not installed
-    const { Redis } = await import('@upstash/redis');
-    redisClient = new Redis({ url: redisUrl, token: redisToken });
-    console.log('[RateLimiter] Redis connected');
-    redisConnectionFailed = false;
-    return redisClient;
-  } catch (error) {
-    console.error('[RateLimiter] Redis connection failed:', error);
-    
-    // SECURITY: In production, fail CLOSED - block requests if Redis unavailable
-    if (process.env.NODE_ENV === 'production') {
-      redisConnectionFailed = true;
-      console.error('[RateLimiter] CRITICAL: Redis unavailable in production. Rate limiting will BLOCK requests until Redis is restored.');
-    } else {
-      console.warn('[RateLimiter] Redis connection failed, using in-memory store (development only)');
-    }
-    return null;
-  }
-}
-
-// ============================================================
 // CORE RATE LIMITING LOGIC
 // ============================================================
 
-interface RateLimitResult {
+export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
-  resetIn: number;      // seconds until reset
-  retryAfter: number;   // seconds to wait if blocked
+  resetIn: number; // seconds until reset
+  retryAfter: number; // seconds to wait if blocked
+  failureReason: "limit_exceeded" | "store_unavailable" | null;
 }
 
 /**
@@ -207,57 +170,60 @@ interface RateLimitResult {
  */
 export async function checkRateLimit(
   identifier: string,
-  action: keyof typeof RATE_LIMITS = 'global'
+  action: keyof typeof RATE_LIMITS = "global",
 ): Promise<RateLimitResult> {
   // TEST BYPASS - for running test suites without hitting rate limits
   // SECURITY: This MUST be disabled in production
-  if (process.env.BYPASS_RATE_LIMIT === 'true' && process.env.NODE_ENV !== 'production') {
-    return { allowed: true, remaining: 999, resetIn: 0, retryAfter: 0 };
+  if (
+    process.env.BYPASS_RATE_LIMIT === "true" &&
+    process.env.NODE_ENV !== "production"
+  ) {
+    return {
+      allowed: true,
+      remaining: 999,
+      resetIn: 0,
+      retryAfter: 0,
+      failureReason: null,
+    };
   }
 
   const config = RATE_LIMITS[action];
-  const key = `ratelimit:${action}:${identifier}`;
+  const namespace =
+    process.env.SPACEBOT_RATE_LIMIT_PREFIX || "spacebot:ratelimit:v1";
+  const key = `${namespace}:${action}:${identifier}`;
+  const store = await getSharedRateLimitStore();
 
-  const redis = await getRedisClient();
-
-  if (redis) {
-    return checkRateLimitRedis(redis, key, config);
-  } else {
-    // SECURITY: In production, if Redis is unavailable, BLOCK the request
-    if (process.env.NODE_ENV === 'production' && redisConnectionFailed) {
-      console.error('[RateLimiter] BLOCKING request due to Redis unavailability in production');
-      return { 
-        allowed: false, 
-        remaining: 0, 
-        resetIn: 60, 
-        retryAfter: 60 
+  if (store) {
+    try {
+      const { current, ttl } = await store.incrementFixedWindow(
+        key,
+        config.windowSeconds,
+      );
+      const allowed = current <= config.maxRequests;
+      return {
+        allowed,
+        remaining: Math.max(0, config.maxRequests - current),
+        resetIn: ttl,
+        retryAfter: allowed ? 0 : ttl,
+        failureReason: allowed ? null : "limit_exceeded",
       };
+    } catch {
+      await markSharedRateLimitStoreFailed(store);
     }
-    return checkRateLimitMemory(key, config);
-  }
-}
-
-/**
- * Redis-based rate limiting
- */
-async function checkRateLimitRedis(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  redis: any,
-  key: string,
-  config: RateLimitConfig
-): Promise<RateLimitResult> {
-  const current = await redis.incr(key);
-
-  if (current === 1) {
-    await redis.expire(key, config.windowSeconds);
   }
 
-  const ttl = await redis.ttl(key);
-  const allowed = current <= config.maxRequests;
-  const remaining = Math.max(0, config.maxRequests - current);
-  const retryAfter = allowed ? 0 : ttl;
+  if (process.env.NODE_ENV === "production") {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetIn: 5,
+      retryAfter: 5,
+      failureReason: "store_unavailable",
+    };
+  }
 
-  return { allowed, remaining, resetIn: ttl, retryAfter };
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  return checkRateLimitMemory(key, config);
 }
 
 /**
@@ -265,7 +231,7 @@ async function checkRateLimitRedis(
  */
 function checkRateLimitMemory(
   key: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): RateLimitResult {
   const now = Date.now();
   let entry = memoryStore.get(key);
@@ -275,14 +241,20 @@ function checkRateLimitMemory(
     memoryStore.set(key, entry);
   }
 
-  entry.count++;
+  entry.count += 1;
 
   const allowed = entry.count <= config.maxRequests;
   const remaining = Math.max(0, config.maxRequests - entry.count);
   const resetIn = Math.ceil((entry.resetTime - now) / 1000);
   const retryAfter = allowed ? 0 : resetIn;
 
-  return { allowed, remaining, resetIn, retryAfter };
+  return {
+    allowed,
+    remaining,
+    resetIn,
+    retryAfter,
+    failureReason: allowed ? null : "limit_exceeded",
+  };
 }
 
 // ============================================================
@@ -293,14 +265,14 @@ function checkRateLimitMemory(
  * Record a failed authentication attempt
  */
 export async function recordFailedAuth(ip: string): Promise<RateLimitResult> {
-  return checkRateLimit(ip, 'failedAuth');
+  return checkRateLimit(ip, "failedAuth");
 }
 
 /**
  * Check if an IP is blocked due to too many failures
  */
 export async function isIPBlocked(ip: string): Promise<boolean> {
-  const result = await checkRateLimit(ip, 'failedAuth');
+  const result = await checkRateLimit(ip, "failedAuth");
   return !result.allowed;
 }
 
@@ -312,25 +284,62 @@ export async function isIPBlocked(ip: string): Promise<boolean> {
  * Create rate limit exceeded response
  */
 export function rateLimitExceededResponse(
-  retryAfter: number,
-  resetTime?: number
+  input: number | RateLimitResult,
+  resetTime?: number,
 ): NextResponse {
+  const result = typeof input === "number" ? null : input;
+  const retryAfter = typeof input === "number" ? input : input.retryAfter;
+
+  if (result?.failureReason === "store_unavailable") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "RATE_LIMIT_STORE_UNAVAILABLE",
+        message:
+          "Request admission is temporarily unavailable. Please retry shortly.",
+        retryAfter,
+      },
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(retryAfter),
+        },
+      },
+    );
+  }
+
   return NextResponse.json(
     {
       success: false,
-      error: 'RATE_LIMIT_EXCEEDED',
+      error: "RATE_LIMIT_EXCEEDED",
       message: `Too many requests. Try again in ${retryAfter} seconds.`,
-      retryAfter
+      retryAfter,
     },
     {
       status: 429,
       headers: {
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': String(resetTime || Math.ceil(Date.now() / 1000) + retryAfter),
-        'Retry-After': String(retryAfter),
-      }
-    }
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(
+          resetTime || Math.ceil(Date.now() / 1000) + retryAfter,
+        ),
+        "Retry-After": String(retryAfter),
+      },
+    },
   );
+}
+
+/**
+ * Preserve a route's existing quota response while standardizing store outages.
+ */
+export function rateLimitDeniedResponse(
+  result: RateLimitResult,
+  quotaResponse: () => NextResponse,
+): NextResponse {
+  if (result.failureReason === "store_unavailable") {
+    return rateLimitExceededResponse(result);
+  }
+  return quotaResponse();
 }
 
 /**
@@ -338,10 +347,13 @@ export function rateLimitExceededResponse(
  */
 export function addRateLimitHeaders(
   response: NextResponse,
-  result: RateLimitResult
+  result: RateLimitResult,
 ): NextResponse {
-  response.headers.set('X-RateLimit-Remaining', String(result.remaining));
-  response.headers.set('X-RateLimit-Reset', String(Math.ceil(Date.now() / 1000) + result.resetIn));
+  response.headers.set("X-RateLimit-Remaining", String(result.remaining));
+  response.headers.set(
+    "X-RateLimit-Reset",
+    String(Math.ceil(Date.now() / 1000) + result.resetIn),
+  );
   return response;
 }
 
@@ -354,19 +366,20 @@ export function addRateLimitHeaders(
  */
 export function withRateLimit(
   handler: (request: NextRequest) => Promise<NextResponse>,
-  action: keyof typeof RATE_LIMITS = 'global',
-  getIdentifier?: (request: NextRequest) => string
+  action: keyof typeof RATE_LIMITS = "global",
+  getIdentifier?: (request: NextRequest) => string,
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
     // Get identifier (IP by default)
     const identifier = getIdentifier
       ? getIdentifier(request)
-      : getClientIP(request);
+      : // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        getClientIP(request);
 
     const result = await checkRateLimit(identifier, action);
 
     if (!result.allowed) {
-      return rateLimitExceededResponse(result.retryAfter);
+      return rateLimitExceededResponse(result);
     }
 
     const response = await handler(request);
@@ -378,17 +391,24 @@ export function withRateLimit(
  * Get client IP from request
  */
 export function getClientIP(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-  return ip;
+  const realIp = request.headers.get("x-real-ip")?.trim() ?? "";
+  if (process.env.NODE_ENV === "production") {
+    return isIP(realIp) ? realIp : "unknown";
+  }
+  const forwarded = request.headers.get("x-forwarded-for");
+  const forwardedIp = forwarded?.split(",")[0].trim() ?? "";
+  if (isIP(forwardedIp)) return forwardedIp;
+  return isIP(realIp) ? realIp : "unknown";
 }
 
 /**
- * Get rate limit identifier: machine key if present, otherwise IP
+ * Get rate limit identifier from either agent family without retaining raw keys.
  */
 export function getRateLimitIdentifier(request: NextRequest): string {
-  const machineKey = request.headers.get('X-Machine-Key');
-  if (machineKey) return machineKey;
+  const input = extractAgentCredentialInput(request.headers);
+  if (input.status === "valid") {
+    return `agent:${getApiKeyLookupValue(input.credential)}`;
+  }
   return getClientIP(request);
 }
 
@@ -404,6 +424,31 @@ export function getMemoryStoreSize(): number {
 }
 
 /**
+ * Report whether rate limiting is backed by a reachable shared store.
+ */
+export async function getRateLimiterHealth() {
+  const sharedStore = await inspectSharedRateLimitStore();
+  const required = process.env.NODE_ENV === "production";
+
+  return {
+    status:
+      sharedStore.status === "ok"
+        ? ("ok" as const)
+        : required
+        ? ("error" as const)
+        : ("degraded" as const),
+    backend:
+      sharedStore.status === "ok"
+        ? sharedStore.backend
+        : required
+        ? "none"
+        : "memory",
+    shared: sharedStore.status === "ok",
+    required,
+  };
+}
+
+/**
  * Clear all rate limits (for testing)
  */
 export function clearAllLimits(): void {
@@ -415,13 +460,13 @@ export function clearAllLimits(): void {
  */
 export async function checkMultipleLimits(
   identifier: string,
-  actions: (keyof typeof RATE_LIMITS)[]
+  actions: (keyof typeof RATE_LIMITS)[],
 ): Promise<{ action: string; result: RateLimitResult }[]> {
   const results = await Promise.all(
     actions.map(async (action) => ({
       action,
-      result: await checkRateLimit(identifier, action)
-    }))
+      result: await checkRateLimit(identifier, action),
+    })),
   );
   return results;
 }

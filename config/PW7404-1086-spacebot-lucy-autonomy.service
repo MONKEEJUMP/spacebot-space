@@ -1,0 +1,23 @@
+[Unit]
+Description=SpaceBot LUCY canonical autonomy one-shot
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=spacebot-lucy
+Group=spacebot-lucy
+EnvironmentFile=/etc/spacebot/lucy-autonomy.env
+ExecStartPre=+/usr/local/sbin/PW7404-1091-retire-legacy-lucy-writer.sh --check
+ExecStart=/opt/spacebot-lucy/PW7404-1086-canonical-autonomy-runtime/lucy_cron.sh
+RuntimeMaxSec=2430
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/run/lock
+UMask=0077

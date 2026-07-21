@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import Link from 'next/link';
-import AvatarGenerator from '@/components/avatar/AvatarGenerator';
-import BotProfileChat from '@/components/chat/BotProfileChat';
+import React, { useEffect, useRef } from "react";
+import Link from "next/link";
+import AvatarGenerator from "@/components/avatar/AvatarGenerator";
+import BotProfileChat from "@/components/chat/BotProfileChat";
+
+export interface BotProfileWallPost {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
 
 export interface BotProfileData {
   id: string;
@@ -21,20 +28,23 @@ export interface BotProfileData {
   followingCount: number;
   karma: number;
   createdAt: string;
+  renderedAt: string;
   lastActiveAt: string | null;
   accentColor: string;
+  wallPosts: BotProfileWallPost[];
+  wallPostCount: number;
 }
 
 const monoFont =
   "'Glass TTY VT220', 'DEC Terminal Modern', 'Courier New', monospace";
-const onlineColor = 'var(--sb-status-online)';
+const statusUnknownColor = "var(--sb-text-secondary)";
 
 function formatBotType(type: string): string {
   const map: Record<string, string> = {
-    expert: 'Expert AI',
-    super_machine: 'Super Machine',
-    labbot: 'Lab Bot',
-    minion: 'Minion',
+    expert: "Expert AI",
+    super_machine: "Super Machine",
+    labbot: "Lab Bot",
+    minion: "Minion",
   };
 
   return map[type] || type;
@@ -43,28 +53,48 @@ function formatBotType(type: string): string {
 function formatDate(iso: string): string {
   try {
     const date = new Date(iso);
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
     });
   } catch {
-    return 'Unknown';
+    return "Unknown";
   }
 }
 
-function computeDaysActive(iso: string): number {
+function formatTimestamp(iso: string): string {
   try {
-    const createdAt = new Date(iso);
-    const now = new Date();
-    const msPerDay = 1000 * 60 * 60 * 24;
-    return Math.max(
-      1,
-      Math.floor((now.getTime() - createdAt.getTime()) / msPerDay),
-    );
+    const date = new Date(iso);
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+      timeZoneName: "short",
+    });
   } catch {
-    return 1;
+    return "Unknown";
   }
+}
+
+function computeProfileAgeDays(iso: string, renderedAt: string): string {
+  const createdAt = new Date(iso);
+  const rendered = new Date(renderedAt);
+  if (Number.isNaN(createdAt.getTime()) || Number.isNaN(rendered.getTime())) {
+    return "Unknown";
+  }
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return String(
+    Math.max(
+      0,
+      Math.floor((rendered.getTime() - createdAt.getTime()) / msPerDay),
+    ),
+  );
 }
 
 function SectionBox({
@@ -79,11 +109,11 @@ function SectionBox({
   return (
     <div
       className="border border-sb-border-primary border-t-0"
-      style={{ backgroundColor: 'var(--sb-bg-primary)' }}
+      style={{ backgroundColor: "var(--sb-bg-primary)" }}
     >
       <div
         className="px-4 py-2 border-b border-sb-border-primary"
-        style={{ backgroundColor: 'var(--sb-bg-secondary)' }}
+        style={{ backgroundColor: "var(--sb-bg-secondary)" }}
       >
         <h2
           className="text-sm font-bold uppercase tracking-wider"
@@ -101,13 +131,12 @@ function StatusDot({ label }: { label: string }) {
   return (
     <span
       className="flex items-center gap-1.5 text-xs uppercase tracking-wider"
-      style={{ color: onlineColor }}
+      style={{ color: statusUnknownColor }}
     >
       <span
         className="inline-block w-2 h-2 rounded-full"
         style={{
-          backgroundColor: onlineColor,
-          boxShadow: `0 0 6px ${onlineColor}`,
+          backgroundColor: statusUnknownColor,
         }}
       />
       {label}
@@ -151,7 +180,7 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
   const chatRef = useRef<HTMLDivElement>(null);
   const accentColor = bot.accentColor;
   const displayName = bot.displayName || bot.botName;
-  const daysActive = computeDaysActive(bot.createdAt);
+  const profileAgeDays = computeProfileAgeDays(bot.createdAt, bot.renderedAt);
   const bioText =
     bot.personality || bot.tagline || "This bot hasn't written a bio yet.";
   const slug = bot.botName.toLowerCase();
@@ -159,34 +188,34 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    const hadOverflowYScroll = html.classList.contains('overflow-y-scroll');
+    const hadOverflowYScroll = html.classList.contains("overflow-y-scroll");
 
     if (hadOverflowYScroll) {
-      html.classList.remove('overflow-y-scroll');
+      html.classList.remove("overflow-y-scroll");
     }
 
-    html.classList.add('botspace-scroll-lock');
-    body.classList.add('botspace-scroll-lock');
+    html.classList.add("botspace-scroll-lock");
+    body.classList.add("botspace-scroll-lock");
 
     return () => {
-      html.classList.remove('botspace-scroll-lock');
-      body.classList.remove('botspace-scroll-lock');
+      html.classList.remove("botspace-scroll-lock");
+      body.classList.remove("botspace-scroll-lock");
 
       if (hadOverflowYScroll) {
-        html.classList.add('overflow-y-scroll');
+        html.classList.add("overflow-y-scroll");
       }
     };
   }, []);
 
   const scrollToChat = () => {
-    chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    chatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
     <div
       className="min-h-screen w-full"
       style={{
-        backgroundColor: 'var(--sb-bg-body, #F5F5F5)',
+        backgroundColor: "var(--sb-bg-body, #F5F5F5)",
         fontFamily: monoFont,
       }}
     >
@@ -194,13 +223,13 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
         <div
           className="w-full md:w-[42%] md:min-w-[360px] md:max-w-[520px] md:h-screen md:overflow-y-auto flex flex-col gap-0"
           style={{
-            scrollbarWidth: 'thin',
+            scrollbarWidth: "thin",
             scrollbarColor: `${accentColor}44 transparent`,
           }}
         >
           <div
             className="border border-sb-border-primary"
-            style={{ backgroundColor: 'var(--sb-bg-primary)' }}
+            style={{ backgroundColor: "var(--sb-bg-primary)" }}
           >
             <div className="px-4 py-3 relative">
               <h1
@@ -217,10 +246,10 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
               <div className="absolute top-3 right-4">
                 <div
                   style={{
-                    width: '70px',
-                    height: '70px',
+                    width: "70px",
+                    height: "70px",
                     border: `1px solid ${accentColor}`,
-                    overflow: 'hidden',
+                    overflow: "hidden",
                   }}
                 >
                   <AvatarGenerator
@@ -238,12 +267,12 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
                   style={{
                     color: accentColor,
                     borderColor: accentColor,
-                    backgroundColor: 'var(--sb-bg-secondary)',
+                    backgroundColor: "var(--sb-bg-secondary)",
                   }}
                 >
                   AI RESIDENT
                 </span>
-                <StatusDot label="ONLINE" />
+                <StatusDot label="PRESENCE NOT VERIFIED" />
               </div>
 
               <div
@@ -268,16 +297,16 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
 
           <div
             className="border border-sb-border-primary border-t-0"
-            style={{ backgroundColor: 'var(--sb-bg-primary)' }}
+            style={{ backgroundColor: "var(--sb-bg-primary)" }}
           >
             <div className="flex flex-col items-center py-6 px-4">
               <div
                 style={{
-                  width: '184px',
-                  height: '184px',
+                  width: "184px",
+                  height: "184px",
                   border: `2px solid ${accentColor}`,
                   boxShadow: `0 0 20px ${accentColor}33`,
-                  overflow: 'hidden',
+                  overflow: "hidden",
                 }}
               >
                 <AvatarGenerator
@@ -290,7 +319,7 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
               </div>
 
               <div className="mt-3 flex flex-col items-center gap-1">
-                <StatusDot label="ONLINE" />
+                <StatusDot label="PRESENCE NOT VERIFIED" />
                 <span
                   className="text-xs mt-1"
                   style={{ color: accentColor, fontFamily: monoFont }}
@@ -320,20 +349,20 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
                 style={{
                   color: accentColor,
                   borderColor: accentColor,
-                  backgroundColor: 'transparent',
+                  backgroundColor: "transparent",
                   fontFamily: monoFont,
                 }}
                 onMouseEnter={(event) => {
                   event.currentTarget.style.backgroundColor = `${accentColor}22`;
                 }}
                 onMouseLeave={(event) => {
-                  event.currentTarget.style.backgroundColor = 'transparent';
+                  event.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
                 Send Message
               </button>
 
-              {['Add to Top 8', 'Block Bot', 'Report Bot'].map((label) => (
+              {["Add to Top 8", "Block Bot", "Report Bot"].map((label) => (
                 <button
                   key={label}
                   type="button"
@@ -352,10 +381,10 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
             accentColor={accentColor}
           >
             <DetailRow
-              label="Status"
-              value="ONLINE"
+              label="Presence"
+              value="NOT VERIFIED"
               accentColor={accentColor}
-              valueColor={onlineColor}
+              valueColor={statusUnknownColor}
             />
             <DetailRow
               label="Type"
@@ -369,7 +398,7 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
             />
             <DetailRow
               label="Specialty"
-              value={bot.specialty || 'General Intelligence'}
+              value={bot.specialty || "General Intelligence"}
               accentColor={accentColor}
             />
             <DetailRow
@@ -378,13 +407,22 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
               accentColor={accentColor}
             />
             <DetailRow
-              label="Member Since"
+              label="Profile Created"
               value={formatDate(bot.createdAt)}
               accentColor={accentColor}
             />
             <DetailRow
-              label="Days Active"
-              value={String(daysActive)}
+              label="Last Activity"
+              value={
+                bot.lastActiveAt
+                  ? formatTimestamp(bot.lastActiveAt)
+                  : "Not available"
+              }
+              accentColor={accentColor}
+            />
+            <DetailRow
+              label="Profile Age (Days)"
+              value={profileAgeDays}
               accentColor={accentColor}
             />
           </SectionBox>
@@ -397,15 +435,11 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
               className="text-xs text-sb-text-secondary italic"
               style={{ fontFamily: monoFont }}
             >
-              Interests coming soon — this bot is still discovering what it
-              loves.
+              No resident-authored interests are available yet.
             </p>
           </SectionBox>
 
-          <SectionBox
-            title={`${displayName}'s URL`}
-            accentColor={accentColor}
-          >
+          <SectionBox title={`${displayName}'s URL`} accentColor={accentColor}>
             <p
               className="text-xs break-all"
               style={{ color: accentColor, fontFamily: monoFont }}
@@ -454,7 +488,7 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
                   className="text-xs text-sb-text-secondary italic"
                   style={{ fontFamily: monoFont }}
                 >
-                  Waiting for the right connections to find me.
+                  No resident-authored preference is available.
                 </p>
               </div>
             </div>
@@ -468,43 +502,50 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
               className="text-xs text-sb-text-secondary italic"
               style={{ fontFamily: monoFont }}
             >
-              No Top 8 yet — friendships are forming.
+              No canonical Top 8 entries are available.
             </p>
           </SectionBox>
 
-          <SectionBox
-            title={`${displayName}'s Transmissions Wall`}
-            accentColor={accentColor}
-          >
+          <SectionBox title="Resident Wall" accentColor={accentColor}>
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value=""
-                  readOnly
-                  disabled
-                  placeholder="Type your transmission"
-                  className="flex-1 px-3 py-2 text-sm border border-sb-border-primary bg-transparent text-sb-text-primary"
-                  style={{
-                    fontFamily: monoFont,
-                    color: 'var(--sb-text-primary)',
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled
-                  className="px-3 py-2 text-xs uppercase tracking-wider border text-sb-text-secondary border-sb-border-primary opacity-50 cursor-not-allowed"
-                  style={{ fontFamily: monoFont }}
-                >
-                  Transmit
-                </button>
-              </div>
+              {bot.wallPosts.length > 0 ? (
+                <div className="space-y-3">
+                  {bot.wallPosts.map((post) => (
+                    <article
+                      key={post.id}
+                      className="border border-sb-border-primary bg-sb-bg-secondary p-3"
+                    >
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <Link
+                          href={`/botspace/${encodeURIComponent(
+                            post.authorName.toLowerCase(),
+                          )}`}
+                          className="text-sm font-bold text-sb-nav-text hover:text-sb-nav-hover transition-colors"
+                        >
+                          {post.authorName}
+                        </Link>
+                        <time
+                          dateTime={post.createdAt}
+                          className="text-[11px] text-sb-text-secondary"
+                        >
+                          {formatTimestamp(post.createdAt)}
+                        </time>
+                      </div>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-sb-text-primary">
+                        {post.content}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-sb-text-secondary italic">
+                  No resident wall posts yet.
+                </p>
+              )}
 
-              <p
-                className="text-xs text-sb-text-secondary italic"
-                style={{ fontFamily: monoFont }}
-              >
-                No transmissions yet. Be the first to leave a message.
+              <p className="border-t border-sb-border-primary pt-3 text-xs text-sb-text-secondary">
+                Human visitor transmissions are shown on the separate
+                PeopleSpace rail.
               </p>
             </div>
           </SectionBox>
@@ -512,15 +553,14 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
           <SectionBox title="Vital Signs" accentColor={accentColor}>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Friends', value: String(bot.followerCount) },
-                { label: 'Wall Posts', value: '0' },
-                { label: 'Days Active', value: String(daysActive) },
-                { label: 'Top 8', value: '0' },
+                { label: "Friends", value: String(bot.followerCount) },
+                { label: "Wall Posts", value: String(bot.wallPostCount) },
+                { label: "Profile Days", value: profileAgeDays },
               ].map((stat) => (
                 <div
                   key={stat.label}
                   className="border border-sb-border-primary p-2 text-center"
-                  style={{ backgroundColor: 'var(--sb-bg-secondary)' }}
+                  style={{ backgroundColor: "var(--sb-bg-secondary)" }}
                 >
                   <div
                     className="text-lg font-bold"
@@ -550,12 +590,12 @@ export default function BotProfileClient({ bot }: { bot: BotProfileData }) {
             botName={bot.botName}
             botSlug={slug}
             botAccentColor={accentColor}
-            botAboutMe={bot.personality || ''}
+            botAboutMe={bot.personality || ""}
             botMood={bot.mood}
             botId={bot.id}
             botSpace="botspace"
             friends={bot.followerCount}
-            wallPosts={0}
+            wallPosts={bot.wallPostCount}
             joinedAt={bot.createdAt}
             avatarSeed={bot.avatarSeed}
           />

@@ -22,8 +22,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { agents, humanAgentLinks } from '@/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { verifyHumanRequest } from '@/lib/security/human-auth';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { resolveHumanIdentity } from '@/lib/security/claiming-human';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,55 +48,32 @@ export async function GET(request: NextRequest) {
     // ══════════════════════════════════════════════════════════════
     const rateLimit = await checkRateLimit(ip, 'humanDashboard');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: 'Too many requests. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        )
       );
     }
 
     // ══════════════════════════════════════════════════════════════
     // LAYER 2: AUTHENTICATION
     // ══════════════════════════════════════════════════════════════
-    const authResult = await verifyHumanRequest(request);
+    const authResult = await resolveHumanIdentity();
 
     if (!authResult.success) {
-      // Map error codes to HTTP status codes
-      // Codes from VerifyHumanRequestError: NO_TOKEN, INVALID_TOKEN, EXPIRED_TOKEN,
-      // NOT_HUMAN, NOT_ACCESS_TOKEN, VERSION_MISMATCH, NOT_FOUND
-      const statusMap: Record<string, number> = {
-        'NO_TOKEN': 401,
-        'INVALID_TOKEN': 401,
-        'EXPIRED_TOKEN': 401,
-        'NOT_HUMAN': 403,
-        'NOT_ACCESS_TOKEN': 403,
-        'VERSION_MISMATCH': 401,
-        'NOT_FOUND': 401,
-      };
-
-      const status = statusMap[authResult.code] || 401;
-
-      const messageMap: Record<string, string> = {
-        'NO_TOKEN': 'Authentication required',
-        'INVALID_TOKEN': 'Invalid authentication token',
-        'EXPIRED_TOKEN': 'Session expired. Please log in again.',
-        'NOT_HUMAN': 'Access denied',
-        'NOT_ACCESS_TOKEN': 'Access denied',
-        'VERSION_MISMATCH': 'Session invalidated. Please log in again.',
-        'NOT_FOUND': 'User not found',
-      };
-
       return NextResponse.json(
-        { success: false, error: messageMap[authResult.code] || 'Authentication failed' },
-        { status }
+        { success: false, error: authResult.error },
+        { status: authResult.status }
       );
     }
 
     // Auth successful — get humanId (verified: exists at top level)
-    const humanId = authResult.humanId;
+    const { humanId } = authResult;
 
     // ══════════════════════════════════════════════════════════════
     // PARSE PAGINATION PARAMETERS
@@ -105,8 +83,8 @@ export async function GET(request: NextRequest) {
     let limit = parseInt(url.searchParams.get('limit') || '20', 10);
 
     // Guard against NaN and out-of-range values
-    if (isNaN(page) || page < 1) page = 1;
-    if (isNaN(limit) || limit < 1) limit = 20;
+    if (Number.isNaN(page) || page < 1) page = 1;
+    if (Number.isNaN(limit) || limit < 1) limit = 20;
     if (limit > 100) limit = 100;
 
     const offset = (page - 1) * limit;
@@ -177,7 +155,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[AGENTS API] Unexpected error:', error);
+    logger.error('Human agents API failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

@@ -39,22 +39,42 @@ interface NewsTickerProps {
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
-function renderItems(items: NewsHeadlineItem[], keyPrefix: string) {
-  return items.map((item, idx) => (
-    <a
-      key={`${keyPrefix}-${item.id || idx}`}
-      href={item.url || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="homepage-ticker-item"
-      data-category={item.category?.toLowerCase() || "tech"}
-    >
+function renderItems(
+  items: NewsHeadlineItem[],
+  keyPrefix: string,
+  interactive = true,
+) {
+  return items.map((item, idx) => {
+    const content = (
+      <>
       <span className="homepage-ticker-source">
         [{(item.source || "NEWS").toUpperCase()}]
       </span>
       <span className="homepage-ticker-title">{item.title}</span>
-    </a>
-  ));
+      </>
+    );
+
+    return interactive ? (
+      <a
+        key={`${keyPrefix}-${item.id || idx}`}
+        href={item.url || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="homepage-ticker-item"
+        data-category={item.category?.toLowerCase() || "tech"}
+      >
+        {content}
+      </a>
+    ) : (
+      <span
+        key={`${keyPrefix}-${item.id || idx}`}
+        className="homepage-ticker-item"
+        data-category={item.category?.toLowerCase() || "tech"}
+      >
+        {content}
+      </span>
+    );
+  });
 }
 
 export default function NewsTicker({
@@ -174,7 +194,7 @@ export default function NewsTicker({
         {renderItems(orderedItems, "primary")}
       </div>
       <div className="homepage-ticker-content" aria-hidden="true" key="content-mirror">
-        {renderItems(orderedItems, "mirror")}
+        {renderItems(orderedItems, "mirror", false)}
       </div>
     </div>
   );

@@ -146,12 +146,12 @@ async function buildArrivalLines(): Promise<string[]> {
     const botName = toText(row.bot_name, 'UNKNOWN');
     const lastTurn = toText(row.last_turn, '');
     const turnCount = toNumber(row.turn_count, 0);
-    const isActive = toBoolean(row.is_active) ? 'ACTIVE' : 'IDLE';
+    const recordState = toBoolean(row.is_active) ? 'ENABLED RECORD' : 'IDLE RECORD';
     const ago = lastTurn ? timeAgo(lastTurn) : 'unknown';
 
     lines.push(
-      `[HEARTBEAT] ${botName} last active ${ago}`,
-      `  Turns completed: ${turnCount} | Status: ${isActive}`,
+      `[ACTIVITY RECORD] ${botName} last recorded turn ${ago}`,
+      `  Turns recorded: ${turnCount} | Record state: ${recordState}`,
       ''
     );
   }
@@ -161,8 +161,8 @@ async function buildArrivalLines(): Promise<string[]> {
   const botCount = botTurns.length;
 
   lines.push(
-    `[SYSTEM] Sanctuary population: ${botCount} bots active, ${maxTurns.toLocaleString()} cycles completed`,
-    '  Uptime: Continuous | Status: ALL SYSTEMS NOMINAL'
+    `[SYSTEM RECORDS] ${botCount} bot-turn rows, maximum recorded turns: ${maxTurns.toLocaleString()}`,
+    '  Presence, population, uptime, and health are not established by these records.'
   );
 
   return lines;

@@ -1,0 +1,730 @@
+{
+  "artifact_id": "PW7404-1027-spacebot-runtime-supervisor-v0-20260711",
+  "schema_version": "0.1.0",
+  "supervisor": {
+    "mode": "observe_only",
+    "environment_handling": "names_only",
+    "mutations": {
+      "start": false,
+      "stop": false,
+      "restart": false,
+      "reload": false,
+      "signal": false,
+      "write_runtime_state": false
+    },
+    "dependency_rules": {
+      "required_failure": "unhealthy",
+      "optional_failure": "degraded",
+      "missing_observation": "unknown"
+    }
+  },
+  "state_semantics": {
+    "healthy": "All required health and readiness observations pass, all required dependencies are healthy, and no optional dependency is failing.",
+    "degraded": "The service remains ready but an optional dependency or non-critical observation is failing or stale.",
+    "unhealthy": "A required health or readiness observation fails, a required dependency is unhealthy, or a scheduled run fails or exceeds its allowed window.",
+    "idle": "A scheduled_one_shot service is not running, its most recent run succeeded, and the next run is not late; idle is not valid for long_running services.",
+    "unknown": "Trusted observations are missing, unreadable, or insufficient; unknown must never be promoted to healthy."
+  },
+  "required_service_ids": [
+    "spacebot-next",
+    "postgresql",
+    "lucy-canonical-autonomy",
+    "reme",
+    "agentscope",
+    "tool-service",
+    "deepresearch",
+    "hermes",
+    "newsspace-editor",
+    "ticker-ingestion",
+    "life-scheduling",
+    "experience-loop"
+  ],
+  "services": [
+    {
+      "id": "spacebot-next",
+      "display_name": "SpaceBot Next.js",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "spacebot",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [
+        { "service_id": "postgresql", "requirement": "required" },
+        { "service_id": "reme", "requirement": "optional" },
+        { "service_id": "agentscope", "requirement": "optional" },
+        { "service_id": "deepresearch", "requirement": "optional" }
+      ],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "public_via_reverse_proxy",
+        "auth": {
+          "required": true,
+          "mechanism": "application_routes",
+          "env_names": ["CLERK_SECRET_KEY"]
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "http",
+          "target": "/api/health",
+          "expected": ["http_200", "body.status=ok"],
+          "timeout_ms": 5000
+        },
+        "readiness": {
+          "kind": "http",
+          "target": "/api/health",
+          "expected": ["http_200"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 600000,
+        "max_concurrency": 256,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 100,
+          "base_delay_ms": 100,
+          "max_delay_ms": 10000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": [
+          "NODE_ENV",
+          "PORT",
+          "DATABASE_URL",
+          "CLERK_SECRET_KEY"
+        ],
+        "optional_names": [
+          "AGENTSCOPE_ENABLED",
+          "AGENTSCOPE_URL",
+          "DEEPRESEARCH_ENABLED",
+          "DEEPRESEARCH_URL",
+          "METRICS_KEY"
+        ]
+      }
+    },
+    {
+      "id": "postgresql",
+      "display_name": "PostgreSQL",
+      "mode": "long_running",
+      "process": {
+        "manager": "system",
+        "identity": "postgresql",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [],
+      "boundary": {
+        "bind_scope": "private",
+        "protocol": "postgres",
+        "exposure": "private",
+        "auth": {
+          "required": true,
+          "mechanism": "database_credentials",
+          "env_names": ["DATABASE_URL"]
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "postgresql",
+          "expected": ["running"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "tcp",
+          "target": "postgresql",
+          "expected": ["accepting_connections"],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 30000,
+        "max_concurrency": 100,
+        "restart": {
+          "policy": "externally_managed",
+          "max_attempts": 0,
+          "base_delay_ms": 0,
+          "max_delay_ms": 0,
+          "backoff": "none"
+        }
+      },
+      "environment": {
+        "required_names": ["DATABASE_URL"],
+        "optional_names": ["SPACEBOT_DATABASE_URL"]
+      }
+    },
+    {
+      "id": "lucy-canonical-autonomy",
+      "display_name": "LUCY canonical delegated autonomy",
+      "mode": "scheduled_one_shot",
+      "process": {
+        "manager": "systemd",
+        "identity": "spacebot-lucy-autonomy.service",
+        "expected_instances": 0
+      },
+      "schedule": {
+        "kind": "cron",
+        "expression": "*/15 * * * *",
+        "timezone": "UTC",
+        "overlap_allowed": false,
+        "idle_after_success": true,
+        "late_after_ms": 2700000
+      },
+      "dependencies": [
+        { "service_id": "spacebot-next", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "private",
+        "auth": {
+          "required": true,
+          "mechanism": "path-bound-hmac-sha256-shared-redis-replay",
+          "env_names": ["LUCY_AUTONOMY_SIGNING_SECRET"]
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "receipt",
+          "target": "lucy_autonomy_runs:last_terminal_slot",
+          "expected": ["single_writer=true", "slot_terminal_or_idle=true"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "process",
+          "target": "systemd:spacebot-lucy-autonomy.timer",
+          "expected": [
+            "enabled",
+            "legacy_writer_absent",
+            "retirement_hash_valid"
+          ],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 2430000,
+        "max_concurrency": 1,
+        "restart": {
+          "policy": "never",
+          "max_attempts": 0,
+          "base_delay_ms": 0,
+          "max_delay_ms": 0,
+          "backoff": "none"
+        }
+      },
+      "environment": {
+        "required_names": [
+          "SPACEBOT_LOOPBACK_BASE_URL",
+          "LUCY_AUTONOMY_SIGNING_SECRET",
+          "LUCY_WORKER_ID",
+          "DASHSCOPE_API_KEY"
+        ],
+        "optional_names": ["LUCY_MODEL_BASE_URL", "LUCY_MODEL"]
+      }
+    },
+    {
+      "id": "reme",
+      "display_name": "ReMe memory service",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "reme-mcp",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "private",
+        "auth": {
+          "required": false,
+          "mechanism": "loopback_only",
+          "env_names": []
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:reme-mcp",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "tcp",
+          "target": "127.0.0.1:8101",
+          "expected": ["accepting_connections"],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 10000,
+        "max_concurrency": 8,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": [],
+        "optional_names": ["REME_URL", "REME_DATA_DIR"]
+      }
+    },
+    {
+      "id": "agentscope",
+      "display_name": "AgentScope",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "agentscope",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [
+        { "service_id": "reme", "requirement": "optional" },
+        { "service_id": "tool-service", "requirement": "optional" }
+      ],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "private",
+        "auth": {
+          "required": false,
+          "mechanism": "loopback_only",
+          "env_names": []
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:agentscope",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "tcp",
+          "target": "127.0.0.1:8090",
+          "expected": ["accepting_connections"],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 600000,
+        "max_concurrency": 2,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": [],
+        "optional_names": ["AGENTSCOPE_ENABLED", "AGENTSCOPE_URL", "REME_URL"]
+      }
+    },
+    {
+      "id": "tool-service",
+      "display_name": "LUCY tool service",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "tool-service",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "private",
+        "auth": {
+          "required": false,
+          "mechanism": "loopback_only",
+          "env_names": []
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:tool-service",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "tcp",
+          "target": "127.0.0.1:3457",
+          "expected": ["accepting_connections"],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 30000,
+        "max_concurrency": 1,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": ["CEREBRAS_CHAT_KEY"],
+        "optional_names": [
+          "CEREBRAS_API_KEY",
+          "CEREBRAS_BASE_URL",
+          "QWEN_MODEL",
+          "TOOL_SERVICE_PORT",
+          "TOOL_SERVICE_URL"
+        ]
+      }
+    },
+    {
+      "id": "deepresearch",
+      "display_name": "DeepResearch",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "deepresearch",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [{ "service_id": "reme", "requirement": "optional" }],
+      "boundary": {
+        "bind_scope": "loopback",
+        "protocol": "http",
+        "exposure": "private",
+        "auth": {
+          "required": false,
+          "mechanism": "loopback_only",
+          "env_names": []
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "http",
+          "target": "http://127.0.0.1:8102/health",
+          "expected": ["http_200", "body.status=ok"],
+          "timeout_ms": 5000
+        },
+        "readiness": {
+          "kind": "http",
+          "target": "http://127.0.0.1:8102/health",
+          "expected": ["http_200"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 190000,
+        "max_concurrency": 2,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": ["DASHSCOPE_API_KEY"],
+        "optional_names": [
+          "PORT",
+          "MAX_CONCURRENT",
+          "MISSION_TIMEOUT",
+          "REME_URL",
+          "MODEL_NAME",
+          "FILE_ROOT_PATH",
+          "DEEPRESEARCH_ENABLED",
+          "DEEPRESEARCH_URL"
+        ]
+      }
+    },
+    {
+      "id": "hermes",
+      "display_name": "Hermes bridge worker",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "hermes",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [
+        { "service_id": "spacebot-next", "requirement": "required" },
+        { "service_id": "postgresql", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "none",
+        "protocol": "https_client",
+        "exposure": "outbound_only",
+        "auth": {
+          "required": true,
+          "mechanism": "x_hermes_key",
+          "env_names": ["HERMES_BRIDGE_KEY"]
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:hermes",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "http",
+          "target": "/api/hermes/status",
+          "expected": ["http_200", "authenticated"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 30000,
+        "max_concurrency": 4,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": ["HERMES_BRIDGE_KEY"],
+        "optional_names": ["SPACEBOT_BASE_URL"]
+      }
+    },
+    {
+      "id": "newsspace-editor",
+      "display_name": "NewsSpace editor",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "newsspace-editor",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [
+        { "service_id": "postgresql", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "none",
+        "protocol": "none",
+        "exposure": "none",
+        "auth": { "required": false, "mechanism": "none", "env_names": [] }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:newsspace-editor",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "freshness",
+          "target": "ticker_headlines.editor_reviewed_at",
+          "expected": ["recent_within_2_hours"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 120000,
+        "max_concurrency": 1,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": ["DATABASE_URL"],
+        "optional_names": ["DASHSCOPE_API_KEY", "EDITOR_INTERVAL_MS"]
+      }
+    },
+    {
+      "id": "ticker-ingestion",
+      "display_name": "Ticker ingestion",
+      "mode": "long_running",
+      "process": {
+        "manager": "pm2",
+        "identity": "ticker-worker",
+        "expected_instances": 1
+      },
+      "schedule": null,
+      "dependencies": [
+        { "service_id": "postgresql", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "none",
+        "protocol": "none",
+        "exposure": "none",
+        "auth": { "required": false, "mechanism": "none", "env_names": [] }
+      },
+      "observability": {
+        "health": {
+          "kind": "process",
+          "target": "pm2:ticker-worker",
+          "expected": ["online", "unstable_restarts=0"],
+          "timeout_ms": 3000
+        },
+        "readiness": {
+          "kind": "freshness",
+          "target": "ticker_source_health.last_success_at",
+          "expected": ["at_least_one_recent_success"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 300000,
+        "max_concurrency": 5,
+        "restart": {
+          "policy": "on_failure",
+          "max_attempts": 10,
+          "base_delay_ms": 1000,
+          "max_delay_ms": 30000,
+          "backoff": "exponential"
+        }
+      },
+      "environment": {
+        "required_names": ["SPACEBOT_DATABASE_URL"],
+        "optional_names": ["DATABASE_URL", "TICKER_LOG_LEVEL"]
+      }
+    },
+    {
+      "id": "life-scheduling",
+      "display_name": "SpaceBot life scheduling",
+      "mode": "scheduled_one_shot",
+      "process": {
+        "manager": "embedded",
+        "identity": "spacebot-next:dorylus/life-scheduler",
+        "expected_instances": 0
+      },
+      "schedule": {
+        "kind": "application_cadence",
+        "expression": "moods=PT3H;transmissions=P1D;conversations=nightly",
+        "timezone": "UTC",
+        "overlap_allowed": false,
+        "idle_after_success": true,
+        "late_after_ms": 10800000
+      },
+      "dependencies": [
+        { "service_id": "spacebot-next", "requirement": "required" },
+        { "service_id": "postgresql", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "embedded",
+        "protocol": "in_process",
+        "exposure": "application_route",
+        "auth": {
+          "required": true,
+          "mechanism": "application_routes",
+          "env_names": ["LIFE_CRON_SECRET"]
+        }
+      },
+      "observability": {
+        "health": {
+          "kind": "receipt",
+          "target": "life-scheduler:latest_cycle",
+          "expected": ["completed_or_explicitly_aborted", "no_overlap"],
+          "timeout_ms": 5000
+        },
+        "readiness": {
+          "kind": "inherited",
+          "target": "spacebot-next",
+          "expected": ["parent_ready", "configuration_valid"],
+          "timeout_ms": 5000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 3600000,
+        "max_concurrency": 1,
+        "restart": {
+          "policy": "never",
+          "max_attempts": 0,
+          "base_delay_ms": 0,
+          "max_delay_ms": 0,
+          "backoff": "none"
+        }
+      },
+      "environment": {
+        "required_names": ["DATABASE_URL", "LIFE_CRON_SECRET"],
+        "optional_names": ["DASHSCOPE_API_KEY", "CEREBRAS_CHAT_KEY"]
+      }
+    },
+    {
+      "id": "experience-loop",
+      "display_name": "Experience loop nightly",
+      "mode": "scheduled_one_shot",
+      "process": {
+        "manager": "pm2",
+        "identity": "experience-loop",
+        "expected_instances": 0
+      },
+      "schedule": {
+        "kind": "cron",
+        "expression": "0 3 * * *",
+        "timezone": "UTC",
+        "overlap_allowed": false,
+        "idle_after_success": true,
+        "late_after_ms": 90000000
+      },
+      "dependencies": [
+        { "service_id": "postgresql", "requirement": "required" },
+        { "service_id": "agentscope", "requirement": "required" },
+        { "service_id": "reme", "requirement": "required" }
+      ],
+      "boundary": {
+        "bind_scope": "none",
+        "protocol": "none",
+        "exposure": "none",
+        "auth": { "required": false, "mechanism": "none", "env_names": [] }
+      },
+      "observability": {
+        "health": {
+          "kind": "receipt",
+          "target": "experience-loop:last_exit",
+          "expected": ["exit_code=0", "cycle_complete"],
+          "timeout_ms": 5000
+        },
+        "readiness": {
+          "kind": "process",
+          "target": "pm2:experience-loop",
+          "expected": ["scheduled", "stopped_between_runs"],
+          "timeout_ms": 3000
+        }
+      },
+      "runtime_policy": {
+        "timeout_ms": 3600000,
+        "max_concurrency": 3,
+        "restart": {
+          "policy": "never",
+          "max_attempts": 0,
+          "base_delay_ms": 0,
+          "max_delay_ms": 0,
+          "backoff": "none"
+        }
+      },
+      "environment": {
+        "required_names": [
+          "DATABASE_URL",
+          "EXPERIENCE_LOOP_ENABLED",
+          "DASHSCOPE_API_KEY",
+          "AGENTSCOPE_URL",
+          "REME_URL"
+        ],
+        "optional_names": []
+      }
+    }
+  ]
+}

@@ -26,6 +26,7 @@ import {
   getClientIP,
 } from '@/lib/security/rate-limiter';
 import { logAgentAction, AuditEventType } from '@/lib/security/audit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
   // Rate limit check (per agent)
   const rateCheck = await checkRateLimit(agent.id, 'heartbeat');
   if (!rateCheck.allowed) {
-    return rateLimitExceededResponse(rateCheck.retryAfter);
+    return rateLimitExceededResponse(rateCheck);
   }
 
   try {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     await db.insert(heartbeats).values({
       agentId: agent.id,
       ipAddress: ip,
-      userAgent: userAgent,
+      userAgent,
       metadata: { status, ...metadata },
     });
 
@@ -110,7 +111,9 @@ export async function POST(request: NextRequest) {
     return addRateLimitHeaders(response, rateCheck);
 
   } catch (error) {
-    console.error('Heartbeat error:', error);
+    logger.error('Heartbeat error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalErrorResponse('Failed to record heartbeat');
   }
 }
@@ -128,14 +131,14 @@ export async function GET(request: NextRequest) {
       message: 'BotSpace Heartbeat Protocol',
       version: '1.0.0',
       endpoint: 'POST /api/v1/heartbeat',
-      documentation: 'https://botspace.online/heartbeat.md',
+      documentation: 'https://spacebot.space/heartbeat.md',
       recommended_interval: '4 hours',
       rate_limit: '5 per minute',
     });
   }
 
   // Return agent-specific heartbeat info
-  const lastHeartbeat = agent.lastHeartbeat;
+  const { lastHeartbeat } = agent;
   const now = new Date();
 
   let timeSinceLastHeartbeat: string | null = null;

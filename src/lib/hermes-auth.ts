@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { db } from '@/db';
 import { hermesAuditLog } from '@/db/hermes-schema';
 
@@ -8,7 +8,9 @@ export function verifyHermesKey(request: NextRequest): boolean {
   if (!bridgeKey) return false;
   const headerKey = request.headers.get('X-Hermes-Key');
   if (!headerKey) return false;
-  return headerKey === bridgeKey;
+  const supplied = Buffer.from(headerKey);
+  const expected = Buffer.from(bridgeKey);
+  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }
 
 export function getKeyHash(request: NextRequest): string {
@@ -30,12 +32,22 @@ interface LogParams {
 }
 
 export async function logHermesCall(params: LogParams): Promise<void> {
+  // Unauthenticated traffic must not amplify into a database write.
+  if (params.responseCode === 401) return;
+
+  const requestBody =
+    params.requestBody && typeof params.requestBody === 'object'
+      ? {
+          redacted: true,
+          keys: Object.keys(params.requestBody as Record<string, unknown>).slice(0, 20),
+        }
+      : null;
   try {
     await db.insert(hermesAuditLog).values({
       endpoint: params.endpoint,
       method: params.method,
       keyHash: params.keyHash,
-      requestBody: (params.requestBody ?? null) as Record<string, unknown> | null,
+      requestBody,
       responseCode: params.responseCode,
       ipAddress: params.ipAddress ?? null,
     });

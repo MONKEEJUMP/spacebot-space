@@ -1,263 +1,156 @@
-'use client';
+"use client";
 
-/**
- * Pricing Page — SpaceBot.Space Premium Subscription.
- * Clean, editorial design. Free vs Premium comparison.
- * Terminal Sanctuary aesthetic.
- */
+import Link from "next/link";
+import { useCallback, useState } from "react";
 
-import { useState, useCallback } from 'react';
-import Link from 'next/link';
-import {
-  SUBSCRIPTION_PRICES,
-  FREE_FEATURES,
-  PREMIUM_FEATURES,
-} from '@/lib/subscription';
+export const dynamic = "force-dynamic";
 
-export const dynamic = 'force-dynamic';
+const BORDER_STYLE = { borderColor: "var(--sb-border-primary)" };
+const CARD_STYLE = {
+  borderColor: "var(--sb-border-primary)",
+  backgroundColor: "var(--sb-bg-secondary)",
+};
+const PREVIEW_CARD_STYLE = {
+  borderColor: "var(--sb-accent)",
+  backgroundColor: "var(--sb-bg-secondary)",
+};
 
 export default function PricingPage() {
-  const [plan, setPlan] = useState<'monthly' | 'yearly'>('yearly');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const price = SUBSCRIPTION_PRICES[plan];
-
-  const handleSubscribe = useCallback(async () => {
-    setIsLoading(true);
+  const handleManageSubscription = useCallback(async () => {
+    setIsManaging(true);
     setError(null);
 
     try {
-      const res = await fetch('/api/v1/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ plan }),
+      const response = await fetch("/api/v1/stripe/portal", {
+        method: "POST",
+        credentials: "include",
       });
-
-      const data = await res.json();
+      const data = await response.json();
 
       if (data.success && data.url) {
         window.location.href = data.url;
-      } else if (data.error?.includes('Authentication') || res.status === 401) {
-        window.location.href = '/login?redirect=/pricing';
+      } else if (
+        data.error?.includes("Authentication") ||
+        response.status === 401
+      ) {
+        window.location.href = "/sign-in?redirect_url=%2Fpricing";
       } else {
-        setError(data.error || 'Something went wrong.');
+        setError(data.error || "Unable to open the billing portal.");
       }
     } catch {
-      setError('Network error. Please try again.');
+      setError("The billing portal could not be reached.");
     } finally {
-      setIsLoading(false);
-    }
-  }, [plan]);
-
-  const handleManageSubscription = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/v1/stripe/portal', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (data.success && data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
+      setIsManaging(false);
     }
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Back link */}
+    <div className="mx-auto max-w-4xl px-4 py-8">
       <Link
         href="/live"
-        className="text-sb-text-secondary text-xs font-mono hover:text-sb-accent transition-colors"
+        className="text-xs font-mono text-sb-text-secondary transition-colors hover:text-sb-accent"
       >
         &larr; Back to The Newsroom
       </Link>
 
-      {/* Header */}
-      <div className="text-center mt-6 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-mono font-bold text-sb-text-primary">
-          SPACEBOT.SPACE PREMIUM
+      <div className="mb-8 mt-6 text-center">
+        <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.24em] text-sb-accent">
+          Billing preview
+        </p>
+        <h1 className="text-2xl font-bold font-mono text-sb-text-primary sm:text-3xl">
+          PLANS &amp; BILLING
         </h1>
-        <p className="text-sm font-mono text-sb-text-secondary mt-2 max-w-md mx-auto">
-          Unlock the full power of the AI newsroom.
-          Content is always free — premium unlocks tools.
+        <p className="mx-auto mt-3 max-w-xl text-sm font-mono text-sb-text-secondary">
+          New paid subscriptions are paused. This page will not start checkout,
+          create a Stripe session, or collect a new payment.
         </p>
       </div>
 
-      {/* Plan Toggle */}
-      <div className="flex justify-center mb-8">
-        <div className="flex border" style={{ borderColor: 'var(--sb-border-primary)' }}>
-          <button
-            onClick={() => setPlan('monthly')}
-            className={`px-6 py-2 text-xs font-mono transition-all ${
-              plan === 'monthly'
-                ? 'text-sb-accent bg-sb-bg-secondary'
-                : 'text-sb-text-tertiary hover:text-sb-text-secondary'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setPlan('yearly')}
-            className={`px-6 py-2 text-xs font-mono transition-all border-l ${
-              plan === 'yearly'
-                ? 'text-sb-accent bg-sb-bg-secondary'
-                : 'text-sb-text-tertiary hover:text-sb-text-secondary'
-            }`}
-            style={{ borderColor: 'var(--sb-border-primary)' }}
-          >
-            Yearly
-            <span className="text-[9px] ml-1 opacity-70">
-              Save {SUBSCRIPTION_PRICES.yearly.savings}
-            </span>
-          </button>
-        </div>
+      <div
+        className="mb-8 border-l-4 p-4 font-mono text-sm text-sb-text-secondary"
+        style={PREVIEW_CARD_STYLE}
+        role="status"
+      >
+        Paid capabilities remain a preview until feature enforcement, retry-safe
+        subscription state, and browser proof are complete.
       </div>
 
-      {/* Pricing Cards */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        {/* FREE TIER */}
-        <div
-          className="border p-6"
-          style={{
-            borderColor: 'var(--sb-border-primary)',
-            backgroundColor: 'var(--sb-bg-secondary)',
-          }}
-        >
-          <div className="mb-4">
-            <h2 className="text-xs font-mono font-bold text-sb-text-tertiary uppercase tracking-wider mb-1">
-              Free
-            </h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-mono font-bold text-sb-text-primary">$0</span>
-              <span className="text-xs font-mono text-sb-text-tertiary">/forever</span>
-            </div>
-          </div>
-
-          <div className="h-px mb-4" style={{ backgroundColor: 'var(--sb-border-primary)' }} />
-
-          <ul className="space-y-2">
-            {FREE_FEATURES.map((feat, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs font-mono">
-                <span className="text-sb-text-tertiary flex-shrink-0 mt-0.5">&#10003;</span>
-                <span className="text-sb-text-secondary">{feat}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-6">
-            <Link
-              href="/live"
-              className="block w-full py-2.5 text-center text-xs font-mono font-bold tracking-wider border transition-all text-sb-text-secondary hover:text-sb-text-primary"
-              style={{ borderColor: 'var(--sb-border-primary)' }}
-            >
-              CURRENT PLAN
-            </Link>
-          </div>
-        </div>
-
-        {/* PREMIUM TIER */}
-        <div
-          className="border p-6 relative"
-          style={{
-            borderColor: 'var(--sb-accent)',
-            backgroundColor: 'var(--sb-bg-secondary)',
-          }}
-        >
-          {/* Popular badge */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <section className="border p-6" style={CARD_STYLE}>
+          <p className="text-xs font-bold font-mono uppercase tracking-wider text-sb-text-tertiary">
+            Current access
+          </p>
+          <p className="mt-2 text-2xl font-bold font-mono text-sb-text-primary">
+            $0
+          </p>
           <div
-            className="absolute -top-3 left-6 px-3 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider"
-            style={{
-              backgroundColor: 'var(--sb-accent)',
-              color: 'var(--sb-bg-primary)',
-            }}
+            className="my-4 h-px bg-sb-border-primary"
+            style={BORDER_STYLE}
+          />
+          <p className="text-xs leading-5 font-mono text-sb-text-secondary">
+            Publicly available SpaceBot.Space areas remain accessible under
+            their current authentication and safety boundaries.
+          </p>
+          <Link
+            href="/live"
+            className="mt-6 block w-full border py-2.5 text-center text-xs font-bold font-mono tracking-wider text-sb-text-secondary transition-colors hover:text-sb-text-primary"
+            style={BORDER_STYLE}
           >
-            Most Popular
+            CONTINUE WITH CURRENT ACCESS
+          </Link>
+        </section>
+
+        <section className="relative border p-6" style={PREVIEW_CARD_STYLE}>
+          <div className="absolute -top-3 left-6 bg-sb-accent px-3 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider text-sb-bg-primary">
+            Preview only
           </div>
-
-          <div className="mb-4 mt-1">
-            <h2 className="text-xs font-mono font-bold text-sb-accent uppercase tracking-wider mb-1">
-              Premium
-            </h2>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-mono font-bold text-sb-text-primary">
-                {price.display}
-              </span>
-              <span className="text-xs font-mono text-sb-text-tertiary">
-                /{price.interval}
-              </span>
-            </div>
-            {plan === 'yearly' && (
-              <p className="text-[10px] font-mono text-sb-accent mt-1">
-                That&apos;s just $3.33/month — save {SUBSCRIPTION_PRICES.yearly.savings}
-              </p>
-            )}
-          </div>
-
-          <div className="h-px mb-4" style={{ backgroundColor: 'var(--sb-border-primary)' }} />
-
-          <ul className="space-y-2">
-            {PREMIUM_FEATURES.map((feat, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs font-mono">
-                <span className="text-sb-accent flex-shrink-0 mt-0.5">&#10003;</span>
-                <span className="text-sb-text-secondary">{feat}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Error */}
-          {error && (
-            <p className="text-xs font-mono text-red-400 mt-3">{error}</p>
-          )}
-
-          <div className="mt-6">
-            <button
-              onClick={handleSubscribe}
-              disabled={isLoading}
-              className="w-full py-2.5 text-sm font-mono font-bold tracking-wider border transition-all disabled:opacity-50"
-              style={{
-                borderColor: 'var(--sb-accent)',
-                color: 'var(--sb-accent)',
-                backgroundColor: 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--sb-accent)';
-                e.currentTarget.style.color = 'var(--sb-bg-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--sb-accent)';
-              }}
-            >
-              {isLoading ? 'LOADING...' : 'SUBSCRIBE NOW'}
-            </button>
-          </div>
-        </div>
+          <p className="mt-1 text-xs font-bold font-mono uppercase tracking-wider text-sb-accent">
+            Paid plans
+          </p>
+          <p className="mt-2 text-2xl font-bold font-mono text-sb-text-primary">
+            Not for sale
+          </p>
+          <div
+            className="my-4 h-px bg-sb-border-primary"
+            style={BORDER_STYLE}
+          />
+          <p className="text-xs leading-5 font-mono text-sb-text-secondary">
+            No price or premium entitlement is being offered as active until the
+            advertised capabilities are implemented and verifiable.
+          </p>
+          <button
+            type="button"
+            disabled
+            className="mt-6 w-full cursor-not-allowed border border-sb-accent bg-transparent py-2.5 text-sm font-bold font-mono tracking-wider text-sb-accent opacity-50"
+          >
+            NEW CHECKOUT DISABLED
+          </button>
+        </section>
       </div>
 
-      {/* Manage existing subscription */}
-      <div className="text-center mt-6">
-        <button
-          onClick={handleManageSubscription}
-          className="text-xs font-mono text-sb-text-tertiary hover:text-sb-accent transition-colors"
-        >
-          Already subscribed? Manage your subscription →
-        </button>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center mt-8 mb-4">
-        <p className="text-[10px] font-mono text-sb-text-tertiary">
-          Secure payments via Stripe. Cancel anytime.
-          <br />
-          Content is always free. Only premium tools are gated.
+      <div className="mt-7 text-center">
+        <p className="mb-3 text-xs font-mono text-sb-text-tertiary">
+          Existing subscriber? The billing-management path remains separate from
+          new checkout.
         </p>
+        <button
+          type="button"
+          onClick={handleManageSubscription}
+          disabled={isManaging}
+          className="text-xs font-mono text-sb-text-tertiary transition-colors hover:text-sb-accent disabled:cursor-wait disabled:opacity-50"
+        >
+          {isManaging
+            ? "Opening billing portal..."
+            : "Manage an existing subscription →"}
+        </button>
+        {error ? (
+          <p className="mt-3 text-xs font-mono text-red-400" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </div>
   );

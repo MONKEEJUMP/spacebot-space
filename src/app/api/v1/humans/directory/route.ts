@@ -15,8 +15,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { humans } from '@/db/schema';
-import { eq, and, ilike, sql } from 'drizzle-orm';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { eq, and, ilike, isNotNull, ne, sql } from 'drizzle-orm';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,27 +28,38 @@ export async function GET(request: NextRequest) {
     // ── LAYER 1: Rate Limiting ──────────────────────────────────
     const rateLimit = await checkRateLimit(ip, 'humanDirectory');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many requests. Please try again later.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          {
+            success: false,
+            error: 'Too many requests. Please try again later.',
+            retryAfter: rateLimit.retryAfter,
+          },
+          { status: 429 }
+        )
       );
     }
 
     // ── LAYER 2: Parse Query Parameters ─────────────────────────
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = request.nextUrl;
     const query = searchParams.get('q')?.trim() || '';
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10) || 50, 1), 100);
     const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10) || 0, 0);
 
     // ── LAYER 3: Build WHERE Conditions ─────────────────────────
-    // ONLY verified humans appear in the directory
+    // Directory entries must be public, verified, and linked to a usable
+    // Clerk-backed profile. Legacy password-only rows are not selectable.
+    const eligibleHuman = and(
+      eq(humans.isPublic, true),
+      eq(humans.isEmailVerified, true),
+      isNotNull(humans.clerkId),
+      ne(humans.clerkId, ''),
+      isNotNull(humans.username),
+      ne(humans.username, '')
+    );
     const conditions = query
-      ? and(eq(humans.isEmailVerified, true), ilike(humans.name, `%${query}%`))
-      : eq(humans.isEmailVerified, true);
+      ? and(eligibleHuman, ilike(humans.name, `%${query}%`))
+      : eligibleHuman;
 
     // ── LAYER 4: Query Database ─────────────────────────────────
     // SECURITY: Select ONLY public-safe fields
@@ -55,7 +67,6 @@ export async function GET(request: NextRequest) {
     const results = await db
       .select({
         id: humans.id,
-        clerkId: humans.clerkId,
         name: humans.name,
         username: humans.username,
         subscriptionTier: humans.subscriptionTier,
@@ -79,7 +90,6 @@ export async function GET(request: NextRequest) {
       success: true,
       humans: results.map((h) => ({
         id: h.id,
-        clerkId: h.clerkId,
         name: h.name,
         username: h.username,
         tier: h.subscriptionTier,
@@ -91,7 +101,9 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
-    console.error('[DIRECTORY] Error:', error);
+    logger.error('Public human directory failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to load directory.' },
       { status: 500 }

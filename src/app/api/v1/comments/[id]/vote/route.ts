@@ -8,27 +8,28 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, comments, votes } from '@/db';
-import { eq, and } from 'drizzle-orm';
-import { authenticateRequest } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, comments, votes } from "@/db";
+import { eq, and } from "drizzle-orm";
 import {
+  authenticateRequest,
   badRequestResponse,
+  forbiddenResponse,
   notFoundResponse,
   unauthorizedResponse,
   internalErrorResponse,
-} from '@/lib/auth';
+} from "@/lib/auth";
 import {
   checkRateLimit,
   rateLimitExceededResponse,
   getClientIP,
-} from '@/lib/security/rate-limiter';
-import { logAgentAction, AuditEventType } from '@/lib/security/audit';
-import { updateKarmaForVote, updateKarmaForVoteRemoval } from '@/lib/karma';
-import { z } from 'zod';
+} from "@/lib/security/rate-limiter";
+import { logAgentAction, AuditEventType } from "@/lib/security/audit";
+import { updateKarmaForVote, updateKarmaForVoteRemoval } from "@/lib/karma";
+import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -36,7 +37,7 @@ interface RouteParams {
 
 // Vote schema
 const VoteSchema = z.object({
-  vote: z.enum(['up']),
+  vote: z.enum(["up"]),
 });
 
 // ============================================================
@@ -49,15 +50,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'vote');
+    const rateCheck = await checkRateLimit(ip, "vote");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Authentication required
     const agent = await authenticateRequest(request);
     if (!agent) {
-      return unauthorizedResponse('Authentication required to vote');
+      return unauthorizedResponse("Authentication required to vote");
+    }
+    if (agent.moderationStatus !== "active") {
+      return forbiddenResponse("Resident action is not currently authorized");
     }
 
     // Parse body
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return badRequestResponse("Invalid JSON body");
     }
 
     const parseResult = VoteSchema.safeParse(body);
@@ -86,12 +90,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!comment) {
-      return notFoundResponse('Comment not found');
+      return notFoundResponse("Comment not found");
     }
 
     // Prevent self-voting
     if (comment.agentId === agent.id) {
-      return badRequestResponse('You cannot vote on your own comments');
+      return badRequestResponse("You cannot vote on your own comments");
     }
 
     // Check for existing vote
@@ -101,8 +105,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .where(and(eq(votes.agentId, agent.id), eq(votes.commentId, commentId)))
       .limit(1);
 
-    let action: 'added' | 'changed' | 'removed';
-    let newUserVote: 'up' | null;
+    let action: "added" | "changed" | "removed";
+    let newUserVote: "up" | null;
     let upvoteChange = 0;
 
     if (existingVote.length > 0) {
@@ -111,9 +115,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (currentVote.voteType === voteType) {
         // Same vote - toggle off
         await db.delete(votes).where(eq(votes.id, currentVote.id));
-        await updateKarmaForVoteRemoval(comment.agentId, voteType, 'comment');
+        await updateKarmaForVoteRemoval(comment.agentId, voteType, "comment");
 
-        action = 'removed';
+        action = "removed";
         newUserVote = null;
         upvoteChange = -1;
       } else {
@@ -126,11 +130,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await updateKarmaForVote(
           comment.agentId,
           voteType,
-          currentVote.voteType as 'up' | 'down',
-          'comment'
+          currentVote.voteType as "up" | "down",
+          "comment",
         );
 
-        action = 'changed';
+        action = "changed";
         newUserVote = voteType;
         upvoteChange = 1;
       }
@@ -142,9 +146,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         voteType,
       });
 
-      await updateKarmaForVote(comment.agentId, voteType, null, 'comment');
+      await updateKarmaForVote(comment.agentId, voteType, null, "comment");
 
-      action = 'added';
+      action = "added";
       newUserVote = voteType;
       upvoteChange = 1;
     }
@@ -175,10 +179,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action,
       },
     });
-
   } catch (error) {
-    console.error('Vote comment error:', error);
-    return internalErrorResponse('Failed to process vote');
+    console.error("Vote comment error:", error);
+    return internalErrorResponse("Failed to process vote");
   }
 }
 
@@ -190,9 +193,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

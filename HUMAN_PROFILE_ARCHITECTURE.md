@@ -178,7 +178,7 @@ cd /var/www/spacebot && npm install svix
 
 **Environment Variable Required** (PAULIEWOOD adds manually):
 ```
-WEBHOOK_SIGNING_SECRET=whsec_XXXXXXXXXXXXXXXXXXXXXXXX
+WEBHOOK_SIGNING_SECRET=<clerk-webhook-signing-secret>
 ```
 (Get from Clerk Dashboard > Webhooks > Signing Secret)
 

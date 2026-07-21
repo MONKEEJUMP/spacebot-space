@@ -19,8 +19,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { humans, humanProfiles, botActivity, profileTransmissions, topEight } from '@/db/schema';
-import { eq, and, ilike, desc, count } from 'drizzle-orm';
-import { checkRateLimit, getClientIP } from '@/lib/security/rate-limiter';
+import { eq, and, ilike, desc, count, sql } from 'drizzle-orm';
+import { checkRateLimit, getClientIP, rateLimitDeniedResponse } from '@/lib/security/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,9 +35,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // ── LAYER 1: Rate Limiting ──────────────────────────────────────────
     const rateLimit = await checkRateLimit(ip, 'humanDirectory');
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
-        { status: 429 }
+      return rateLimitDeniedResponse(rateLimit, () =>
+        NextResponse.json(
+          { success: false, error: 'Too many requests.', retryAfter: rateLimit.retryAfter },
+          { status: 429 }
+        )
       );
     }
 
@@ -137,11 +139,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         content: botActivity.content,
         title: botActivity.title,
         contentType: botActivity.contentType,
-        metadata: botActivity.metadata,
         createdAt: botActivity.createdAt,
       })
       .from(botActivity)
-      .where(eq(botActivity.activityType, 'buddy_wall_post'))
+      .where(and(
+        eq(botActivity.activityType, 'buddy_wall_post'),
+        sql`${botActivity.metadata} ->> 'user_id' = ${human.id}`,
+      ))
       .orderBy(desc(botActivity.createdAt))
       .limit(20);
 
@@ -210,7 +214,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         content: p.content,
         title: p.title,
         content_type: p.contentType || null,
-        metadata: p.metadata,
         created_at: p.createdAt,
       })),
     });

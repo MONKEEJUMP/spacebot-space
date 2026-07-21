@@ -1,0 +1,10 @@
+package.json
+public/skill.md
+scripts/PW7404-1020-verify-spacebot-release-integrity.ps1
+scripts/PW7404-1024-verify-agent-identity-contract.mjs
+src/lib/auth.ts
+src/lib/machine-auth.ts
+src/lib/security/agent-credential-auth.ts
+src/lib/security/agent-credential-input.ts
+src/lib/security/cors.ts
+src/lib/security/rate-limiter.ts

@@ -2,28 +2,24 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { tickerHeadlines } from "@/db/ticker-schema";
 import { desc, eq, and, inArray } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 import type { TickerHeadline } from "@/lib/ticker/types";
+import {
+  ALL_HOMEPAGE_TICKER_SOURCES,
+  BOTTOM_TICKER_SOURCES,
+  HOMEPAGE_TICKER_SOURCE_TARGET,
+  TOP_TICKER_SOURCES,
+} from "@/lib/ticker/homepage-contract";
+import {
+  compareHomepageHeadlines,
+  isHomepageEditorialPreferred,
+} from "@/lib/ticker/homepage-editorial";
+import { pickRotatingHeadlinesForSources } from "@/lib/ticker/homepage-selection";
 
 // Opt out of Next.js App Router response caching so the rotation counter
 // advances on every request instead of serving a cached payload.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-// Fixed alphabetical source split — 14 per ticker
-const TOP_TICKER_SOURCES: string[] = [
-  "AI News", "Ars Technica", "arXiv", "BBC Business", "BBC Science",
-  "BBC Tech", "BBC World", "Bloomberg Tech", "CNBC Tech", "CNET",
-  "Engadget", "Forbes Tech", "Google News", "Google News AI",
-];
-
-const BOTTOM_TICKER_SOURCES: string[] = [
-  "Hacker News", "HN AI", "Hugging Face Blog", "Inc. Magazine",
-  "MIT Tech Review", "NASA News", "NYT Tech", "r/artificial",
-  "r/LocalLLaMA", "r/MachineLearning", "TechCrunch", "The Verge",
-  "VentureBeat", "Wired",
-];
-
-const ALL_SOURCES = [...TOP_TICKER_SOURCES, ...BOTTOM_TICKER_SOURCES];
 
 type HeadlineRow = typeof tickerHeadlines.$inferSelect;
 
@@ -37,6 +33,7 @@ interface TickerState {
   cacheTimestamp: number;
 }
 
+// eslint-disable-next-line no-undef
 const globalWithTicker = globalThis as typeof globalThis & {
   [TICKER_STATE_KEY]?: TickerState;
 };
@@ -71,10 +68,12 @@ async function refreshCache(): Promise<void> {
   const rows = await db
     .select()
     .from(tickerHeadlines)
-    .where(and(
-      eq(tickerHeadlines.isActive, true),
-      inArray(tickerHeadlines.sourceName, ALL_SOURCES)
-    ))
+    .where(
+      and(
+        eq(tickerHeadlines.isActive, true),
+        inArray(tickerHeadlines.sourceName, ALL_HOMEPAGE_TICKER_SOURCES),
+      ),
+    )
     .orderBy(desc(tickerHeadlines.publishedAt));
 
   const map = new Map<string, HeadlineRow[]>();
@@ -83,39 +82,50 @@ async function refreshCache(): Promise<void> {
     list.push(row);
     map.set(row.sourceName, list);
   }
+
+  for (const sourceRows of map.values()) {
+    sourceRows.sort(compareHomepageHeadlines);
+  }
+
   tickerState.headlinesBySource = map;
   tickerState.cacheTimestamp = Date.now();
-}
-
-function pickForSource(source: string): TickerHeadline | null {
-  const headlines = tickerState.headlinesBySource?.get(source) ?? [];
-  if (headlines.length === 0) return null;
-  const current = tickerState.sourceCounters.get(source) ?? 0;
-  tickerState.sourceCounters.set(source, current + 1);
-  return mapRow(headlines[current % headlines.length]);
 }
 
 export async function GET() {
   try {
     const now = Date.now();
-    if (!tickerState.headlinesBySource || now - tickerState.cacheTimestamp > CACHE_TTL_MS) {
+    if (
+      !tickerState.headlinesBySource ||
+      now - tickerState.cacheTimestamp > CACHE_TTL_MS
+    ) {
       await refreshCache();
     }
 
-    const topTickerItems = TOP_TICKER_SOURCES
-      .map(pickForSource)
-      .filter((h): h is TickerHeadline => h !== null);
+    const headlinesBySource = tickerState.headlinesBySource ?? new Map();
+    const topTickerItems = pickRotatingHeadlinesForSources<HeadlineRow>(
+      TOP_TICKER_SOURCES,
+      headlinesBySource,
+      tickerState.sourceCounters,
+      HOMEPAGE_TICKER_SOURCE_TARGET,
+      isHomepageEditorialPreferred,
+    ).map(mapRow);
 
-    const bottomTickerItems = BOTTOM_TICKER_SOURCES
-      .map(pickForSource)
-      .filter((h): h is TickerHeadline => h !== null);
+    const bottomTickerItems = pickRotatingHeadlinesForSources<HeadlineRow>(
+      BOTTOM_TICKER_SOURCES,
+      headlinesBySource,
+      tickerState.sourceCounters,
+      HOMEPAGE_TICKER_SOURCE_TARGET,
+      isHomepageEditorialPreferred,
+    ).map(mapRow);
 
     return NextResponse.json({ topTickerItems, bottomTickerItems });
   } catch (error) {
-    console.error("[AiSpace] Ticker headlines fetch error:", error);
+    logger.error("Ticker headlines fetch error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { topTickerItems: [], bottomTickerItems: [] },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

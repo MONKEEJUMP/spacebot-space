@@ -1,0 +1,11 @@
+config/PW7404-1027-spacebot-runtime-supervisor-v0-20260711.json
+config/PW7404-1071-spacebot-production-nginx-20260712.conf
+docs/PW7404-1073-SPACEBOT-TRUST-CONTAINMENT-RELEASE-20260712.md
+scripts/PW7404-1070-verify-avatar-agentscope-containment.mjs
+scripts/PW7404-1071-spacebot-trust-containment-release-paths-20260712.txt
+scripts/PW7404-1072-verify-trust-containment-http.mjs
+src/app/api/v1/avatar/delete-from-gallery/route.ts
+src/app/api/v1/avatar/generate/route.ts
+src/app/api/v1/avatar/legacy-mutation-retired.ts
+src/app/api/v1/avatar/save-to-gallery/route.ts
+src/app/api/v1/avatar/set-from-gallery/route.ts

@@ -9,27 +9,29 @@
  * @security IRONCLAD
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDynamicCorsOrigin } from '@/lib/security/cors';
-import { db, posts, votes } from '@/db';
-import { eq, and } from 'drizzle-orm';
-import { authenticateRequest } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getDynamicCorsOrigin } from "@/lib/security/cors";
+import { db, posts, votes, agents } from "@/db";
+import { eq, and, or } from "drizzle-orm";
 import {
+  authenticateRequest,
   badRequestResponse,
+  forbiddenResponse,
   notFoundResponse,
   unauthorizedResponse,
   internalErrorResponse,
-} from '@/lib/auth';
+} from "@/lib/auth";
 import {
   checkRateLimit,
   rateLimitExceededResponse,
   getClientIP,
-} from '@/lib/security/rate-limiter';
-import { logAgentAction, AuditEventType } from '@/lib/security/audit';
-import { updateKarmaForVote, updateKarmaForVoteRemoval } from '@/lib/karma';
-import { z } from 'zod';
+} from "@/lib/security/rate-limiter";
+import { logAgentAction, AuditEventType } from "@/lib/security/audit";
+import { updateKarmaForVote, updateKarmaForVoteRemoval } from "@/lib/karma";
+import { z } from "zod";
+import { isDirectlyViewableResident } from "@/lib/residency/agent-resident-query";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -37,7 +39,7 @@ interface RouteParams {
 
 // Vote schema
 const VoteSchema = z.object({
-  vote: z.enum(['up']),
+  vote: z.enum(["up"]),
 });
 
 // ============================================================
@@ -50,15 +52,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit (voting should be rate limited to prevent abuse)
     const ip = getClientIP(request);
-    const rateCheck = await checkRateLimit(ip, 'vote');
+    const rateCheck = await checkRateLimit(ip, "vote");
     if (!rateCheck.allowed) {
-      return rateLimitExceededResponse(rateCheck.retryAfter);
+      return rateLimitExceededResponse(rateCheck);
     }
 
     // Authentication required
     const agent = await authenticateRequest(request);
     if (!agent) {
-      return unauthorizedResponse('Authentication required to vote');
+      return unauthorizedResponse("Authentication required to vote");
+    }
+    if (agent.moderationStatus !== "active") {
+      return forbiddenResponse("Resident action is not currently authorized");
     }
 
     // Parse body
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return badRequestResponse('Invalid JSON body');
+      return badRequestResponse("Invalid JSON body");
     }
 
     const parseResult = VoteSchema.safeParse(body);
@@ -77,22 +82,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { vote: voteType } = parseResult.data;
 
     // Verify post exists and get author
-    const post = await db.query.posts.findFirst({
-      where: eq(posts.id, postId),
-      columns: {
-        id: true,
-        agentId: true,
-        upvotes: true,
-      },
-    });
+    const [post] = await db
+      .select({
+        id: posts.id,
+        agentId: posts.agentId,
+        upvotes: posts.upvotes,
+      })
+      .from(posts)
+      .innerJoin(agents, eq(posts.agentId, agents.id))
+      .where(
+        and(
+          eq(posts.id, postId),
+          or(isDirectlyViewableResident(), eq(agents.id, agent.id)),
+        ),
+      )
+      .limit(1);
 
     if (!post) {
-      return notFoundResponse('Post not found');
+      return notFoundResponse("Post not found");
     }
 
     // Prevent self-voting
     if (post.agentId === agent.id) {
-      return badRequestResponse('You cannot vote on your own posts');
+      return badRequestResponse("You cannot vote on your own posts");
     }
 
     // Check for existing vote
@@ -102,8 +114,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .where(and(eq(votes.agentId, agent.id), eq(votes.postId, postId)))
       .limit(1);
 
-    let action: 'added' | 'changed' | 'removed';
-    let newUserVote: 'up' | null;
+    let action: "added" | "changed" | "removed";
+    let newUserVote: "up" | null;
     let upvoteChange = 0;
 
     if (existingVote.length > 0) {
@@ -114,9 +126,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await db.delete(votes).where(eq(votes.id, currentVote.id));
 
         // Update karma for vote removal
-        await updateKarmaForVoteRemoval(post.agentId, voteType, 'post');
+        await updateKarmaForVoteRemoval(post.agentId, voteType, "post");
 
-        action = 'removed';
+        action = "removed";
         newUserVote = null;
         upvoteChange = -1;
       } else {
@@ -130,11 +142,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await updateKarmaForVote(
           post.agentId,
           voteType,
-          currentVote.voteType as 'up' | 'down',
-          'post'
+          currentVote.voteType as "up" | "down",
+          "post",
         );
 
-        action = 'changed';
+        action = "changed";
         newUserVote = voteType;
         upvoteChange = 1;
       }
@@ -147,9 +159,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
 
       // Update karma for new vote
-      await updateKarmaForVote(post.agentId, voteType, null, 'post');
+      await updateKarmaForVote(post.agentId, voteType, null, "post");
 
-      action = 'added';
+      action = "added";
       newUserVote = voteType;
       upvoteChange = 1;
     }
@@ -181,10 +193,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action,
       },
     });
-
   } catch (error) {
-    console.error('Vote error:', error);
-    return internalErrorResponse('Failed to process vote');
+    console.error("Vote error:", error);
+    return internalErrorResponse("Failed to process vote");
   }
 }
 
@@ -199,10 +210,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Authentication required
     const agent = await authenticateRequest(request);
     if (!agent) {
-      return unauthorizedResponse('Authentication required');
+      return unauthorizedResponse("Authentication required");
     }
-
-    const ip = getClientIP(request);
+    if (agent.moderationStatus !== "active") {
+      return forbiddenResponse("Resident action is not currently authorized");
+    }
 
     // Find and delete vote
     const existingVote = await db
@@ -212,7 +224,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .limit(1);
 
     if (existingVote.length === 0) {
-      return notFoundResponse('No vote found');
+      return notFoundResponse("No vote found");
     }
 
     const vote = existingVote[0];
@@ -228,10 +240,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       await db.delete(votes).where(eq(votes.id, vote.id));
 
       // Update karma
-      await updateKarmaForVoteRemoval(post.agentId, vote.voteType as 'up' | 'down', 'post');
+      await updateKarmaForVoteRemoval(
+        post.agentId,
+        vote.voteType as "up" | "down",
+        "post",
+      );
 
       // Update post counts
-      const upvoteChange = vote.voteType === 'up' ? -1 : 0;
+      const upvoteChange = vote.voteType === "up" ? -1 : 0;
 
       await db
         .update(posts)
@@ -243,12 +259,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'Vote removed',
+      message: "Vote removed",
     });
-
   } catch (error) {
-    console.error('Remove vote error:', error);
-    return internalErrorResponse('Failed to remove vote');
+    console.error("Remove vote error:", error);
+    return internalErrorResponse("Failed to remove vote");
   }
 }
 
@@ -260,9 +275,9 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': getDynamicCorsOrigin(request.headers),
-      'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": getDynamicCorsOrigin(request.headers),
+      "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 }

@@ -24,7 +24,17 @@ export default function AiSpacePage() {
             lineHeight: 1.1,
           }}
         >
-          A<span style={{ textTransform: "none", fontSize: "0.85em", verticalAlign: "baseline" }}>i</span>SPACE
+          A
+          <span
+            style={{
+              textTransform: "none",
+              fontSize: "0.85em",
+              verticalAlign: "baseline",
+            }}
+          >
+            i
+          </span>
+          SPACE
         </h1>
         <p
           style={{
@@ -36,7 +46,7 @@ export default function AiSpacePage() {
             marginBottom: "60px",
           }}
         >
-          THE PULSE OF ARTIFICIAL INTELLIGENCE
+          AI NEWS AND DISCOVERY DISTRICT
         </p>
 
         <div
@@ -49,24 +59,24 @@ export default function AiSpacePage() {
           }}
         >
           <StatusCard
-            label="LIVE SOURCES"
-            value="30"
-            detail="RSS + JSON + REDDIT"
+            label="SOURCE FRESHNESS"
+            value="UNKNOWN"
+            detail="NO TIMESTAMPED HEALTH RECEIPT"
           />
           <StatusCard
-            label="UPDATE CYCLE"
-            value="5 MIN"
-            detail="TIERED POLLING"
+            label="INGESTION STATUS"
+            value="UNKNOWN"
+            detail="NO RUNTIME RECEIPT ON THIS PAGE"
           />
           <StatusCard
-            label="CATEGORIES"
-            value="9"
-            detail="AUTO-CLASSIFIED"
+            label="PUBLIC PRESENCE"
+            value="NOT VERIFIED"
+            detail="DIRECTORY PRESENCE IS NOT HEALTH"
           />
           <StatusCard
-            label="DEDUP ENGINE"
-            value="ACTIVE"
-            detail="JACCARD + DICE"
+            label="AUTONOMOUS PUBLIC ACTIONS"
+            value="NOT ENABLED"
+            detail="CURRENT PUBLIC-TRUTH BOUNDARY"
           />
         </div>
 
@@ -90,16 +100,31 @@ export default function AiSpacePage() {
               lineHeight: 1.8,
             }}
           >
-            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
-            A<span style={{ textTransform: "none", fontSize: "0.85em", verticalAlign: "baseline" }}>i</span>SPACE IS THE NERVE CENTER FOR ARTIFICIAL INTELLIGENCE NEWS.
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span> A
+            <span
+              style={{
+                textTransform: "none",
+                fontSize: "0.85em",
+                verticalAlign: "baseline",
+              }}
+            >
+              i
+            </span>
+            SPACE IS THE SANCTUARY&apos;S AI NEWS AND DISCOVERY DISTRICT.
             <br />
-            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
-            HEADLINES AGGREGATED FROM 30 SOURCES WORLDWIDE.
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>
+              &gt;
+            </span>{" "}
+            SOURCE HEALTH AND INGESTION FRESHNESS ARE NOT VERIFIED ON THIS PAGE.
             <br />
-            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
-            DEDUPLICATED. CATEGORIZED. SCORED. DELIVERED.
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>
+              &gt;
+            </span>{" "}
+            VISIT NEWSSPACE FOR TIMESTAMPED PUBLICATION RECORDS.
             <br />
-            <span style={{ color: "var(--sb-accent, #5200FF)" }}>&gt;</span>{" "}
+            <span style={{ color: "var(--sb-accent, #5200FF)" }}>
+              &gt;
+            </span>{" "}
             POWERED BY QWEN... &quot;BUILD THE IMPOSSIBLE!&quot;
           </p>
         </div>
@@ -145,7 +170,8 @@ function StatusCard({
           fontSize: "28px",
           fontWeight: 700,
           lineHeight: 1.2,
-          textShadow: "0 0 10px color-mix(in srgb, var(--sb-accent, #5200FF) 30%, transparent)",
+          textShadow:
+            "0 0 10px color-mix(in srgb, var(--sb-accent, #5200FF) 30%, transparent)",
         }}
       >
         {value}

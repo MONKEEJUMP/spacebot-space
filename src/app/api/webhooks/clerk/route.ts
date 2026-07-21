@@ -2,150 +2,130 @@ import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { humans, humanProfiles } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { humans } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { ensureVerifiedClerkHuman } from '@/lib/security/claiming-human';
+import { logger } from '@/lib/logger';
 
-const RESERVED_USERNAMES = new Set([
-  'build-avatar', 'profile', 'settings', 'admin', 'api',
-  'sign-in', 'sign-up', 'sanctuary', 'botspace', 'expertspace',
-  'peoplespace', 'lab', 'feed', 'themes', 'terminal',
-  'welcome', 'heartbeat', 'pricing', 'live', 'factions', 'humans',
-]);
+interface ClerkEmailAddress {
+  id: string;
+  email_address: string;
+  verification?: { status?: string };
+}
 
-async function generateUsername(name: string, email: string): Promise<string> {
-  const base = (name || email.split('@')[0])
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40) || 'user';
+interface ClerkUserPayload {
+  id: string;
+  primary_email_address_id?: string | null;
+  email_addresses?: ClerkEmailAddress[];
+  first_name?: string | null;
+  last_name?: string | null;
+}
 
-  let slug = base;
-  if (RESERVED_USERNAMES.has(slug)) {
-    slug = `${base}-1`;
-  }
+interface ClerkWebhookPayload {
+  type: string;
+  data: ClerkUserPayload;
+}
 
-  let suffix = 2;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const existing = await db
-      .select({ id: humans.id })
-      .from(humans)
-      .where(eq(humans.username, slug))
-      .limit(1);
-    if (existing.length === 0) break;
-    slug = `${base}-${suffix}`;
-    suffix++;
-  }
-
-  return slug;
+function getVerifiedPrimaryEmail(data: ClerkUserPayload): string | null {
+  if (!data.primary_email_address_id) return null;
+  const primary = data.email_addresses?.find(
+    (address) => address.id === data.primary_email_address_id
+  );
+  if (!primary || primary.verification?.status !== 'verified') return null;
+  return primary.email_address.trim().toLowerCase() || null;
 }
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.WEBHOOK_SIGNING_SECRET;
-  if (!WEBHOOK_SECRET) {
-    console.error('[Clerk Webhook] WEBHOOK_SIGNING_SECRET not configured');
+  const webhookSecret = process.env.WEBHOOK_SIGNING_SECRET;
+  if (!webhookSecret) {
+    logger.error('Clerk webhook secret is not configured');
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   }
 
-  // Get Svix verification headers
   const headerPayload = await headers();
   const svixId = headerPayload.get('svix-id');
   const svixTimestamp = headerPayload.get('svix-timestamp');
   const svixSignature = headerPayload.get('svix-signature');
-
   if (!svixId || !svixTimestamp || !svixSignature) {
     return NextResponse.json({ error: 'Missing svix headers' }, { status: 400 });
   }
 
-  // Verify webhook signature
-  const body = await req.text();
-  const wh = new Webhook(WEBHOOK_SECRET);
-  let evt: any;
-
+  let event: ClerkWebhookPayload;
   try {
-    evt = wh.verify(body, {
+    const verified = new Webhook(webhookSecret).verify(await req.text(), {
       'svix-id': svixId,
       'svix-timestamp': svixTimestamp,
       'svix-signature': svixSignature,
     });
-  } catch (err) {
-    console.error('[Clerk Webhook] Signature verification failed:', err);
+    event = verified as ClerkWebhookPayload;
+  } catch (error) {
+    logger.warn('Clerk webhook signature rejected', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const eventType = evt.type as string;
-  const data = evt.data;
-
   try {
-    if (eventType === 'user.created') {
-      const clerkId = data.id as string;
-      const email = (data.email_addresses?.[0]?.email_address || '') as string;
-      const firstName = (data.first_name || '') as string;
-      const lastName = (data.last_name || '') as string;
-      const fullName = `${firstName} ${lastName}`.trim() || email.split('@')[0];
+    if (event.type === 'user.created' || event.type === 'user.updated') {
+      const email = getVerifiedPrimaryEmail(event.data);
+      if (!email) {
+        logger.info('Clerk user deferred until primary email is verified', {
+          clerkId: event.data.id,
+          eventType: event.type,
+        });
+        return NextResponse.json({ received: true, deferred: true });
+      }
 
-      const username = await generateUsername(fullName, email);
-
-      const [newHuman] = await db
-        .insert(humans)
-        .values({
-          clerkId,
-          email,
-          name: fullName,
-          username,
-          passwordHash: '$2b$10$CLERK_MANAGED_AUTH_NO_PASSWORD',
-          isEmailVerified: true,
-          isPublic: true,
-        })
-        .returning({ id: humans.id });
-
-      await db.insert(humanProfiles).values({
-        humanId: newHuman.id,
+      const fullName = [event.data.first_name, event.data.last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      const identity = await ensureVerifiedClerkHuman({
+        clerkId: event.data.id,
+        email,
+        fullName,
       });
+      if (!identity.success) {
+        throw new Error(`Identity provisioning rejected (${identity.status}): ${identity.error}`);
+      }
 
-      console.log(`[Clerk Webhook] user.created: ${fullName} (@${username}) clerkId=${clerkId}`);
+      logger.info('Clerk human identity synchronized', {
+        clerkId: event.data.id,
+        eventType: event.type,
+        humanId: identity.humanId,
+      });
     }
 
-    if (eventType === 'user.updated') {
-      const clerkId = data.id as string;
-      const email = data.email_addresses?.[0]?.email_address as string | undefined;
-      const firstName = (data.first_name || '') as string;
-      const lastName = (data.last_name || '') as string;
-      const fullName = `${firstName} ${lastName}`.trim();
-
-      const updates: Record<string, any> = { updatedAt: new Date() };
-      if (email) updates.email = email;
-      if (fullName) updates.name = fullName;
-
+    if (event.type === 'user.deleted') {
+      // Preserve human-agent ownership and content. A future verified Clerk
+      // account must use an explicit recovery process; email reuse alone must
+      // never inherit the deleted identity's agents or billing access.
       await db
         .update(humans)
-        .set(updates)
-        .where(eq(humans.clerkId, clerkId));
-
-      console.log(`[Clerk Webhook] user.updated: clerkId=${clerkId} fields=${Object.keys(updates).join(',')}`);
-    }
-
-    if (eventType === 'user.deleted') {
-      const clerkId = data.id as string;
-
-      const [human] = await db
-        .select({ id: humans.id })
-        .from(humans)
-        .where(eq(humans.clerkId, clerkId))
-        .limit(1);
-
-      if (human) {
-        await db.delete(humanProfiles).where(eq(humanProfiles.humanId, human.id));
-        await db.delete(humans).where(eq(humans.clerkId, clerkId));
-        console.log(`[Clerk Webhook] user.deleted: clerkId=${clerkId} humanId=${human.id}`);
-      } else {
-        console.log(`[Clerk Webhook] user.deleted: clerkId=${clerkId} — no matching human found`);
-      }
+        .set({
+          clerkId: null,
+          email: sql`concat('deleted+', ${humans.id}::text, '@deleted.spacebot.invalid')`,
+          isEmailVerified: false,
+          isPublic: false,
+          emailVerificationToken: null,
+          emailVerificationExpiresAt: null,
+          passwordResetToken: null,
+          passwordResetExpiresAt: null,
+          tokenVersion: sql`${humans.tokenVersion} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(humans.clerkId, event.data.id));
+      logger.info('Deleted Clerk identity detached from preserved human record', {
+        clerkId: event.data.id,
+      });
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(`[Clerk Webhook] Error processing ${eventType}:`, error);
+    logger.error('Clerk webhook processing failed', {
+      error: error instanceof Error ? error.message : String(error),
+      eventType: event.type,
+    });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

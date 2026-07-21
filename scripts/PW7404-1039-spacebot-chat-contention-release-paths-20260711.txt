@@ -1,0 +1,13 @@
+package.json
+scripts/PW7404-1033-verify-public-chat-contract.mjs
+scripts/PW7404-1037-verify-chat-idempotency.mjs
+scripts/PW7404-1038-verify-chat-admission-contention.mjs
+scripts/PW7404-1039-spacebot-chat-contention-release-paths-20260711.txt
+src/app/api/chat/route.ts
+src/app/api/chat/stream/route.ts
+src/lib/chat/chat-conversation-repository.ts
+src/lib/chat/public-chat-contract.fixtures.ts
+src/lib/chat/public-chat-contract.ts
+src/lib/lucy/cycle-coordinator.ts
+src/lib/lucy/cycle-repository.ts
+src/lib/lucy/public-cycle-admission.ts
